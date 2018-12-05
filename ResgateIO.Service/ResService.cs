@@ -37,7 +37,7 @@ namespace ResgateIO.Service
         /// <param name="name">Name of the service. The name must be a non-empty alphanumeric string with no embedded whitespace.</param>
         public ResService(string name)
         {
-            this.Name = name;
+            Name = name;
         }
 
         /// <summary>
@@ -51,11 +51,16 @@ namespace ResgateIO.Service
         /// If the pattern is already registered, or if there are conflicts among
         /// the handlers, an exception will be thrown.
         /// </summary>
+        /// <remarks>The handler must not implement the ICollectionHandler.</remarks>
         /// <param name="pattern">Resource pattern</param>
         /// <param name="handler">Model handler</param>
         public void MapHandler(String pattern, IModelHandler handler)
         {
-            patterns.Add(pattern, handler);
+            if (handler is ICollectionHandler)
+            {
+                throw new ArgumentException("Handler must not implement both IModelHandler and ICollectionHandler");
+            }
+            patterns.Add(Name + "." + pattern, handler);
         }
 
         /// <summary>
@@ -69,15 +74,20 @@ namespace ResgateIO.Service
         /// If the pattern is already registered, or if there are conflicts among
         /// the handlers, an exception will be thrown.
         /// </summary>
+        /// <remarks>The handler must not implement the IModelHandler.</remarks>
         /// <param name="pattern">Resource pattern</param>
         /// <param name="handler">Collection handler</param>
         public void MapHandler(String pattern, ICollectionHandler handler)
         {
-            patterns.Add(pattern, handler);
+            if (handler is IModelHandler)
+            {
+                throw new ArgumentException("Handler must not implement both IModelHandler and ICollectionHandler");
+            }
+            patterns.Add(Name + "." + pattern, handler);
         }
 
         /// <summary>
-        /// Serve subscribes to incoming requests on the IConnection, serving them on
+        /// Subscribes to incoming requests on the IConnection, serving them on
         /// a single thread in the order they are received. For each request,
         /// it calls the appropriate handler method.
         /// </summary>
@@ -92,6 +102,31 @@ namespace ResgateIO.Service
                 state = State.Starting;
             }
 
+            serve(conn);
+        }
+
+        /// <summary>
+        /// Connects to the NATS server at the url. Once connected,
+        /// it subscribes to incoming requests and serves them on a single thread
+        /// in the order they are received. For each request, it calls the appropriate
+        /// handler method.
+        ///
+        /// In case of disconnect, it will try to reconnect until Close is called,
+        /// or until successfully reconnecting, upon which Reset will be called.
+        /// </summary>
+        /// <param name="url">URL to NATS Server.</param>
+        public void Serve(string url) {
+            lock (stateLock)
+            {
+                if (state != State.Stopped)
+                {
+                    throw new Exception("Service is not stopped.");
+                }
+                state = State.Starting;
+            }
+
+            ConnectionFactory cf = new ConnectionFactory();
+            IConnection conn = cf.CreateConnection(url);
             serve(conn);
         }
 
