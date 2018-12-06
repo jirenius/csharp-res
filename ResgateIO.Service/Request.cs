@@ -7,7 +7,7 @@ using Newtonsoft.Json.Linq;
 
 namespace ResgateIO.Service
 {
-    public class Request: Resource, IAccessRequest, IModelRequest, ICollectionRequest
+    public class Request: Resource, IAccessRequest, IModelRequest, ICollectionRequest, ICallRequest, IAuthRequest
     {
         private readonly Msg msg;
 
@@ -31,13 +31,13 @@ namespace ResgateIO.Service
         /// JSON encoded method parameters, or nil if the request had no parameters.
         /// This property is not set for RequestType.Access and RequestType.Get.
         /// </summary>
-        public JRaw RawParams { get; }
+        public JToken RawParams { get; }
 
         /// <summary>
         /// JSON encoded access token, or nil if the request had no token.
         /// This property is not set for RequestType.Get.
         /// </summary>
-        public JRaw RawToken { get; }
+        public JToken RawToken { get; }
 
         /// <summary>
         /// HTTP headers sent by client on connect.
@@ -90,8 +90,8 @@ namespace ResgateIO.Service
             IResourceHandler handler,
             Dictionary<string, string> pathParams,
             string cid,
-            JRaw rawParams,
-            JRaw rawToken,
+            JToken rawParams,
+            JToken rawToken,
             Dictionary<string, string[]> header,
             string host,
             string remoteAddr,
@@ -128,25 +128,41 @@ namespace ResgateIO.Service
             }
             replied = true;
             Console.WriteLine("<== {0}: {1}", msg.Subject, Encoding.UTF8.GetString(data));
-            RawSend(msg.Reply, data);
+            Service.RawSend(msg.Reply, data);
+        }
+
+
+        /// <summary>
+        /// Sends a successful empty response to a request.
+        /// </summary>
+        public void Ok()
+        {
+            RawResponse(ResService.ResponseSuccess);
         }
 
         /// <summary>
         /// Sends a successful response to a request.
         /// </summary>
         /// <param name="result">Result object. May be null.</param>
-        public void Success(object result)
+        public void Ok(object result)
         {
-            try
+            if (result == null)
             {
-                byte[] data = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new SuccessDto(result)));
-                RawResponse(data);
+                RawResponse(ResService.ResponseSuccess);
             }
-            catch (Exception ex)
+            else
             {
-                Console.WriteLine("Error serializing success response: {0}" + ex.Message);
-                Error(new ResError(ex));
-            }            
+                try
+                {
+                    byte[] data = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new SuccessDto(result)));
+                    RawResponse(data);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error serializing success response: {0}" + ex.Message);
+                    Error(new ResError(ex));
+                }
+            }
         }
 
         /// <summary>
@@ -225,7 +241,7 @@ namespace ResgateIO.Service
             }
             else
             {
-                Success(new AccessDto(get, call));
+                Ok(new AccessDto(get, call));
             }
         }
 
@@ -273,7 +289,7 @@ namespace ResgateIO.Service
                 throw new ArgumentException("Query model response on non-query request");
             }
 
-            Success(new ModelDto(model, query));
+            Ok(new ModelDto(model, query));
         }
 
         /// <summary>
@@ -301,7 +317,7 @@ namespace ResgateIO.Service
                 throw new ArgumentException("Query collection response on non-query request");
             }
 
-            Success(new CollectionDto(collection, query));
+            Ok(new CollectionDto(collection, query));
         }
 
         internal void ExecuteHandler()
@@ -334,6 +350,30 @@ namespace ResgateIO.Service
                         }
                         break;
 
+                    case RequestType.Call:
+                        if (Handler is ICallHandler callHandler)
+                        {
+                            callHandler.Call(this);
+                        }
+                        
+                        if (!replied)
+                        {
+                            MethodNotFound();
+                        }
+                        break;
+
+                    case RequestType.Auth:
+                        if (Handler is IAuthHandler authHandler)
+                        {
+                            authHandler.Auth(this);
+                        }
+
+                        if (!replied)
+                        {
+                            MethodNotFound();
+                        }
+                        break;
+
                     default:
                         Console.WriteLine("Unknown request type: {0}", msg.Subject);
                         return;
@@ -358,6 +398,22 @@ namespace ResgateIO.Service
 
                 Console.WriteLine("Error handling request {0}: {1}", msg.Subject, ex.Message);
             }
+        }
+
+        /// <summary>
+        /// Deserializes the parameters into an object of type T.
+        /// </summary>
+        /// <remarks>Only valid for RequestType.Call and RequestType.Auth requests.</remarks>
+        /// <typeparam name="T">Type to parse the parameters into.</typeparam>
+        /// <returns>An object with the parameters.</returns>
+        public T ParseParams<T>()
+        {
+            if (RawParams == null)
+            {
+                return default(T);
+            }
+
+            return RawParams.ToObject<T>();
         }
     }
 }

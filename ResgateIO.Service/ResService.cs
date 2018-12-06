@@ -30,7 +30,8 @@ namespace ResgateIO.Service
         internal static readonly byte[] ResponseInvalidParams = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.invalidParams\",\"message\":\"Invalid parameters\"}}");
         internal static readonly byte[] ResponseMissingResponse = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.internalError\",\"message\":\"Internal error: missing response\"}}");
         internal static readonly byte[] ResponseAccessGranted = Encoding.UTF8.GetBytes("{\"result\":{\"get\":true,\"call\":\"*\"}}");
-        
+        internal static readonly byte[] ResponseSuccess = Encoding.UTF8.GetBytes("{\"result\":null}");
+
         /// <summary>
         /// Creates a new ResService
         /// </summary>
@@ -41,7 +42,7 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
-        /// Registers a model handler for the given resource pattern.
+        /// Registers a handler for the given resource pattern.
         ///
         /// A pattern may contain placeholders that acts as wildcards, and will be
         /// parsed and stored in the request.PathParams map.
@@ -53,33 +54,10 @@ namespace ResgateIO.Service
         /// </summary>
         /// <remarks>The handler must not implement the ICollectionHandler.</remarks>
         /// <param name="pattern">Resource pattern</param>
-        /// <param name="handler">Model handler</param>
-        public void MapHandler(String pattern, IModelHandler handler)
+        /// <param name="handler">Resource handler</param>
+        public void MapHandler(String pattern, IResourceHandler handler)
         {
-            if (handler is ICollectionHandler)
-            {
-                throw new ArgumentException("Handler must not implement both IModelHandler and ICollectionHandler");
-            }
-            patterns.Add(Name + "." + pattern, handler);
-        }
-
-        /// <summary>
-        /// Registers a collection handler for the given resource pattern.
-        ///
-        /// A pattern may contain placeholders that acts as wildcards, and will be
-        /// parsed and stored in the request.PathParams map.
-        /// A placeholder is a resource name part starting with a dollar ($) character:
-        ///   s.MapHandler("user.$id", handler) // Will match "user.10", "user.foo", etc.
-        ///
-        /// If the pattern is already registered, or if there are conflicts among
-        /// the handlers, an exception will be thrown.
-        /// </summary>
-        /// <remarks>The handler must not implement the IModelHandler.</remarks>
-        /// <param name="pattern">Resource pattern</param>
-        /// <param name="handler">Collection handler</param>
-        public void MapHandler(String pattern, ICollectionHandler handler)
-        {
-            if (handler is IModelHandler)
+            if (handler is ICollectionHandler && handler is IModelHandler)
             {
                 throw new ArgumentException("Handler must not implement both IModelHandler and ICollectionHandler");
             }
@@ -217,6 +195,75 @@ namespace ResgateIO.Service
                     rwork.Add(resourceName, work);
                     ThreadPool.QueueUserWorkItem(new WaitCallback(processWork), work);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Sends a connection token event that sents the connection's access token,
+        /// discarding any previously set token.
+        /// A change of token will invalidate any previous access response received using the old token.
+        /// </summary>
+        /// <remarks>
+        /// See the protocol specification for more information:
+        ///    https://github.com/jirenius/resgate/blob/master/docs/res-service-protocol.md#connection-token-event
+        /// </remarks>
+        /// <param name="cid">Connection ID</param>
+        /// <param name="token">Access token. A null token clears any previously set token</param>
+        public void ConnectionTokenEvent(string cid, object token)
+        {
+            Send("conn." + cid + ".token", token);
+        }
+
+        /// <summary>
+        /// Sends a system.reset event to trigger any gateway to invalidate their cache for this service
+        /// and request the resource anew.
+        /// </summary>
+        /// <remarks>
+        /// See the protocol specification for more information:
+        ///    https://github.com/jirenius/resgate/blob/master/docs/res-service-protocol.md#system-reset-event
+        /// </remarks>
+        public void Reset()
+        {
+            // TODO: Reset should be based on actual registered patterns
+            // instead of wildcarded on the service name.
+            Send("system.reset", new SystemResetDto(Name + ".>", Name + ".>"));
+        }
+
+        /// <summary>
+        /// Sends a raw data message to NATS server on a given subject,
+        /// logging any exception.
+        /// </summary>
+        /// <param name="subject">Message subject</param>
+        /// <param name="data">Message JSON encoded data</param>
+        internal void RawSend(string subject, byte[] data)
+        {
+            try
+            {
+                Connection.Publish(subject, data);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error sending message {0}: {1}", subject, ex.Message);
+            }
+        }
+
+
+        /// <summary>
+        /// Sends a message to NATS server on a given subject,
+        /// logging any exception.
+        /// </summary>
+        /// <param name="subject">Message subject</param>
+        /// <param name="payload">Message payload</param>
+        internal void Send(string subject, object payload)
+        {
+            try
+            {
+                byte[] data = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(payload));
+                RawSend(subject, data);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error serializing event payload for {0}: {1}", subject, ex.Message);
             }
         }
 

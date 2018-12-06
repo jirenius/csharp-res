@@ -3,12 +3,8 @@ using System.Collections.Generic;
 
 namespace ResgateIO.Service
 {
-    public interface IAccessRequest
+    public interface IAccessRequest : IResourceRequest
     {
-        string ResourceName { get; }
-        Dictionary<string, string> PathParams { get; }
-        string Query { get; }
-
         /// <summary>
         /// Connection ID of the requesting client connection.
         /// </summary>
@@ -17,7 +13,7 @@ namespace ResgateIO.Service
         /// <summary>
         /// JSON encoded access token, or nil if the request had no token.
         /// </summary>
-        JRaw RawToken { get; }
+        JToken RawToken { get; }
 
         /// <summary>
         /// Sends a successful response for the access request.

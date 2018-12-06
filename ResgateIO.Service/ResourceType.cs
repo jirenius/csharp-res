@@ -4,8 +4,10 @@ using System.Text;
 
 namespace ResgateIO.Service
 {
-    public interface IResourceHandler
+    public enum ResourceType
     {
-        
+        Unknown,
+        Model,
+        Collection
     }
 }

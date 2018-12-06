@@ -2,16 +2,17 @@
 
 namespace ResgateIO.Service
 {
-    public interface ICollectionRequest
+    public interface ICollectionRequest : IResourceRequest
     {
-        string ResourceName { get; }
-        Dictionary<string, string> PathParams { get; }
-        string Query { get; }
-
         /// <summary>
         /// Sends a successful collection response for the get request.
-        /// The collection must be serializable into a JSON array.
         /// </summary>
+        /// <remarks>
+        /// The collection must be serializable into a JSON array with items that
+        /// must be serializable into JSON primitives or resource references.
+        /// See the protocol specification for more information:
+        ///    https://github.com/jirenius/resgate/blob/master/docs/res-protocol.md#collections
+        /// </remarks>
         /// <param name="collection">Collection data.</param>
         void Collection(object collection);
 

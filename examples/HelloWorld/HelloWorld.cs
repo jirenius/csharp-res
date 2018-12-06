@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Hosting;
+﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using ResgateIO.Service;
+using System.IO;
 
 namespace HelloWorld
 {
@@ -23,11 +25,12 @@ namespace HelloWorld
 
         static void StartWebserver()
         {
-            IWebHost host = new WebHostBuilder()
-               .UseKestrel()
-               .UseStartup<Startup>()
-               .UseUrls("http://localhost:8081")
-               .Build();
+            var host = new WebHostBuilder()
+                .UseKestrel()
+                .UseWebRoot(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"))
+                .Configure(x => x.UseFileServer())
+                .UseUrls("http://localhost:8081")
+                .Build();
             host.RunAsync();
         }
     }
