@@ -12,7 +12,7 @@ namespace BookCollection
         {
             // Start a simple webserver to serve the client.
             // This is only for the purpose of making the example easier to run.
-            var host = StartWebserver();
+            StartWebserver();
 
             // Create a new RES Service
             ResService service = new ResService("library");
@@ -27,10 +27,9 @@ namespace BookCollection
             // Wait for enter and then stop
             Console.ReadLine();
             service.Shutdown();
-            host.StopAsync();
         }
 
-        static IWebHost StartWebserver()
+        static void StartWebserver()
         {
             var host = new WebHostBuilder()
                 .UseKestrel()
@@ -39,7 +38,6 @@ namespace BookCollection
                 .UseUrls("http://localhost:8082")
                 .Build();
             host.RunAsync();
-            return host;
         }
     }
 }
