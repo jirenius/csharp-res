@@ -162,13 +162,17 @@ namespace ResgateIO.Service
         {
             string token = tokens[pathIdx];
             pathIdx++;
-            bool found = current.Nodes.TryGetValue(token, out Node next);
+            Node next = null;
+            if (current.Nodes != null)
+            {
+                current.Nodes.TryGetValue(token, out next);
+            }            
             int c = 2; // A counter to run the code below twice
 
             while (c > 0)
             {
                 // Does the node exist
-                if (found)
+                if (next != null)
                 {
                     // Check if it is the last token
                     if (tokens.Length == pathIdx)

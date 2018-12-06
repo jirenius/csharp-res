@@ -69,16 +69,10 @@ namespace ResgateIO.Service
 
         public Request(
             ResService service,
-            Msg msg, string rtype,
-            string rname,
-            string method,
-            IResourceHandler handler,
-            Dictionary<string, string> pathParams)
-            : base(service, rname, handler, pathParams, null)
+            Msg msg)
+            : base(service)
         {
             this.msg = msg;
-            this.Type = RequestTypeHelper.FromString(rtype);
-            this.Method = method;
         }
 
         public Request(

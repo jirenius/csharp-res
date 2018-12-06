@@ -39,6 +39,11 @@ namespace ResgateIO.Service
             }
         }
 
+        public Resource(ResService service)
+        {
+            Service = service;
+        }
+
         /// <summary>
         /// Sends a change event.
         /// If properties is null or empty, no event is sent.

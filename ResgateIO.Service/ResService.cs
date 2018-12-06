@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using NATS.Client;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace ResgateIO.Service
 {
@@ -21,6 +22,8 @@ namespace ResgateIO.Service
         private readonly PatternTree patterns = new PatternTree();
 
         public String Name { get; }
+
+        public static readonly JRaw DeleteAction = new JRaw("{\"action\":\"delete\"}");
 
         // Predefined raw data responses
         internal static readonly byte[] ResponseAccessDenied = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.accessDenied\",\"message\":\"Access denied\"}}");
@@ -345,7 +348,9 @@ namespace ResgateIO.Service
             // Check if there is no matching handler
             if (match == null)
             {
-                throw new NotImplementedException();
+                req = new Request(this, msg);
+                req.NotFound();
+                return;
             }
 
             try
@@ -371,7 +376,7 @@ namespace ResgateIO.Service
             catch(Exception ex)
             {
                 Console.WriteLine("Error deserializing incoming request: %s", Encoding.UTF8.GetString(msg.Data));
-                req = new Request(this, msg, rtype, rname, method, match.Handler, match.Params);
+                req = new Request(this, msg);
                 req.Error(new ResError(ex));
                 return;
             }
