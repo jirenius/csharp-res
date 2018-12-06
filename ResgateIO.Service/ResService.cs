@@ -103,9 +103,40 @@ namespace ResgateIO.Service
                 state = State.Starting;
             }
 
-            ConnectionFactory cf = new ConnectionFactory();
-            IConnection conn = cf.CreateConnection(url);
+            Options opts = ConnectionFactory.GetDefaultOptions();
+            opts.Url = url;
+            opts.Name = Name;
+            opts.AllowReconnect = true;
+            opts.MaxReconnect = Options.ReconnectForever;
+            opts.ReconnectedEventHandler += handleReconnect;
+            opts.DisconnectedEventHandler += handleDisconnect;
+            opts.ClosedEventHandler += handleClosed;
+
+            IConnection conn = new ConnectionFactory().CreateConnection(opts);
             serve(conn);
+        }
+
+        /// <summary>
+        /// Closes any existing connection to NATS Server.
+        /// Does nothing if service isn't started.
+        /// </summary>
+        public void Shutdown()
+        {
+            lock (stateLock)
+            {
+                if (state != State.Started)
+                {
+                    return;
+                }
+                state = State.Stopping;
+            }
+            Console.WriteLine("Stopping service...");
+
+            close();
+            // TODO: Wait for all the threads to be done
+
+            state = State.Stopped;
+            Console.WriteLine("Stopped");
         }
 
         private void serve(IConnection conn)
@@ -118,7 +149,23 @@ namespace ResgateIO.Service
                 state = State.Started;
             }
 
-            subscribe();
+            try
+            {
+                subscribe();
+                // Always start with a reset
+                Reset();
+                Console.WriteLine("Listening for requests");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Failed to subscribe: {0}" + ex.Message);
+                close();
+            }
+        }
+
+        private void close()
+        {
+            Connection.Close();
         }
 
         private void subscribe()
@@ -226,7 +273,7 @@ namespace ResgateIO.Service
         {
             // TODO: Reset should be based on actual registered patterns
             // instead of wildcarded on the service name.
-            Send("system.reset", new SystemResetDto(Name + ".>", Name + ".>"));
+            Send("system.reset", new SystemResetDto(new string[] { Name + ".>" }, new string[] { Name + ".>" }));
         }
 
         /// <summary>
@@ -247,7 +294,6 @@ namespace ResgateIO.Service
             }
         }
 
-
         /// <summary>
         /// Sends a message to NATS server on a given subject,
         /// logging any exception.
@@ -258,7 +304,9 @@ namespace ResgateIO.Service
         {
             try
             {
-                byte[] data = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(payload));
+                string json = JsonConvert.SerializeObject(payload);
+                byte[] data = Encoding.UTF8.GetBytes(json);
+                Console.WriteLine("<-- {0}: {1}", subject, json);
                 RawSend(subject, data);
             }
             catch (Exception ex)
@@ -337,5 +385,22 @@ namespace ResgateIO.Service
             using (var reader = new StreamReader(stream, Encoding.UTF8))
                 return JsonSerializer.Create().Deserialize(reader, typeof(T)) as T;
         }
+
+        private void handleReconnect(object sender, ConnEventArgs args)
+        {
+            Console.WriteLine("Reconnected to NATS. Sending reset event.");
+            Reset();
+        }
+
+        private void handleDisconnect(object sender, ConnEventArgs args)
+        {
+            Console.WriteLine("Lost connection to NATS.");
+        }
+
+        private void handleClosed(object sender, ConnEventArgs args)
+        {
+            Shutdown();
+        }
+
     }
 }
