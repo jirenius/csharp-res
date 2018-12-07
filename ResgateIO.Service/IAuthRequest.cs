@@ -91,5 +91,12 @@ namespace ResgateIO.Service
         /// <typeparam name="T">Type to parse the parameters into.</typeparam>
         /// <returns>An object with the parameters.</returns>
         T ParseParams<T>();
+
+        /// <summary>
+        /// Deserializes the token into an object of type T.
+        /// </summary>
+        /// <typeparam name="T">Type to parse the token into.</typeparam>
+        /// <returns>Parsed token object.</returns>
+        T ParseToken<T>();
     }
 }

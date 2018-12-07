@@ -46,5 +46,12 @@ namespace ResgateIO.Service
         /// Sends a system.notFound response.
         /// </summary>
         void NotFound();
+
+        /// <summary>
+        /// Deserializes the token into an object of type T.
+        /// </summary>
+        /// <typeparam name="T">Type to parse the token into.</typeparam>
+        /// <returns>Parsed token object.</returns>
+        T ParseToken<T>();
     }
 }

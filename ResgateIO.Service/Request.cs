@@ -409,5 +409,21 @@ namespace ResgateIO.Service
 
             return RawParams.ToObject<T>();
         }
+
+        /// <summary>
+        /// Deserializes the token into an object of type T.
+        /// </summary>
+        /// <remarks>Not valid for RequestType.Get requests.</remarks>
+        /// <typeparam name="T">Type to parse the token into.</typeparam>
+        /// <returns>Parsed token object.</returns>
+        public T ParseToken<T>()
+        {
+            if (RawToken == null)
+            {
+                return default(T);
+            }
+
+            return RawToken.ToObject<T>();
+        }
     }
 }

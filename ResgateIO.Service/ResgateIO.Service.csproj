@@ -5,6 +5,9 @@
     <Version>0.1.0</Version>
     <Authors>Samuel Jirenius</Authors>
     <Company>Resgate.io</Company>
+    <Description>RES service library for building realtime web services using Resgate.</Description>
+    <RepositoryType></RepositoryType>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
