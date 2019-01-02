@@ -113,7 +113,7 @@ namespace ResgateIO.Service
         /// See the protocol specification for more information:
         ///    https://github.com/jirenius/resgate/blob/master/docs/res-service-protocol.md#reaccess-event
         /// </remarks>
-        public void ReaccessEvent(int idx)
+        public void ReaccessEvent()
         {
             sendEvent("reaccess", null);
         }

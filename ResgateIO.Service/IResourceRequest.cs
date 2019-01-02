@@ -43,6 +43,7 @@ namespace ResgateIO.Service
         /// Throws an exception if the resource is not of ResourceType.Collection.
         /// </summary>
         /// <remarks>
+        /// The value must be serializable into a JSON primitive or resource reference.
         /// See the protocol specification for more information:
         ///    https://github.com/jirenius/resgate/blob/master/docs/res-service-protocol.md#collection-add-event
         /// </remarks>
@@ -51,7 +52,7 @@ namespace ResgateIO.Service
         void AddEvent(object value, int idx);
 
         /// <summary>
-        /// Sends an remove event, removing the value at index idx.
+        /// Sends a remove event, removing the value at index idx.
         /// Throws an exception if the resource is not of ResourceType.Collection.
         /// </summary>
         /// <remarks>
@@ -69,6 +70,6 @@ namespace ResgateIO.Service
         /// See the protocol specification for more information:
         ///    https://github.com/jirenius/resgate/blob/master/docs/res-service-protocol.md#reaccess-event
         /// </remarks>
-        void ReaccessEvent(int idx);
+        void ReaccessEvent();
     }
 }

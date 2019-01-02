@@ -18,7 +18,7 @@ namespace HelloWorld
         public void Get(IModelRequest request)
         {
             // Respond to get requests with the model
-            request.Model(myModel);    
+            request.Model(myModel);
         }
 
         public void Access(IAccessRequest request)

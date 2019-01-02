@@ -407,6 +407,7 @@ namespace ResgateIO.Service
                 return default(T);
             }
 
+            // TODO Catch exceptions and wrap them in a system.invalidParams exception.
             return RawParams.ToObject<T>();
         }
 
