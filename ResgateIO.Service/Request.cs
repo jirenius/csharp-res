@@ -426,5 +426,22 @@ namespace ResgateIO.Service
 
             return RawToken.ToObject<T>();
         }
+
+        /// <summary>
+        /// Sends a connection token event that sets the connection's access token,
+        /// discarding any previously set token.
+        /// A change of token will invalidate any previous access response received using the old token.
+        /// </summary>
+        /// <remarks>
+        /// To set the connection token for a different connection ID, use ResService.ConnectionTokenEvent.
+        /// Only valid for RequestType.Auth requests.
+        /// See the protocol specification for more information:
+        ///    https://github.com/jirenius/resgate/blob/master/docs/res-service-protocol.md#connection-token-event
+        /// </remarks>
+        /// <param name="token">Access token. A null token clears any previously set token.</param>
+        public void ConnectionTokenEvent(object token)
+        {
+            Service.Send("conn." + CID + ".token", new TokenEventDto(token));
+        }
     }
 }

@@ -249,7 +249,7 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
-        /// Sends a connection token event that sents the connection's access token,
+        /// Sends a connection token event that sets the connection's access token,
         /// discarding any previously set token.
         /// A change of token will invalidate any previous access response received using the old token.
         /// </summary>
@@ -258,10 +258,10 @@ namespace ResgateIO.Service
         ///    https://github.com/jirenius/resgate/blob/master/docs/res-service-protocol.md#connection-token-event
         /// </remarks>
         /// <param name="cid">Connection ID</param>
-        /// <param name="token">Access token. A null token clears any previously set token</param>
+        /// <param name="token">Access token. A null token clears any previously set token.</param>
         public void ConnectionTokenEvent(string cid, object token)
         {
-            Send("conn." + cid + ".token", token);
+            Send("conn." + cid + ".token", new TokenEventDto(token));
         }
 
         /// <summary>
