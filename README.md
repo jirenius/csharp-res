@@ -9,10 +9,21 @@
 </p>
 
 ---
+
 C# library implementing the RES-Service Protocol. Used to create REST, real time, and RPC APIs, where all your clients are synchronized seamlessly through [Resgate](https://github.com/jirenius/resgate).
 
-
 Visit [Resgate.io](https://resgate.io) for more information.
+
+## Examples
+
+| Example | Description
+| --- | ---
+| [Hello World](examples/HelloWorld/) | Single text field that is updated in real time.
+| [Book Collection](examples/BookCollection/) | List of book titles & authors that can be edited by many.
+
+> **Note**
+>
+> Above examples are complete with both service and client.
 
 ## Credits
 
