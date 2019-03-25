@@ -64,7 +64,7 @@ namespace ResgateIO.Service
             }
             if (properties != null && properties.Count > 0)
             {
-                sendEvent("change", properties);
+                sendEvent("change", new ChangeEventDto(properties));
             }
         }
 

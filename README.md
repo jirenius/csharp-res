@@ -1,13 +1,18 @@
-# RES service library for C#
+<p align="center"><a href="https://resgate.io" target="_blank" rel="noopener noreferrer"><img width="100" src="https://resgate.io/img/resgate-logo.png" alt="Resgate logo"></a></p>
 
-A C# library implementing the RES-Service protocol for [Resgate - Real-time API Gateway](https://github.com/jirenius/resgate).  
-When you want to create stateless REST API services but need to have all your resources updated in real time on your reactive web clients.
 
-All resources and methods served by RES services are made accessible through [Resgate](https://github.com/jirenius/resgate) in two ways:
-* Ordinary HTTP requests
-* Over WebSocket using [ResClient](https://www.npmjs.com/package/resclient)
+<h2 align="center"><b>RES Service for C#</b><br/>Synchronize Your Clients</h2>
+</p>
 
-With ResClient, all resources will be updated in real time, without having to write a single line of client code to handle specific events. It just works.
+<p align="center">
+<a href="http://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
+</p>
+
+---
+C# library implementing the RES-Service Protocol. Used to create REST, real time, and RPC APIs, where all your clients are synchronized seamlessly through [Resgate](https://github.com/jirenius/resgate).
+
+
+Visit [Resgate.io](https://resgate.io) for more information.
 
 ## Credits
 
