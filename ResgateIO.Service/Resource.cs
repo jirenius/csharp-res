@@ -53,7 +53,7 @@ namespace ResgateIO.Service
         /// The values must be serializable into JSON primitives, resource references,
         /// or a delete action objects.
         /// See the protocol specification for more information:
-        ///    https://github.com/jirenius/resgate/blob/master/docs/res-service-protocol.md#model-change-event
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#model-change-event
         /// </remarks>
         /// <param name="properties">Properties that has been changed with their new values.</param>
         public void ChangeEvent(Dictionary<string, object> properties)
@@ -74,7 +74,7 @@ namespace ResgateIO.Service
         /// </summary>
         /// <remarks>
         /// See the protocol specification for more information:
-        ///    https://github.com/jirenius/resgate/blob/master/docs/res-service-protocol.md#collection-add-event
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#collection-add-event
         /// </remarks>
         /// <param name="value">Value that has been added.</param>
         /// <param name="idx">Index position where the value has been added.</param>
@@ -93,7 +93,7 @@ namespace ResgateIO.Service
         /// </summary>
         /// <remarks>
         /// See the protocol specification for more information:
-        ///    https://github.com/jirenius/resgate/blob/master/docs/res-service-protocol.md#collection-remove-event
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#collection-remove-event
         /// </remarks>
         /// <param name="idx">Index position where the value has been added.</param>
         public void RemoveEvent(int idx)
@@ -111,7 +111,7 @@ namespace ResgateIO.Service
         /// </summary>
         /// <remarks>
         /// See the protocol specification for more information:
-        ///    https://github.com/jirenius/resgate/blob/master/docs/res-service-protocol.md#reaccess-event
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#reaccess-event
         /// </remarks>
         public void ReaccessEvent()
         {

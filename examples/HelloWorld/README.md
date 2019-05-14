@@ -9,7 +9,7 @@ This is an example of a simple text field that can be edited by multiple clients
 
 ## Prerequisite
 
-* Have [NATS Server](https://nats.io/download/nats-io/gnatsd/) and [Resgate](https://github.com/jirenius/resgate) running
+* Have [NATS Server](https://nats.io/download/nats-io/gnatsd/) and [Resgate](https://github.com/resgateio/resgate) running
 
 ## Install and run
 

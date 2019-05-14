@@ -10,7 +10,7 @@
 
 ---
 
-C# library implementing the RES-Service Protocol. Used to create REST, real time, and RPC APIs, where all your clients are synchronized seamlessly through [Resgate](https://github.com/jirenius/resgate).
+C# library implementing the RES-Service Protocol. Used to create REST, real time, and RPC APIs, where all your clients are synchronized seamlessly through [Resgate](https://github.com/resgateio/resgate).
 
 Visit [Resgate.io](https://resgate.io) for more information.
 

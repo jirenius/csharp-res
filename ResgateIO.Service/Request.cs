@@ -436,7 +436,7 @@ namespace ResgateIO.Service
         /// To set the connection token for a different connection ID, use ResService.ConnectionTokenEvent.
         /// Only valid for RequestType.Auth requests.
         /// See the protocol specification for more information:
-        ///    https://github.com/jirenius/resgate/blob/master/docs/res-service-protocol.md#connection-token-event
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#connection-token-event
         /// </remarks>
         /// <param name="token">Access token. A null token clears any previously set token.</param>
         public void ConnectionTokenEvent(object token)

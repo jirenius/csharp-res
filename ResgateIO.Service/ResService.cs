@@ -255,7 +255,7 @@ namespace ResgateIO.Service
         /// </summary>
         /// <remarks>
         /// See the protocol specification for more information:
-        ///    https://github.com/jirenius/resgate/blob/master/docs/res-service-protocol.md#connection-token-event
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#connection-token-event
         /// </remarks>
         /// <param name="cid">Connection ID</param>
         /// <param name="token">Access token. A null token clears any previously set token.</param>
@@ -270,7 +270,7 @@ namespace ResgateIO.Service
         /// </summary>
         /// <remarks>
         /// See the protocol specification for more information:
-        ///    https://github.com/jirenius/resgate/blob/master/docs/res-service-protocol.md#system-reset-event
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#system-reset-event
         /// </remarks>
         public void Reset()
         {

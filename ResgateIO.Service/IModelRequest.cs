@@ -10,7 +10,7 @@ namespace ResgateIO.Service
         /// The model must be serializable into a JSON object with values that
         /// must be serializable into JSON primitives or resource references.
         /// See the protocol specification for more information:
-        ///    https://github.com/jirenius/resgate/blob/master/docs/res-protocol.md#models
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-protocol.md#models
         /// </remarks>
         /// The model must be serializable into a JSON object.
         /// </summary>
