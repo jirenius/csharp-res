@@ -1,8 +1,6 @@
-﻿using System.Collections.Generic;
-
-namespace ResgateIO.Service
+﻿namespace ResgateIO.Service
 {
-    public interface IModelRequest : IResourceRequest
+    public interface IModelRequest : IResource
     {
         /// <summary>
         /// Sends a successful model response for the get request.

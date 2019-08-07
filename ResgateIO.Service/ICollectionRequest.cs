@@ -1,8 +1,6 @@
-﻿using System.Collections.Generic;
-
-namespace ResgateIO.Service
+﻿namespace ResgateIO.Service
 {
-    public interface ICollectionRequest : IResourceRequest
+    public interface ICollectionRequest : IResource
     {
         /// <summary>
         /// Sends a successful collection response for the get request.

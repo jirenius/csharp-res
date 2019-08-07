@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace ResgateIO.Service
 {
-    public interface ICallRequest : IResourceRequest
+    public interface ICallRequest : IResource
     {
         /// <summary>
         /// Resource method.

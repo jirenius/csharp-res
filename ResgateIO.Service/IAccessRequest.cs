@@ -1,9 +1,8 @@
 ﻿using Newtonsoft.Json.Linq;
-using System.Collections.Generic;
 
 namespace ResgateIO.Service
 {
-    public interface IAccessRequest : IResourceRequest
+    public interface IAccessRequest : IResource
     {
         /// <summary>
         /// Connection ID of the requesting client connection.
