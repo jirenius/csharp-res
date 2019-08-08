@@ -8,12 +8,12 @@ using Newtonsoft.Json.Linq;
 
 namespace ResgateIO.Service
 {
-    internal class ValueGetRequest: IGetRequest
+    internal class ValueGetRequest: IGetRequest, IModelRequest, ICollectionRequest
     {
         public object ValueResult { get; private set; }
         public ResError ErrorResult { get; private set; }
 
-        private bool replied = false;        
+        private bool replied = false;
         private ResourceContext resource;
 
         public ValueGetRequest(
@@ -29,7 +29,7 @@ namespace ResgateIO.Service
         public IDictionary<string, string> PathParams { get { return resource.PathParams; } }
         public string PathParam(string key) { return resource.PathParam(key); }
         public string Query { get { return resource.Query; } }
-        public IDictionary Items { get { return resource.Items; }  }
+        public IDictionary Items { get { return resource.Items; } }
         public T Value<T>() { throw new InvalidOperationException("Value called within get request handler"); }
         public T RequireValue<T>() { throw new InvalidOperationException("RequireValue called within get request handler"); }
         public void Event(string eventName, object payload) { resource.Event(eventName, payload); }
@@ -100,7 +100,7 @@ namespace ResgateIO.Service
             {
                 if (resource.Handler is IModelHandler modelHandler)
                 {
-                    modelHandler.Get((IModelRequest)this);
+                    modelHandler.Get(this);
                 }
                 else
                 {
@@ -108,7 +108,7 @@ namespace ResgateIO.Service
                     {
                         return;
                     }
-                    collectionHandler.Get((ICollectionRequest)this);
+                    collectionHandler.Get(this);
                 }
 
                 if (!replied)
