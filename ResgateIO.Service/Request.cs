@@ -379,6 +379,19 @@ namespace ResgateIO.Service
                     RawResponse(ResService.ResponseMissingResponse);
                 }
             }
+            catch(ResException ex)
+            {
+                if (!replied)
+                {
+                    // If a reply isn't sent yet, send an error response
+                    // and return, as throwing exceptions within a handler
+                    // is considered valid behaviour.
+                    Error(new ResError(ex));
+                    return;
+                }
+
+                Console.WriteLine("Error handling request {0}: {1} - {2}", msg.Subject, ex.Code, ex.Message);
+            }
             catch(Exception ex)
             {
                 if (!replied)
@@ -476,5 +489,11 @@ namespace ResgateIO.Service
         {
             Service.Send("conn." + CID + ".token", new TokenEventDto(token));
         }
+
+        /// <summary>
+        /// Flag telling if the request handler is called as a result of Value
+        /// or RequireValue being called from another handler.
+        /// </summary>
+        public bool ForValue { get { return false; } }
     }
 }

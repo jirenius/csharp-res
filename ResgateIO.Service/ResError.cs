@@ -31,6 +31,13 @@ namespace ResgateIO.Service
             Message = "Internal error: " + ex.Message;
         }
 
+        public ResError(ResException ex)
+        {
+            Code = ex.Code;
+            Message = ex.Message;
+            Data = ex.ErrorData;
+        }
+
         public ResError(string code, string message)
         {
             Code = code;

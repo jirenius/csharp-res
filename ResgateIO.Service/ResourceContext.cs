@@ -89,12 +89,15 @@ namespace ResgateIO.Service
         /// <returns>Resource data object.</returns>
         public T Value<T>()
         {
-            // Assert Value is not called from within Get handler.
-            //if (inGet)
-            //{
-            //    throw new InvalidOperationException("Value called from inside resource Get handler");
-            //}
-            throw new NotImplementedException();
+            var valueGetRequest = new ValueGetRequest(this);
+            valueGetRequest.ExecuteHandler();
+
+            if (valueGetRequest.ErrorResult != null)
+            {
+                return default(T);
+            }
+
+            return (T)valueGetRequest.ValueResult;
         }
 
         /// <summary>
@@ -107,7 +110,15 @@ namespace ResgateIO.Service
         /// <returns>Resource data object.</returns>
         public T RequireValue<T>()
         {
-            throw new NotImplementedException();
+            var valueGetRequest = new ValueGetRequest(this);
+            valueGetRequest.ExecuteHandler();
+
+            if (valueGetRequest.ErrorResult != null)
+            {
+                throw new ResException(valueGetRequest.ErrorResult);
+            }
+
+            return (T)valueGetRequest.ValueResult;
         }
 
         /// <summary>
