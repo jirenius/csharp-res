@@ -1,28 +1,51 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace ResgateIO.Service
 {
-    public class Resource
+    public class ResourceContext
     {
+        /// <summary>
+        /// Service instance.
+        /// </summary>
         public ResService Service { get; }
+
+        /// <summary>
+        /// Resource name.
+        /// </summary>
         public string ResourceName { get; }
+
+        /// <summary>
+        /// Resource type.
+        /// </summary>
         public ResourceType ResourceType { get; }
-        public IResourceHandler Handler { get; }
-        public Dictionary<string, string> PathParams { get; }
+
+        /// <summary>
+        /// Parameters that are derived from the resource name.
+        /// </summary>
+        public IDictionary<string, string> PathParams { get; }
 
         /// <summary>
         /// Query part of the resource ID without the question mark separator.
         /// </summary>
         public string Query { get; }
 
-        public Resource(ResService service, string rname, IResourceHandler handler, Dictionary<string, string> pathParams, string query)
+        /// <summary>
+        /// Context scoped key/value collection used to store and share data between handlers.
+        /// </summary>
+        public IDictionary Items { get; }
+        
+        public IResourceHandler Handler { get; }
+        
+        public ResourceContext(ResService service, string rname, IResourceHandler handler, IDictionary<string, string> pathParams, string query)
         {
             Service = service;
             ResourceName = rname;
             Handler = handler;
             PathParams = pathParams;
             Query = query;
+            Items = new Hashtable();
 
             if (Handler is IModelHandler)
             {
@@ -37,7 +60,7 @@ namespace ResgateIO.Service
             }
         }
 
-        public Resource(ResService service)
+        public ResourceContext(ResService service)
         {
             Service = service;
         }

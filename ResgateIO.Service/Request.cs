@@ -7,7 +7,7 @@ using Newtonsoft.Json.Linq;
 
 namespace ResgateIO.Service
 {
-    public class Request: Resource, IAccessRequest, IModelRequest, ICollectionRequest, ICallRequest, IAuthRequest
+    public class Request: ResourceContext, IAccessRequest, IModelRequest, ICollectionRequest, ICallRequest, IAuthRequest
     {
         private readonly Msg msg;
 
@@ -425,6 +425,39 @@ namespace ResgateIO.Service
             }
 
             return RawToken.ToObject<T>();
+        }
+
+        /// <summary>
+        /// Attempts to set the timeout duration of the request.
+        /// The call has no effect if the requester has already timed out the request,
+        /// or if a reply has already been sent.
+        /// </summary>
+        /// <param name="milliseconds">Timeout duration in milliseconds.</param>
+        public void Timeout(int milliseconds)
+        {
+            if (milliseconds < 0)
+            {
+                throw new InvalidOperationException("Negative timeout duration");
+            }
+            if (replied)
+            {
+                return;
+            }
+
+            var str = "timeout:\"" + milliseconds.ToString() + "\"";
+            Console.WriteLine("<-- {0}: {1}", msg.Subject, str);
+            Service.RawSend(msg.Reply, Encoding.UTF8.GetBytes(str));
+        }
+
+        /// <summary>
+        /// Attempts to set the timeout duration of the request.
+        /// The call has no effect if the requester has already timed out the request,
+        /// or if a reply has already been sent.
+        /// </summary>
+        /// <param name="milliseconds">Timeout duration.</param>
+        public void Timeout(TimeSpan duration)
+        {
+            Timeout((int)duration.TotalMilliseconds);
         }
 
         /// <summary>

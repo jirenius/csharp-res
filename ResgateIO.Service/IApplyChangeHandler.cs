@@ -10,6 +10,6 @@ namespace ResgateIO.Service
         /// <param name="resource">Resource to apply the change to.</param>
         /// <param name="changes">Property values to apply to model.</param>
         /// <returns>A dictionary with the values to apply to revert the changes.</returns>
-        Dictionary<string, object> ApplyChange(Resource resource, Dictionary<string, object> changes);
+        Dictionary<string, object> ApplyChange(ResourceContext resource, Dictionary<string, object> changes);
     }
 }

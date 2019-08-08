@@ -1,10 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 
 namespace ResgateIO.Service
 {
     public delegate void QueryCallBack(IQueryRequest request);
 
-    public interface IResource
+    public interface IResourceContext
     {
         /// <summary>
         /// Service instance.
@@ -24,12 +25,7 @@ namespace ResgateIO.Service
         /// <summary>
         /// Parameters that are derived from the resource name.
         /// </summary>
-        Dictionary<string, string> PathParams { get; }
-
-        /// <summary>
-        /// Query part of the resource ID without the question mark separator.
-        /// </summary>
-        string Query { get; }
+        IDictionary<string, string> PathParams { get; }
 
         /// <summary>
         /// Returns the parameter derived from the resource name for the key placeholder.
@@ -37,6 +33,16 @@ namespace ResgateIO.Service
         /// <param name="key">Name of the placeholder key.</param>
         /// <returns>Path parameter value.</returns>
         string PathParam(string key);
+
+        /// <summary>
+        /// Query part of the resource ID without the question mark separator.
+        /// </summary>
+        string Query { get; }
+
+        /// <summary>
+        /// Context scoped key/value collection used to store and share data between handlers.
+        /// </summary>
+        IDictionary Items { get; }
 
         /// <summary>
         /// Gets the resource data object as provided from the Get resource handler.

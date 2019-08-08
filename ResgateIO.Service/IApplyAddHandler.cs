@@ -8,6 +8,6 @@
         /// <param name="resource">Resource to add the value to.</param>
         /// <param name="value">Value to add.</param>
         /// <param name="idx">Index position where to add the value.</param>
-        void ApplyAdd(Resource resource, object value, int idx);
+        void ApplyAdd(ResourceContext resource, object value, int idx);
     }
 }

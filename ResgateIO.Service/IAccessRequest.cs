@@ -1,8 +1,9 @@
 ﻿using Newtonsoft.Json.Linq;
+using System;
 
 namespace ResgateIO.Service
 {
-    public interface IAccessRequest : IResource
+    public interface IAccessRequest : IResourceContext
     {
         /// <summary>
         /// Connection ID of the requesting client connection.
@@ -52,5 +53,21 @@ namespace ResgateIO.Service
         /// <typeparam name="T">Type to parse the token into.</typeparam>
         /// <returns>Parsed token object.</returns>
         T ParseToken<T>();
+
+        /// <summary>
+        /// Attempts to set the timeout duration of the request.
+        /// The call has no effect if the requester has already timed out the request,
+        /// or if a reply has already been sent.
+        /// </summary>
+        /// <param name="milliseconds">Timeout duration in milliseconds.</param>
+        void Timeout(int milliseconds);
+
+        /// <summary>
+        /// Attempts to set the timeout duration of the request.
+        /// The call has no effect if the requester has already timed out the request,
+        /// or if a reply has already been sent.
+        /// </summary>
+        /// <param name="milliseconds">Timeout duration.</param>
+        void Timeout(TimeSpan duration);
     }
 }

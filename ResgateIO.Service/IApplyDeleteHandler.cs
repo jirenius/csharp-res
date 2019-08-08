@@ -7,6 +7,6 @@
         /// </summary>
         /// <param name="resource">Resource to delete.</param>
         /// <returns>The deleted resource data object.</returns>
-        object ApplyDelete(Resource resource);
+        object ApplyDelete(ResourceContext resource);
     }
 }

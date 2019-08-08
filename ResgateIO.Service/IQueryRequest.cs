@@ -1,6 +1,6 @@
 ﻿namespace ResgateIO.Service
 {
-    public interface IQueryRequest : IResource
+    public interface IQueryRequest : IResourceContext
     {
         /// <summary>
         /// Sends an error response to the request.

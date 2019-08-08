@@ -8,6 +8,6 @@
         /// <param name="resource">Resource to remove the value from.</param>
         /// <param name="idx">Index position of the value to remove.</param>
         /// <returns>The removed value.</returns>
-        object ApplyRemove(Resource resource, int idx);
+        object ApplyRemove(ResourceContext resource, int idx);
     }
 }

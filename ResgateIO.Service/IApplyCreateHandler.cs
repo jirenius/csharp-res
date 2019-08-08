@@ -7,6 +7,6 @@
         /// </summary>
         /// <param name="resource">Resource to create.</param>
         /// <param name="data">The resource data object.</param>
-        void ApplyCreate(Resource resource, object data);
+        void ApplyCreate(ResourceContext resource, object data);
     }
 }
