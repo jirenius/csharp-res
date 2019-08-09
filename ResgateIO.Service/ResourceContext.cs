@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace ResgateIO.Service
 {
-    public class ResourceContext
+    public class ResourceContext: IResourceContext
     {
         /// <summary>
         /// Service instance.
@@ -36,6 +36,9 @@ namespace ResgateIO.Service
         /// </summary>
         public IDictionary Items { get; }
         
+        /// <summary>
+        /// Resource handler.
+        /// </summary>
         public IResourceHandler Handler { get; }
         
         public ResourceContext(ResService service, string rname, IResourceHandler handler, IDictionary<string, string> pathParams, string query)
@@ -87,7 +90,7 @@ namespace ResgateIO.Service
         /// </summary>
         /// <typeparam name="T">Type of resource data object.</typeparam>
         /// <returns>Resource data object.</returns>
-        public T Value<T>()
+        public T Value<T>() where T : class
         {
             var valueGetRequest = new ValueGetRequest(this);
             valueGetRequest.ExecuteHandler();
@@ -108,7 +111,7 @@ namespace ResgateIO.Service
         /// </summary>
         /// <typeparam name="T">Type of resource data object.</typeparam>
         /// <returns>Resource data object.</returns>
-        public T RequireValue<T>()
+        public T RequireValue<T>() where T : class
         {
             var valueGetRequest = new ValueGetRequest(this);
             valueGetRequest.ExecuteHandler();
@@ -272,9 +275,7 @@ namespace ResgateIO.Service
         /// <param name="callback">Query request callback delegate.</param>
         public void QueryEvent(QueryCallBack callback)
         {
-            //var conn = Service.Connection;
-            //string qsubj = conn.NewInbox();
-            throw new NotImplementedException();
+            Service.AddQueryEvent(new QueryEvent(this, callback));
         }
 
         /// <summary>

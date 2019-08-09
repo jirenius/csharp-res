@@ -8,38 +8,27 @@ using Newtonsoft.Json.Linq;
 
 namespace ResgateIO.Service
 {
-    internal class ValueGetRequest: IGetRequest, IModelRequest, ICollectionRequest
+    internal class ValueGetRequest: ResourceDecorator, IGetRequest, IModelRequest, ICollectionRequest
     {
         public object ValueResult { get; private set; }
         public ResError ErrorResult { get; private set; }
 
         private bool replied = false;
-        private ResourceContext resource;
 
-        public ValueGetRequest(
-            ResourceContext resource)
+        public ValueGetRequest(IResourceContext resource)
+            :base(resource)
         {
-            this.resource = resource;
         }
 
-        // Expose IResourceContext properties and methods
-        public ResService Service { get { return resource.Service; } }
-        public string ResourceName { get { return resource.ResourceName; } }
-        public ResourceType ResourceType { get { return resource.ResourceType; } }
-        public IDictionary<string, string> PathParams { get { return resource.PathParams; } }
-        public string PathParam(string key) { return resource.PathParam(key); }
-        public string Query { get { return resource.Query; } }
-        public IDictionary Items { get { return resource.Items; } }
-        public T Value<T>() { throw new InvalidOperationException("Value called within get request handler"); }
-        public T RequireValue<T>() { throw new InvalidOperationException("RequireValue called within get request handler"); }
-        public void Event(string eventName, object payload) { resource.Event(eventName, payload); }
-        public void ChangeEvent(Dictionary<string, object> properties) { resource.ChangeEvent(properties); }
-        public void AddEvent(object value, int idx) { resource.AddEvent(value, idx); }
-        public void RemoveEvent(int idx) { resource.RemoveEvent(idx); }
-        public void ReaccessEvent() { resource.ReaccessEvent(); }
-        public void QueryEvent(QueryCallBack callback) { resource.QueryEvent(callback); }
-        public void CreateEvent(object data) { resource.CreateEvent(data); }
-        public void DeleteEvent() { resource.DeleteEvent(); }
+        public override T Value<T>()
+        {
+            throw new InvalidOperationException("Value called within get request handler");
+        }
+
+        public override T RequireValue<T>()
+        {
+            throw new InvalidOperationException("RequireValue called within get request handler");
+        }
 
         public void Error(ResError error)
         {
@@ -98,15 +87,15 @@ namespace ResgateIO.Service
         {
             try
             {
-                if (resource.Handler is IModelHandler modelHandler)
+                if (Handler is IModelHandler modelHandler)
                 {
                     modelHandler.Get(this);
                 }
-                else if (resource.Handler is ICollectionHandler collectionHandler)
+                else if (Handler is ICollectionHandler collectionHandler)
                 {
                     collectionHandler.Get(this);
                 }
-                else if (resource.Handler is IGetHandler getHandler)
+                else if (Handler is IGetHandler getHandler)
                 {
                     getHandler.Get(this);
                 }

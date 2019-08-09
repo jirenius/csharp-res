@@ -45,13 +45,18 @@ namespace ResgateIO.Service
         IDictionary Items { get; }
 
         /// <summary>
+        /// Resource handler.
+        /// </summary>
+        IResourceHandler Handler { get; }
+
+        /// <summary>
         /// Gets the resource data object as provided from the Get resource handler.
         /// If the get handler fails, or no get handler is defined, it return with null.
         /// If the get handler responds with a different type than T, it throws an exception.
         /// </summary>
         /// <typeparam name="T">Type of resource data object.</typeparam>
         /// <returns>Resource data object.</returns>
-        T Value<T>();
+        T Value<T>() where T : class;
 
         /// <summary>
         /// Gets the resource data object as provided from the Get resource handler.
@@ -60,7 +65,7 @@ namespace ResgateIO.Service
         /// </summary>
         /// <typeparam name="T">Type of resource data object.</typeparam>
         /// <returns>Resource data object.</returns>
-        T RequireValue<T>();
+        T RequireValue<T>() where T : class;
 
         /// <summary>
         /// Sends a custom event on the resource.

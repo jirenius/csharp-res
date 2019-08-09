@@ -148,7 +148,7 @@ namespace ResgateIO.Service
             {
                 try
                 {
-                    byte[] data = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new SuccessDto(result)));
+                    byte[] data = JsonUtils.Serialize(new SuccessDto(result));
                     RawResponse(data);
                 }
                 catch (Exception ex)

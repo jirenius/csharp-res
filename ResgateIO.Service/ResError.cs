@@ -10,11 +10,8 @@ namespace ResgateIO.Service
         public const string CodeInternalError = "system.internalError";
         public const string CodeInvalidParams = "system.invalidParams";
         public const string CodeMethodNotFound = "system.methodNotFound";
-        public const string CodeNoSubscription = "system.noSubscription";
         public const string CodeNotFound = "system.notFound";
         public const string CodeTimeout = "system.timeout";
-        public const string CodeBadRequest = "system.badRequest";
-        public const string CodeMethodNotAllowed = "system.methodNotAllowed";
 
         [JsonProperty(PropertyName = "code")]
         public string Code;

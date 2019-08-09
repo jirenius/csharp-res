@@ -32,8 +32,11 @@ namespace ResgateIO.Service
         internal static readonly byte[] ResponseMethodNotFound = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.methodNotFound\",\"message\":\"Method not found\"}}");
         internal static readonly byte[] ResponseInvalidParams = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.invalidParams\",\"message\":\"Invalid parameters\"}}");
         internal static readonly byte[] ResponseMissingResponse = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.internalError\",\"message\":\"Internal error: missing response\"}}");
+        internal static readonly byte[] ResponseBadRequest = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.internalError\",\"message\":\"Internal error: bad request\"}}");
+        internal static readonly byte[] ResponseMissingQuery = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.internalError\",\"message\":\"Internal error: missing query\"}}");
         internal static readonly byte[] ResponseAccessGranted = Encoding.UTF8.GetBytes("{\"result\":{\"get\":true,\"call\":\"*\"}}");
         internal static readonly byte[] ResponseSuccess = Encoding.UTF8.GetBytes("{\"result\":null}");
+        internal static readonly byte[] ResponseNoQueryEvents = Encoding.UTF8.GetBytes("{\"result\":{\"events\":[]}}");
 
         /// <summary>
         /// Creates a new ResService
@@ -318,6 +321,12 @@ namespace ResgateIO.Service
             }
         }
 
+        internal void AddQueryEvent(QueryEvent queryEvent)
+        {
+            queryEvent.Start();
+
+        }
+
         private void processWork(Object obj)
         {
             Work work = (Work)obj;
@@ -355,7 +364,7 @@ namespace ResgateIO.Service
 
             try
             {
-                RequestDto reqInput = deserialize<RequestDto>(msg.Data);
+                RequestDto reqInput = JsonUtils.Deserialize<RequestDto>(msg.Data);
                 req = new Request(
                     this,
                     msg,
@@ -382,13 +391,6 @@ namespace ResgateIO.Service
             }
 
             req.ExecuteHandler();
-        }
-
-        private static T deserialize<T>(byte[] data) where T : class
-        {
-            using (var stream = new MemoryStream(data))
-            using (var reader = new StreamReader(stream, Encoding.UTF8))
-                return JsonSerializer.Create().Deserialize(reader, typeof(T)) as T;
         }
 
         private void handleReconnect(object sender, ConnEventArgs args)
