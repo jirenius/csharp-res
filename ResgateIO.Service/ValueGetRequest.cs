@@ -102,18 +102,13 @@ namespace ResgateIO.Service
                 {
                     modelHandler.Get(this);
                 }
-                else
+                else if (resource.Handler is ICollectionHandler collectionHandler)
                 {
-                    if (!(resource.Handler is ICollectionHandler collectionHandler))
-                    {
-                        return;
-                    }
                     collectionHandler.Get(this);
                 }
-
-                if (!replied)
+                else if (resource.Handler is IGetHandler getHandler)
                 {
-                    ErrorResult = new ResError(ResError.CodeInternalError, "Missing response on get request for " + ResourceName);
+                    getHandler.Get(this);
                 }
             }
             catch (ResException ex)
@@ -125,21 +120,16 @@ namespace ResgateIO.Service
                 else
                 {
                     ErrorResult = new ResError(ex);
-                    return;
                 }
-
             }
             catch (Exception ex)
             {
-                if (replied)
-                {
-                    Console.WriteLine("Error in value get request for {0}: {1}", ResourceName, ex.Message);
-                }
-                else
+                if (!replied)
                 {
                     ErrorResult = new ResError(ex);
                 }
-                
+                // Log error as only ResExceptions are considered valid behaviour
+                Console.WriteLine("Error in value get request for {0}: {1}", ResourceName, ex.Message);
             }
         }
 

@@ -7,7 +7,7 @@ using Newtonsoft.Json.Linq;
 
 namespace ResgateIO.Service
 {
-    public class Request: ResourceContext, IAccessRequest, IModelRequest, ICollectionRequest, ICallRequest, IAuthRequest
+    public class Request: ResourceContext, IAccessRequest, IGetRequest, IModelRequest, ICollectionRequest, ICallRequest, IAuthRequest
     {
         private readonly Msg msg;
 
@@ -321,12 +321,10 @@ namespace ResgateIO.Service
                 switch (Type)
                 {
                     case RequestType.Access:
-                        if (!(Handler is IAccessHandler accessHandler))
+                        if (Handler is IAccessHandler accessHandler)
                         {
-                            return;
+                            accessHandler.Access(this);
                         }
-
-                        accessHandler.Access(this);
                         break;
 
                     case RequestType.Get:
@@ -334,13 +332,13 @@ namespace ResgateIO.Service
                         {
                             modelHandler.Get(this);
                         }
-                        else
+                        else if (Handler is ICollectionHandler collectionHandler)
                         {
-                            if (!(Handler is ICollectionHandler collectionHandler))
-                            {
-                                return;
-                            }
                             collectionHandler.Get(this);
+                        }
+                        else if (Handler is IGetHandler getHandler)
+                        {
+                            getHandler.Get(this);
                         }
                         break;
 
@@ -349,11 +347,6 @@ namespace ResgateIO.Service
                         {
                             callHandler.Call(this);
                         }
-                        
-                        if (!replied)
-                        {
-                            MethodNotFound();
-                        }
                         break;
 
                     case RequestType.Auth:
@@ -361,22 +354,11 @@ namespace ResgateIO.Service
                         {
                             authHandler.Auth(this);
                         }
-
-                        if (!replied)
-                        {
-                            MethodNotFound();
-                        }
                         break;
 
                     default:
                         Console.WriteLine("Unknown request type: {0}", msg.Subject);
                         return;
-                    
-                }
-
-                if (!replied)
-                {
-                    RawResponse(ResService.ResponseMissingResponse);
                 }
             }
             catch(ResException ex)
@@ -384,7 +366,7 @@ namespace ResgateIO.Service
                 if (!replied)
                 {
                     // If a reply isn't sent yet, send an error response
-                    // and return, as throwing exceptions within a handler
+                    // and return, as throwing a ResException within a handler
                     // is considered valid behaviour.
                     Error(new ResError(ex));
                     return;
@@ -396,13 +378,10 @@ namespace ResgateIO.Service
             {
                 if (!replied)
                 {
-                    // If a reply isn't sent yet, send an error response
-                    // and return, as throwing exceptions within a handler
-                    // is considered valid behaviour.
                     Error(new ResError(ex));
-                    return;
                 }
 
+                // Write to log as only ResExceptions are considered valid behaviour.
                 Console.WriteLine("Error handling request {0}: {1}", msg.Subject, ex.Message);
             }
         }
