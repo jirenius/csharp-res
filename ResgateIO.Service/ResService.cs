@@ -11,19 +11,25 @@ namespace ResgateIO.Service
 {
     public class ResService
     {
+        // Public read-only values
+        public static readonly JRaw DeleteAction = new JRaw("{\"action\":\"delete\"}");
+        public static readonly TimeSpan DefaultQueryDuration = new TimeSpan(0, 0, 3);
+
+        // Properties
+        public IConnection Connection { get; private set; }
+        public String Name { get; }
+
+        // Enums
         private enum State { Stopped, Starting, Started, Stopping };
 
+        // Fields
         private State state = State.Stopped;
         private readonly Object stateLock = new Object();
-
-        public IConnection Connection { get; private set; }
         private Dictionary<string, IAsyncSubscription> subs;
         private Dictionary<string, Work> rwork;
         private readonly PatternTree patterns = new PatternTree();
-
-        public String Name { get; }
-
-        public static readonly JRaw DeleteAction = new JRaw("{\"action\":\"delete\"}");
+        private TimerQueue<QueryEvent> queryTimerQueue;
+        private TimeSpan queryDuration = DefaultQueryDuration;
 
         // Predefined raw data responses
         internal static readonly byte[] ResponseAccessDenied = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.accessDenied\",\"message\":\"Access denied\"}}");
@@ -45,6 +51,25 @@ namespace ResgateIO.Service
         public ResService(string name)
         {
             Name = name;
+        }
+
+        /// <summary>
+        /// Sets the duration for which the service will listen for query requests sent on a query event.
+        /// Default is 3 seconds.
+        /// </summary>
+        /// <param name="duration">Query event duration.</param>
+        /// <returns>The ResService instance.</returns>
+        public ResService SetQueryDuration(TimeSpan duration)
+        {
+            lock (stateLock)
+            {
+                if (state != State.Stopped)
+                {
+                    throw new Exception("Service is not stopped.");
+                }
+                queryDuration = duration;
+            }
+            return this;
         }
 
         /// <summary>
@@ -141,6 +166,9 @@ namespace ResgateIO.Service
             close();
             // TODO: Wait for all the threads to be done
 
+            queryTimerQueue.Dispose();
+            Connection.Dispose();
+
             state = State.Stopped;
             Console.WriteLine("Stopped");
         }
@@ -149,6 +177,7 @@ namespace ResgateIO.Service
         {
             Connection = conn;
             rwork = new Dictionary<string, Work>();
+            queryTimerQueue = new TimerQueue<QueryEvent>(onQueryEventExpire, queryDuration);
 
             lock (stateLock)
             {
@@ -324,7 +353,12 @@ namespace ResgateIO.Service
         internal void AddQueryEvent(QueryEvent queryEvent)
         {
             queryEvent.Start();
+            queryTimerQueue.Add(queryEvent);
+        }
 
+        private void onQueryEventExpire(QueryEvent queryEvent)
+        {
+            queryEvent.Stop();
         }
 
         private void processWork(Object obj)
