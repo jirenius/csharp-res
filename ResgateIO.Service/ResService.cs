@@ -31,6 +31,9 @@ namespace ResgateIO.Service
         private TimerQueue<QueryEvent> queryTimerQueue;
         private TimeSpan queryDuration = DefaultQueryDuration;
 
+        // Internal logger
+        internal ILogger Log { get; private set; }
+
         // Predefined raw data responses
         internal static readonly byte[] ResponseAccessDenied = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.accessDenied\",\"message\":\"Access denied\"}}");
         internal static readonly byte[] ResponseInternalError = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.internalError\",\"message\":\"Internal error\"}}");
@@ -51,23 +54,40 @@ namespace ResgateIO.Service
         public ResService(string name)
         {
             Name = name;
+            Log = new ConsoleLogger();
         }
 
         /// <summary>
         /// Sets the duration for which the service will listen for query requests sent on a query event.
         /// Default is 3 seconds.
         /// </summary>
+        /// <remarks>Service must be stopped when calling the method.</remarks>
         /// <param name="duration">Query event duration.</param>
         /// <returns>The ResService instance.</returns>
         public ResService SetQueryDuration(TimeSpan duration)
         {
-            lock (stateLock)
+            assertStopped();
+            queryDuration = duration;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the logger used by the service.
+        /// Defaults to ConsoleLogger set to log all levels to the console.
+        /// </summary>
+        /// <remarks>Service must be stopped when calling the method.</remarks>
+        /// <param name="logger">Logger. If null, logging will be disabled.</param>
+        /// <returns>The ResService instance.</returns>
+        public ResService SetLogger(ILogger logger)
+        {
+            assertStopped();
+            if (logger == null)
             {
-                if (state != State.Stopped)
-                {
-                    throw new Exception("Service is not stopped.");
-                }
-                queryDuration = duration;
+                logger = new VoidLogger();
+            }
+            else
+            {
+                Log = logger;
             }
             return this;
         }
@@ -83,11 +103,11 @@ namespace ResgateIO.Service
         /// If the pattern is already registered, or if there are conflicts among
         /// the handlers, an exception will be thrown.
         /// </summary>
-        /// <remarks>The handler must not implement the ICollectionHandler.</remarks>
         /// <param name="pattern">Resource pattern</param>
         /// <param name="handler">Resource handler</param>
         public void MapHandler(String pattern, IResourceHandler handler)
         {
+            assertStopped();
             if (handler is ICollectionHandler && handler is IModelHandler)
             {
                 throw new ArgumentException("Handler must not implement both IModelHandler and ICollectionHandler");
@@ -127,10 +147,7 @@ namespace ResgateIO.Service
         public void Serve(string url) {
             lock (stateLock)
             {
-                if (state != State.Stopped)
-                {
-                    throw new Exception("Service is not stopped.");
-                }
+                assertStopped();
                 state = State.Starting;
             }
 
@@ -161,7 +178,7 @@ namespace ResgateIO.Service
                 }
                 state = State.Stopping;
             }
-            Console.WriteLine("Stopping service...");
+            Log.Info("Stopping service...");
 
             close();
             // TODO: Wait for all the threads to be done
@@ -170,7 +187,7 @@ namespace ResgateIO.Service
             Connection.Dispose();
 
             state = State.Stopped;
-            Console.WriteLine("Stopped");
+            Log.Info("Stopped");
         }
 
         private void serve(IConnection conn)
@@ -189,11 +206,11 @@ namespace ResgateIO.Service
                 subscribe();
                 // Always start with a reset
                 Reset();
-                Console.WriteLine("Listening for requests");
+                Log.Info("Listening for requests");
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Failed to subscribe: {0}" + ex.Message);
+                Log.Error("Failed to subscribe: {0}" + ex.Message);
                 close();
             }
         }
@@ -221,12 +238,12 @@ namespace ResgateIO.Service
             Msg msg = e.Message;
             String subj = msg.Subject;
 
-            Console.WriteLine("==> {0}: {1}", subj, Encoding.UTF8.GetString(msg.Data));
+            Log.Trace(String.Format("==> {0}: {1}", subj, Encoding.UTF8.GetString(msg.Data)));
 
             // Assert there is a reply subject
             if (String.IsNullOrEmpty(msg.Reply))
             {
-                Console.WriteLine("Missing reply subject on request: {0}", subj);
+                Log.Error(String.Format("Missing reply subject on request: {0}", subj));
                 return;
             }
 
@@ -234,7 +251,7 @@ namespace ResgateIO.Service
             Int32 idx = subj.IndexOf('.');
             if (idx < 0) {
                 // Shouldn't be possible unless NATS is really acting up
-                Console.WriteLine("Invalid request subject: {0}", subj);
+                Log.Error(String.Format("Invalid request subject: {0}", subj));
                 return;
             }
             String method = null;
@@ -247,7 +264,7 @@ namespace ResgateIO.Service
                 if (idx < 0)
                 {
                     // No method? Resgate must be acting up
-                    Console.WriteLine("Invalid request subject: {0}", subj);
+                    Log.Error(String.Format("Invalid request subject: {0}", subj));
                     return;
                 }
                 method = rname.Substring(lastIdx + 1);
@@ -325,7 +342,7 @@ namespace ResgateIO.Service
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error sending message {0}: {1}", subject, ex.Message);
+                Log.Error(String.Format("Error sending message {0}: {1}", subject, ex.Message));
             }
         }
 
@@ -341,12 +358,12 @@ namespace ResgateIO.Service
             {
                 string json = JsonConvert.SerializeObject(payload);
                 byte[] data = Encoding.UTF8.GetBytes(json);
-                Console.WriteLine("<-- {0}: {1}", subject, json);
+                Log.Trace(String.Format("<-- {0}: {1}", subject, json));
                 RawSend(subject, data);
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error serializing event payload for {0}: {1}", subject, ex.Message);
+                Log.Error(String.Format("Error serializing event payload for {0}: {1}", subject, ex.Message));
             }
         }
 
@@ -418,7 +435,7 @@ namespace ResgateIO.Service
             }
             catch(Exception ex)
             {
-                Console.WriteLine("Error deserializing incoming request: %s", Encoding.UTF8.GetString(msg.Data));
+                Log.Error(String.Format("Error deserializing incoming request: {0}", Encoding.UTF8.GetString(msg.Data)));
                 req = new Request(this, msg);
                 req.Error(new ResError(ex));
                 return;
@@ -429,18 +446,26 @@ namespace ResgateIO.Service
 
         private void handleReconnect(object sender, ConnEventArgs args)
         {
-            Console.WriteLine("Reconnected to NATS. Sending reset event.");
+            Log.Info("Reconnected to NATS. Sending reset event.");
             Reset();
         }
 
         private void handleDisconnect(object sender, ConnEventArgs args)
         {
-            Console.WriteLine("Lost connection to NATS.");
+            Log.Info("Lost connection to NATS.");
         }
 
         private void handleClosed(object sender, ConnEventArgs args)
         {
             Shutdown();
+        }
+
+        private void assertStopped()
+        {
+            if (state != State.Stopped)
+            {
+                throw new Exception("Service is not stopped.");
+            }
         }
 
     }

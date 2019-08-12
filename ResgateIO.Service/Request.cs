@@ -13,6 +13,8 @@ namespace ResgateIO.Service
 
         private bool replied = false;
 
+        private ILogger Log { get { return Service.Log; } }
+
         public RequestType Type { get; }
 
         /// <summary>
@@ -121,7 +123,7 @@ namespace ResgateIO.Service
                 throw new InvalidOperationException("Response already sent on request");
             }
             replied = true;
-            Console.WriteLine("<== {0}: {1}", msg.Subject, Encoding.UTF8.GetString(data));
+            Log.Trace(String.Format("<== {0}: {1}", msg.Subject, Encoding.UTF8.GetString(data)));
             Service.RawSend(msg.Reply, data);
         }
 
@@ -153,7 +155,7 @@ namespace ResgateIO.Service
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error serializing success response: {0}" + ex.Message);
+                    Log.Error(String.Format("Error serializing success response: {0}", ex.Message));
                     Error(new ResError(ex));
                 }
             }
@@ -171,7 +173,7 @@ namespace ResgateIO.Service
             }
             catch(Exception ex)
             {
-                Console.WriteLine("Error serializing error response: {0}" + ex.Message);
+                Log.Error(String.Format("Error serializing error response: {0}", ex.Message));
                 RawResponse(ResService.ResponseInternalError);
             }
         }
@@ -357,7 +359,7 @@ namespace ResgateIO.Service
                         break;
 
                     default:
-                        Console.WriteLine("Unknown request type: {0}", msg.Subject);
+                        Log.Error(String.Format("Unknown request type: {0}", msg.Subject));
                         return;
                 }
             }
@@ -372,7 +374,7 @@ namespace ResgateIO.Service
                     return;
                 }
 
-                Console.WriteLine("Error handling request {0}: {1} - {2}", msg.Subject, ex.Code, ex.Message);
+                Log.Error(String.Format("Error handling request {0}: {1} - {2}", msg.Subject, ex.Code, ex.Message));
             }
             catch(Exception ex)
             {
@@ -382,7 +384,7 @@ namespace ResgateIO.Service
                 }
 
                 // Write to log as only ResExceptions are considered valid behaviour.
-                Console.WriteLine("Error handling request {0}: {1}", msg.Subject, ex.Message);
+                Log.Error(String.Format("Error handling request {0}: {1}", msg.Subject, ex.Message));
             }
         }
 
@@ -437,7 +439,7 @@ namespace ResgateIO.Service
             }
 
             var str = "timeout:\"" + milliseconds.ToString() + "\"";
-            Console.WriteLine("<-- {0}: {1}", msg.Subject, str);
+            Log.Trace(String.Format("<-- {0}: {1}", msg.Subject, str));
             Service.RawSend(msg.Reply, Encoding.UTF8.GetBytes(str));
         }
 

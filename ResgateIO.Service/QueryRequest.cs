@@ -17,6 +17,8 @@ namespace ResgateIO.Service
 
         internal readonly List<EventDto> Events;
 
+        private ILogger Log { get { return Service.Log; } }
+
         public QueryRequest(IResourceContext resource, Msg msg)
             : base(resource)
         {
@@ -45,7 +47,7 @@ namespace ResgateIO.Service
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error serializing error query response: {0}" + ex.Message);
+                Log.Error(String.Format("Error serializing error query response: {0}", ex.Message));
                 RawResponse(ResService.ResponseInternalError);
             }
         }
@@ -83,7 +85,7 @@ namespace ResgateIO.Service
             }
 
             var str = "timeout:\"" + milliseconds.ToString() + "\"";
-            Console.WriteLine("<-- {0}: {1}", msg.Subject, str);
+            Log.Trace(String.Format("<-- {0}: {1}", msg.Subject, str));
             Service.RawSend(msg.Reply, Encoding.UTF8.GetBytes(str));
         }
 
@@ -103,14 +105,14 @@ namespace ResgateIO.Service
                 throw new InvalidOperationException("Response already sent on query request");
             }
             Replied = true;
-            Console.WriteLine("<=Q {0}: {1}", ResourceName, Encoding.UTF8.GetString(data));
+            Log.Trace(String.Format("<=Q {0}: {1}", ResourceName, Encoding.UTF8.GetString(data)));
             try
             {
                 Service.RawSend(msg.Reply, data);
             }
             catch(Exception ex)
             {
-                Console.WriteLine("Error sending query reply {0}: {1}", ResourceName, ex.Message);
+                Log.Error(String.Format("Error sending query reply {0}: {1}", ResourceName, ex.Message));
             }
         }
     }

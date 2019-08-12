@@ -13,6 +13,7 @@ namespace ResgateIO.Service
         public object ValueResult { get; private set; }
         public ResError ErrorResult { get; private set; }
 
+        private ILogger Log { get { return Service.Log; } }
         private bool replied = false;
 
         public ValueGetRequest(IResourceContext resource)
@@ -104,7 +105,7 @@ namespace ResgateIO.Service
             {
                 if (replied)
                 {
-                    Console.WriteLine("Error in value get request for {0}: {1} - {2}", ResourceName, ex.Code, ex.Message);
+                    Log.Error(String.Format("Error in value get request for {0}: {1} - {2}", ResourceName, ex.Code, ex.Message));
                 }
                 else
                 {
@@ -118,7 +119,7 @@ namespace ResgateIO.Service
                     ErrorResult = new ResError(ex);
                 }
                 // Log error as only ResExceptions are considered valid behaviour
-                Console.WriteLine("Error in value get request for {0}: {1}", ResourceName, ex.Message);
+                Log.Error(String.Format("Error in value get request for {0}: {1}", ResourceName, ex.Message));
             }
         }
 

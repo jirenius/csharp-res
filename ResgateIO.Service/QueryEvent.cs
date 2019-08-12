@@ -11,6 +11,8 @@ namespace ResgateIO.Service
         private QueryCallBack callback;
         private IAsyncSubscription subscription;
 
+        private ILogger Log { get { return Resource.Service.Log; } }
+
         public QueryEvent(IResourceContext resource, QueryCallBack callback)
         {
             Resource = resource;
@@ -28,7 +30,7 @@ namespace ResgateIO.Service
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Failed to subscribe to query event for {0}: {1}", Resource.ResourceName, ex.Message);
+                Log.Error(String.Format("Failed to subscribe to query event for {0}: {1}", Resource.ResourceName, ex.Message));
                 closeCallback();
                 return false;
             }
@@ -65,7 +67,7 @@ namespace ResgateIO.Service
             Msg msg = e.Message;
             String subj = msg.Subject;
 
-            Console.WriteLine("Q=> {0}: {1}", subj, Encoding.UTF8.GetString(msg.Data));
+            Log.Trace(String.Format("Q=> {0}: {1}", subj, Encoding.UTF8.GetString(msg.Data)));
 
             Resource.Service.RunWith(Resource.ResourceName, () =>
             {
@@ -80,7 +82,7 @@ namespace ResgateIO.Service
                     QueryRequestDto reqInput = JsonUtils.Deserialize<QueryRequestDto>(msg.Data);
                     if (String.IsNullOrEmpty(reqInput.Query))
                     {
-                        Console.WriteLine("Missing query in query request {0}", qr.ResourceName);
+                        Log.Trace(String.Format("Missing query in query request {0}", qr.ResourceName));
                         qr.RawResponse(ResService.ResponseMissingQuery);
                         return;
                     }
@@ -88,7 +90,7 @@ namespace ResgateIO.Service
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error deserializing query request {0}: {1}", qr.ResourceName, ex.Message);
+                    Log.Error(String.Format("Error deserializing query request {0}: {1}", qr.ResourceName, ex.Message));
                     qr.RawResponse(ResService.ResponseBadRequest);
                     return;
                 }
@@ -108,8 +110,6 @@ namespace ResgateIO.Service
                     qr.RawResponse(JsonUtils.Serialize(new SuccessDto(new QueryResponseDto(qr.Events))));
                 }
             });
-
-
             
         }
     }
