@@ -60,16 +60,45 @@ namespace ResgateIO.Service
             RawResponse(ResService.ResponseNotFound);
         }
 
-        public void ChangeEvent(Dictionary<string, object> properties)
+        /// <summary>
+        /// Adds a change event to the query response.
+        /// If properties is null or empty, no event is added.
+        /// </summary>
+        /// <param name="properties">Properties that has been changed with their new values.</param>
+        public override void ChangeEvent(Dictionary<string, object> properties)
         {
+            if (properties == null || properties.Count == 0)
+            {
+                return;
+            }
+            Events.Add(new EventDto("change", new ChangeEventDto(properties)));
         }
 
-        public void AddEvent(object value, int idx)
+        /// <summary>
+        /// Adds an add event to the query response.
+        /// </summary>
+        /// <param name="value">Value that has been added.</param>
+        /// <param name="idx">Index position where the value has been added.</param>
+        public override void AddEvent(object value, int idx)
         {
+            if (idx < 0)
+            {
+                throw new InvalidOperationException("Add event idx less than zero.");
+            }
+            Events.Add(new EventDto("add", new AddEventDto(value, idx)));
         }
 
-        public void RemoveEvent(int idx)
+        /// <summary>
+        /// Adds a remove event to the query response.
+        /// </summary>
+        /// <param name="idx">Index position where the value has been removed.</param>
+        public override void RemoveEvent(int idx)
         {
+            if (idx < 0)
+            {
+                throw new InvalidOperationException("Remove event idx less than zero.");
+            }
+            Events.Add(new EventDto("remove", new RemoveEventDto(idx)));
         }
 
         /// <summary>

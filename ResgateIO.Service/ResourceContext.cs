@@ -234,7 +234,7 @@ namespace ResgateIO.Service
         /// See the protocol specification for more information:
         ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#collection-remove-event
         /// </remarks>
-        /// <param name="idx">Index position where the value has been added.</param>
+        /// <param name="idx">Index position where the value has been removed.</param>
         public void RemoveEvent(int idx)
         {
             if (ResourceType == ResourceType.Model)
