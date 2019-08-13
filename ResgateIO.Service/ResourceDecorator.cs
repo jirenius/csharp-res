@@ -20,7 +20,6 @@ namespace ResgateIO.Service
 
         public ResService Service { get { return resource.Service; } }
         public string ResourceName { get { return resource.ResourceName; } }
-        public ResourceType ResourceType { get { return resource.ResourceType; } }
         public IDictionary<string, string> PathParams { get { return resource.PathParams; } }
         public string PathParam(string key) { return resource.PathParam(key); }
         public virtual string Query { get { return resource.Query; } }

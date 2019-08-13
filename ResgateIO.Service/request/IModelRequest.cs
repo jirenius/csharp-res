@@ -2,6 +2,9 @@
 
 namespace ResgateIO.Service
 {
+    /// <summary>
+    /// Provides context information and methods for responding to a model get request.
+    /// </summary>
     public interface IModelRequest : IResourceContext
     {
         /// <summary>

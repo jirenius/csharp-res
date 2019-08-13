@@ -4,6 +4,9 @@ using System.Collections.Generic;
 
 namespace ResgateIO.Service
 {
+    /// <summary>
+    /// Provides context information and methods for emitting events for a resource.
+    /// </summary>
     public class ResourceContext: IResourceContext
     {
         /// <summary>
@@ -15,12 +18,7 @@ namespace ResgateIO.Service
         /// Resource name.
         /// </summary>
         public string ResourceName { get; }
-
-        /// <summary>
-        /// Resource type.
-        /// </summary>
-        public ResourceType ResourceType { get; }
-
+        
         /// <summary>
         /// Parameters that are derived from the resource name.
         /// </summary>
@@ -40,29 +38,29 @@ namespace ResgateIO.Service
         /// Resource handler.
         /// </summary>
         public IResourceHandler Handler { get; }
-        
-        public ResourceContext(ResService service, string rname, IResourceHandler handler, IDictionary<string, string> pathParams, string query)
+
+        /// <summary>
+        /// Initializes a new instance of the ResourceContext class.
+        /// </summary>
+        /// <param name="service">Service to which the resource context belong.</param>
+        /// <param name="resourceName">Resource name without the query part.</param>
+        /// <param name="handler">Resource handler.</param>
+        /// <param name="pathParams">Path parameters derived from the resource name.</param>
+        /// <param name="query">Query part of the resource name.</param>
+        public ResourceContext(ResService service, string resourceName, IResourceHandler handler, IDictionary<string, string> pathParams, string query)
         {
             Service = service;
-            ResourceName = rname;
+            ResourceName = resourceName;
             Handler = handler;
             PathParams = pathParams;
             Query = query;
             Items = new Hashtable();
-
-            if (Handler is IModelHandler)
-            {
-                ResourceType = ResourceType.Model;
-            }
-            else if (Handler is ICollectionHandler)
-            {
-                ResourceType = ResourceType.Collection;
-            } else
-            {
-                ResourceType = ResourceType.Unknown;
-            }
         }
 
+        /// <summary>
+        /// Initializes a new instance of the ResourceContext class without any resource specific context.
+        /// </summary>
+        /// <param name="service">Service to which the resource belong.</param>
         public ResourceContext(ResService service)
         {
             Service = service;
@@ -181,7 +179,7 @@ namespace ResgateIO.Service
         /// <param name="properties">Properties that has been changed with their new values.</param>
         public void ChangeEvent(Dictionary<string, object> properties)
         {
-            if (ResourceType == ResourceType.Collection)
+            if (Handler.Type == ResourceType.Collection)
             {
                 throw new InvalidOperationException("Change event not allowed on resource of ResourceType.Collection.");
             }
@@ -212,7 +210,7 @@ namespace ResgateIO.Service
         /// <param name="idx">Index position where the value has been added.</param>
         public void AddEvent(object value, int idx)
         {
-            if (ResourceType == ResourceType.Model)
+            if (Handler.Type == ResourceType.Model)
             {
                 throw new InvalidOperationException("Add event not allowed on resource of ResourceType.Model.");
             }
@@ -238,7 +236,7 @@ namespace ResgateIO.Service
         /// <param name="idx">Index position where the value has been removed.</param>
         public void RemoveEvent(int idx)
         {
-            if (ResourceType == ResourceType.Model)
+            if (Handler.Type == ResourceType.Model)
             {
                 throw new InvalidOperationException("Remove event not allowed on resource of ResourceType.Model.");
             }

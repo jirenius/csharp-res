@@ -1,17 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace ResgateIO.Service
 {
     /// <summary>
-    /// Simple logger that logs messages to the console.
+    /// Simple logger class that logs messages to the console.
     /// </summary>
     public class ConsoleLogger: ILogger
     {
-        private bool info = true;
-        private bool error = true;
-        private bool trace = true;
+        private readonly bool info = true;
+        private readonly bool error = true;
+        private readonly bool trace = true;
 
         /// <summary>
         /// Initializes a new instance of the ConsoleLogger class, set to log all message.
@@ -19,7 +17,6 @@ namespace ResgateIO.Service
         public ConsoleLogger()
         {
         }
-
 
         /// <summary>
         /// Initializes a new instance of the ConsoleLogger class.
@@ -45,7 +42,6 @@ namespace ResgateIO.Service
                 Console.WriteLine("[INFO ] " + message);
             }
         }
-
 
         /// <summary>
         /// Logs error message.

@@ -5,6 +5,9 @@ namespace ResgateIO.Service
 {
     public delegate void QueryCallBack(IQueryRequest request);
 
+    /// <summary>
+    /// Provides context information and methods for emitting events for a resource.
+    /// </summary>
     public interface IResourceContext
     {
         /// <summary>
@@ -16,11 +19,6 @@ namespace ResgateIO.Service
         /// Resource name.
         /// </summary>
         string ResourceName { get; }
-
-        /// <summary>
-        /// Resource type.
-        /// </summary>
-        ResourceType ResourceType { get; }
 
         /// <summary>
         /// Parameters that are derived from the resource name.

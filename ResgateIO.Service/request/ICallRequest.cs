@@ -4,7 +4,10 @@ using System.Collections.Generic;
 
 namespace ResgateIO.Service
 {
-    public interface IAuthRequest : IResourceContext
+    /// <summary>
+    /// Provides context information and methods for responding to a call request.
+    /// </summary>
+    public interface ICallRequest : IResourceContext
     {
         /// <summary>
         /// Resource method.
@@ -25,30 +28,6 @@ namespace ResgateIO.Service
         /// JSON encoded parameters, or nil if the request had no parameters.
         /// </summary>
         JToken RawParams { get; }
-
-        /// <summary>
-        /// HTTP headers sent by client on connect.
-        /// </summary>
-        Dictionary<string, string[]> Header { get; }
-
-        /// <summary>
-        /// The host on which the URL is sought by the client. Per RFC 2616,
-        /// this is either the value of the "Host" header or the host name given
-        /// in the URL itself.
-        /// </summary>
-        string Host { get; }
-
-        /// <summary>
-        /// The network address of the client sent on connect.
-        /// The format is not specified.
-        /// </summary>
-        string RemoteAddr { get; }
-
-        /// <summary>
-        /// The unmodified Request-URI of the Request-Line (RFC 2616, Section 5.1)
-        /// as sent by the client when on connect.
-        /// </summary>
-        string URI { get; }
 
         /// <summary>
         /// Sends a successful empty response to a request.
@@ -99,19 +78,6 @@ namespace ResgateIO.Service
         /// <typeparam name="T">Type to parse the token into.</typeparam>
         /// <returns>Parsed token object.</returns>
         T ParseToken<T>();
-
-        /// <summary>
-        /// Sends a connection token event that sets the connection's access token,
-        /// discarding any previously set token.
-        /// A change of token will invalidate any previous access response received using the old token.
-        /// </summary>
-        /// <remarks>
-        /// To set the connection token for a different connection ID, use ResService.ConnectionTokenEvent.
-        /// See the protocol specification for more information:
-        ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#connection-token-event
-        /// </remarks>
-        /// <param name="token">Access token. A null token clears any previously set token.</param>
-        void ConnectionTokenEvent(object token);
 
         /// <summary>
         /// Attempts to set the timeout duration of the request.

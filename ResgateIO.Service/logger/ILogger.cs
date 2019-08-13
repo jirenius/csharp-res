@@ -1,5 +1,8 @@
 ﻿namespace ResgateIO.Service
 {
+    /// <summary>
+    /// Defines a class that provides methods for logging messages.
+    /// </summary>
     public interface ILogger
     {
         /// <summary>

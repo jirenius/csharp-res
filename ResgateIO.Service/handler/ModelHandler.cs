@@ -1,7 +1,13 @@
 ﻿namespace ResgateIO.Service
 {
+    /// <summary>
+    /// Provides a base class for model based resource handler classes.
+    /// </summary>
     public abstract class ModelHandler : ResourceHandler
     {   
+        /// <summary>
+        /// Initializes a new instance of the ModelHandler class.
+        /// </summary>
         public ModelHandler()
             : base(ResourceType.Model)
         {

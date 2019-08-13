@@ -4,6 +4,9 @@ using System.Reflection;
 
 namespace ResgateIO.Service
 {
+    /// <summary>
+    /// Provides a base class for resource handler classes.
+    /// </summary>
     public abstract class ResourceHandler: IResourceHandler
     {
         private readonly ResourceType resourceType;
@@ -17,10 +20,17 @@ namespace ResgateIO.Service
             }
         }
 
+        /// <summary>
+        /// Initializes a new instance of the ResourceHandler class.
+        /// </summary>
         public ResourceHandler() : this(ResourceType.Unknown)
         {
         }
 
+        /// <summary>
+        /// Initializes a new instance of the ResourceHandler class, with resource type being specified.
+        /// </summary>
+        /// <param name="type">Resource type.</param>
         public ResourceHandler(ResourceType type)
         {
             resourceType = type;
@@ -48,49 +58,31 @@ namespace ResgateIO.Service
             }
 
             enabledHandlers = enabled;
-
-            if (this is ICollectionHandler && this is IModelHandler)
-            {
-                throw new InvalidOperationException("ResourceHandler implements both IModelHandler and ICollectionHandler.");
-            }
         }
-
-        // Properties
 
         /// <summary>
         /// Gets the resource type associated with the resource handler.
         /// </summary>
-        virtual public ResourceType Type { get { return resourceType; } }
+        public virtual ResourceType Type { get { return resourceType; } }
 
         /// <summary>
-        /// Gets the enabled handler.
+        /// Gets the enabled handler based on the handler methods being overridden.
         /// </summary>
-        virtual public HandlerTypes EnabledHandlers { get { return enabledHandlers; } }
+        public virtual HandlerTypes EnabledHandlers { get { return enabledHandlers; } }
 
-        // Request handlers
-                    
         /// <summary>
         /// Method called on a get request.
         /// </summary>
         /// <param name="request">Get request context.</param>
-        virtual public void Get(IGetRequest request)
+        public virtual void Get(IGetRequest request)
         {
-            switch (resourceType)
-            {
-                case ResourceType.Model:
-                    ((IModelHandler)this).Get((IModelRequest)request);
-                    break;
-                case ResourceType.Collection:
-                    ((ICollectionHandler)this).Get((ICollectionRequest)request);
-                    break;
-            }
         }
 
         /// <summary>
         /// Method called on an access request.
         /// </summary>
         /// <param name="request">Access request context.</param>
-        virtual public void Access(IAccessRequest request)
+        public virtual void Access(IAccessRequest request)
         {
         }
 
@@ -98,7 +90,7 @@ namespace ResgateIO.Service
         /// Method called on an auth request.
         /// </summary>
         /// <param name="request">Auth request context.</param>
-        virtual public void Auth(IAuthRequest request)
+        public virtual void Auth(IAuthRequest request)
         {
 
         }
@@ -107,12 +99,9 @@ namespace ResgateIO.Service
         /// Method called on a call request.
         /// </summary>
         /// <param name="request">Call request context.</param>
-        virtual public void Call(ICallRequest request)
+        public virtual void Call(ICallRequest request)
         {
-
         }
-
-        // Apply handlers
 
         /// <summary>
         /// Method called to apply a model change event.
@@ -120,7 +109,7 @@ namespace ResgateIO.Service
         /// <param name="resource">Resource to apply the change to.</param>
         /// <param name="changes">Property values to apply to model.</param>
         /// <returns>A dictionary with the values to apply to revert the changes.</returns>
-        virtual public Dictionary<string, object> ApplyChange(ResourceContext resource, Dictionary<string, object> changes)
+        public virtual Dictionary<string, object> ApplyChange(ResourceContext resource, Dictionary<string, object> changes)
         {
             return null;
         }
@@ -131,7 +120,7 @@ namespace ResgateIO.Service
         /// <param name="resource">Resource to add the value to.</param>
         /// <param name="value">Value to add.</param>
         /// <param name="idx">Index position where to add the value.</param>
-        virtual public void ApplyAdd(ResourceContext resource, object value, int idx)
+        public virtual void ApplyAdd(ResourceContext resource, object value, int idx)
         {
         }
 
@@ -141,7 +130,7 @@ namespace ResgateIO.Service
         /// <param name="resource">Resource to remove the value from.</param>
         /// <param name="idx">Index position of the value to remove.</param>
         /// <returns>The removed value.</returns>
-        virtual public object ApplyRemove(ResourceContext resource, int idx)
+        public virtual object ApplyRemove(ResourceContext resource, int idx)
         {
             return null;
         }
@@ -151,7 +140,7 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="resource">Resource to create.</param>
         /// <param name="data">The resource data object.</param>
-        virtual public void ApplyCreate(ResourceContext resource, object data)
+        public virtual void ApplyCreate(ResourceContext resource, object data)
         {
         }
         
@@ -160,7 +149,7 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="resource">Resource to delete.</param>
         /// <returns>The deleted resource data object.</returns>
-        virtual public object ApplyDelete(ResourceContext resource)
+        public virtual object ApplyDelete(ResourceContext resource)
         {
             return null;
         }

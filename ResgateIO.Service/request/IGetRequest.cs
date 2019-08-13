@@ -2,6 +2,9 @@
 
 namespace ResgateIO.Service
 {
+    /// <summary>
+    /// Provides context information and methods for responding to a get request.
+    /// </summary>
     public interface IGetRequest : IResourceContext
     {
         /// <summary>

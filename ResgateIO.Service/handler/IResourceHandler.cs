@@ -2,10 +2,11 @@
 
 namespace ResgateIO.Service
 {
+    /// <summary>
+    /// Defines methods to handle requests and events on a resource.
+    /// </summary>
     public interface IResourceHandler
     {
-        // Properties
-
         /// <summary>
         /// Gets the resource type associated with the resource handler.
         /// </summary>
@@ -15,8 +16,6 @@ namespace ResgateIO.Service
         /// Gets the enabled handler.
         /// </summary>
         HandlerTypes EnabledHandlers { get; }
-
-        // Request handlers
                     
         /// <summary>
         /// Method called on a get request.
@@ -41,9 +40,7 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="request">Call request context.</param>
         void Call(ICallRequest request);
-
-        // Apply handlers
-
+        
         /// <summary>
         /// Method called to apply a model change event.
         /// </summary>

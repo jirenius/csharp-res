@@ -3,8 +3,6 @@ using System.Collections.Generic;
 
 namespace ResgateIO.Service
 {
-#pragma warning disable 0649 // These fields are assigned by JSON deserialization
-
     internal class QueryResponseDto
     {
         [JsonProperty(PropertyName = "events")]
@@ -15,6 +13,4 @@ namespace ResgateIO.Service
             Events = events;
         }
     }
-
-#pragma warning restore 0649
 }

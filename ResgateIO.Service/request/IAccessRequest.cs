@@ -1,16 +1,13 @@
 ﻿using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
 
 namespace ResgateIO.Service
 {
-    public interface ICallRequest : IResourceContext
+    /// <summary>
+    /// Provides context information and methods for responding to an access request.
+    /// </summary>
+    public interface IAccessRequest : IResourceContext
     {
-        /// <summary>
-        /// Resource method.
-        /// </summary>
-        string Method { get; }
-
         /// <summary>
         /// Connection ID of the requesting client connection.
         /// </summary>
@@ -22,20 +19,26 @@ namespace ResgateIO.Service
         JToken RawToken { get; }
 
         /// <summary>
-        /// JSON encoded parameters, or nil if the request had no parameters.
+        /// Sends a successful response for the access request.
+        /// The get flag tells if the client has access to get (read) the resource.
+        /// The call string is a comma separated list of methods that the client can
+        /// call. Eg. "set,foo,bar". A single asterisk character ("*") means the client
+        /// is allowed to call any method. Empty string or null means no calls are allowed.
         /// </summary>
-        JToken RawParams { get; }
+        /// <param name="get">Get access flag</param>
+        /// <param name="call">Accessible call methods as a comma separated list</param>
+        void Access(bool get, string call);
 
         /// <summary>
-        /// Sends a successful empty response to a request.
+        /// Sends a system.accessDenied response for the access request.
         /// </summary>
-        void Ok();
+        void AccessDenied();
 
         /// <summary>
-        /// Sends a successful response to a request.
+        /// Sends a successful response granting full access to the resource.
+        /// Same as calling Access(true, "*");
         /// </summary>
-        /// <param name="result">Result object. May be null.</param>
-        void Ok(object result);
+        void AccessGranted();
 
         /// <summary>
         /// Sends an error response to the request.
@@ -46,28 +49,6 @@ namespace ResgateIO.Service
         /// Sends a system.notFound response.
         /// </summary>
         void NotFound();
-
-        /// <summary>
-        /// Sends a system.methodNotFound response.
-        /// </summary>
-        void MethodNotFound();
-
-        /// <summary>
-        /// Sends a system.invalidParams response with a default error message.
-        /// </summary>
-        void InvalidParams();
-
-        /// <summary>
-        /// Sends a system.invalidParams response with a custom error message.
-        /// </summary>
-        void InvalidParams(string message);
-
-        /// <summary>
-        /// Deserializes the parameters into an object of type T.
-        /// </summary>
-        /// <typeparam name="T">Type to parse the parameters into.</typeparam>
-        /// <returns>An object with the parameters.</returns>
-        T ParseParams<T>();
 
         /// <summary>
         /// Deserializes the token into an object of type T.

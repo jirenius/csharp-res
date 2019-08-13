@@ -1,5 +1,8 @@
 ﻿namespace ResgateIO.Service
 {
+    /// <summary>
+    /// Provides context information and methods for responding to a query request.
+    /// </summary>
     public interface IQueryRequest : IResourceContext
     {
         /// <summary>

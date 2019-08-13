@@ -1,7 +1,13 @@
 ﻿namespace ResgateIO.Service
 {
+    /// <summary>
+    /// Provides a base class for collection based resource handler classes.
+    /// </summary>
     public abstract class CollectionHandler : ResourceHandler
-    {        
+    {
+        /// <summary>
+        /// Initializes a new instance of the CollectionHandler class.
+        /// </summary>
         public CollectionHandler()
             : base(ResourceType.Collection)
         {
