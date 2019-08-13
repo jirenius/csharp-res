@@ -7,7 +7,7 @@ using Newtonsoft.Json.Linq;
 
 namespace ResgateIO.Service
 {
-    public class Request: ResourceContext, IAccessRequest, IGetRequest, IModelRequest, ICollectionRequest, ICallRequest, IAuthRequest
+    public class Request: ResourceContext, IAccessRequest, IGetRequest, ICallRequest, IAuthRequest, IModelRequest, ICollectionRequest
     {
         private readonly Msg msg;
 
@@ -323,38 +323,30 @@ namespace ResgateIO.Service
                 switch (Type)
                 {
                     case RequestType.Access:
-                        if (Handler is IAccessHandler accessHandler)
+                        if (Handler.EnabledHandlers.HasFlag(HandlerTypes.Access))
                         {
-                            accessHandler.Access(this);
+                            Handler.Access(this);
                         }
                         break;
 
                     case RequestType.Get:
-                        if (Handler is IModelHandler modelHandler)
+                        if (Handler.EnabledHandlers.HasFlag(HandlerTypes.Get))
                         {
-                            modelHandler.Get(this);
-                        }
-                        else if (Handler is ICollectionHandler collectionHandler)
-                        {
-                            collectionHandler.Get(this);
-                        }
-                        else if (Handler is IGetHandler getHandler)
-                        {
-                            getHandler.Get(this);
+                            Handler.Get(this);
                         }
                         break;
 
                     case RequestType.Call:
-                        if (Handler is ICallHandler callHandler)
+                        if (Handler.EnabledHandlers.HasFlag(HandlerTypes.Call))
                         {
-                            callHandler.Call(this);
+                            Handler.Call(this);
                         }
                         break;
 
                     case RequestType.Auth:
-                        if (Handler is IAuthHandler authHandler)
+                        if (Handler.EnabledHandlers.HasFlag(HandlerTypes.Auth))
                         {
-                            authHandler.Auth(this);
+                            Handler.Auth(this);
                         }
                         break;
 

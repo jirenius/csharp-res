@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace HelloWorld
 {
-    class MyModelHandler : IModelHandler, IAccessHandler, ICallHandler
+    class MyModelHandler : ModelHandler
     {
         class MyModel
         {
@@ -15,19 +15,19 @@ namespace HelloWorld
         // The model we will serve as "example.mymodel" or GET /api/example/mymodel
         private readonly MyModel myModel = new MyModel { Message = "Hello, C# World!" };
         
-        public void Get(IModelRequest request)
+        public override void Get(IModelRequest request)
         {
             // Respond to get requests with the model
             request.Model(myModel);
         }
 
-        public void Access(IAccessRequest request)
+        public override void Access(IAccessRequest request)
         {
             // Allow everone to access this resource
             request.AccessGranted();
         }
 
-        public void Call(ICallRequest request)
+        public override void Call(ICallRequest request)
         {
             switch (request.Method)
             {

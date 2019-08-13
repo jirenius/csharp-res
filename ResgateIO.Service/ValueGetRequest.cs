@@ -88,17 +88,9 @@ namespace ResgateIO.Service
         {
             try
             {
-                if (Handler is IModelHandler modelHandler)
+                if (Handler.EnabledHandlers.HasFlag(HandlerTypes.Get))
                 {
-                    modelHandler.Get(this);
-                }
-                else if (Handler is ICollectionHandler collectionHandler)
-                {
-                    collectionHandler.Get(this);
-                }
-                else if (Handler is IGetHandler getHandler)
-                {
-                    getHandler.Get(this);
+                    Handler.Get(this);
                 }
             }
             catch (ResException ex)

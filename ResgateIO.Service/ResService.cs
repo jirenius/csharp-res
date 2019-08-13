@@ -108,10 +108,6 @@ namespace ResgateIO.Service
         public void MapHandler(String pattern, IResourceHandler handler)
         {
             assertStopped();
-            if (handler is ICollectionHandler && handler is IModelHandler)
-            {
-                throw new ArgumentException("Handler must not implement both IModelHandler and ICollectionHandler");
-            }
             patterns.Add(Name + "." + pattern, handler);
         }
 

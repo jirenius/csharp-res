@@ -2,8 +2,8 @@
 {
     public enum ResourceType
     {
-        Unknown,
-        Model,
-        Collection
+        Unknown    = 0,
+        Model      = 1,
+        Collection = 2,
     }
 }

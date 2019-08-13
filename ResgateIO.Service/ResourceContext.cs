@@ -189,9 +189,9 @@ namespace ResgateIO.Service
             {
                 return;
             }
-            if (Handler is IApplyChangeHandler changeHandler)
+            if (Handler.EnabledHandlers.HasFlag(HandlerTypes.ApplyChange))
             {
-                Dictionary<string, object> rev = changeHandler.ApplyChange(this, properties);
+                Dictionary<string, object> rev = Handler.ApplyChange(this, properties);
                 if (rev == null || rev.Count == 0)
                 {
                     return;
@@ -220,8 +220,9 @@ namespace ResgateIO.Service
             {
                 throw new InvalidOperationException("Add event idx less than zero.");
             }
-            if (Handler is IApplyAddHandler addHandler) {
-                addHandler.ApplyAdd(this, value, idx);
+            if (Handler.EnabledHandlers.HasFlag(HandlerTypes.ApplyAdd))
+            {
+                Handler.ApplyAdd(this, value, idx);
             }
             sendEvent("add", new AddEventDto(value, idx));
         }
@@ -245,9 +246,9 @@ namespace ResgateIO.Service
             {
                 throw new InvalidOperationException("Remove event idx less than zero.");
             }
-            if (Handler is IApplyRemoveHandler removeHandler)
+            if (Handler.EnabledHandlers.HasFlag(HandlerTypes.ApplyRemove))
             {
-                removeHandler.ApplyRemove(this, idx);
+                Handler.ApplyRemove(this, idx);
             }
             sendEvent("remove", new RemoveEventDto(idx));
         }
@@ -284,9 +285,9 @@ namespace ResgateIO.Service
         /// <param name="data">Resource data object.</param>
         public void CreateEvent(object data)
         {
-            if (Handler is IApplyCreateHandler createHandler)
+            if (Handler.EnabledHandlers.HasFlag(HandlerTypes.ApplyCreate))
             {
-                createHandler.ApplyCreate(this, data);
+                Handler.ApplyCreate(this, data);
             }
             sendEvent("create", null);
         }
@@ -296,9 +297,9 @@ namespace ResgateIO.Service
         /// </summary>
         public void DeleteEvent()
         {
-            if (Handler is IApplyDeleteHandler deleteHandler)
+            if (Handler.EnabledHandlers.HasFlag(HandlerTypes.ApplyDelete))
             {
-                deleteHandler.ApplyDelete(this);
+                Handler.ApplyDelete(this);
             }
             sendEvent("delete", null);
         }

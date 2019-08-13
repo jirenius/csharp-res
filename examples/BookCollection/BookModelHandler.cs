@@ -3,15 +3,15 @@ using System.Collections.Generic;
 
 namespace BookCollection
 {
-    class BookModelHandler : IModelHandler, IAccessHandler, ICallHandler, IApplyChangeHandler
+    class BookModelHandler : ModelHandler
     {
-        public void Access(IAccessRequest request)
+        public override void Access(IAccessRequest request)
         {
             // Allow everone to access this resource
             request.AccessGranted();
         }
 
-        public void Get(IModelRequest request)
+        public override void Get(IModelRequest request)
         {
             Book book = BookStore.GetBook(request.ResourceName);
             if (book == null)
@@ -24,7 +24,7 @@ namespace BookCollection
             }
         }
 
-        public void Call(ICallRequest request)
+        public override void Call(ICallRequest request)
         {
             switch (request.Method)
             {
@@ -58,7 +58,7 @@ namespace BookCollection
             }
         }
 
-        public Dictionary<string, object> ApplyChange(ResourceContext resource, Dictionary<string, object> changes)
+        public override Dictionary<string, object> ApplyChange(ResourceContext resource, Dictionary<string, object> changes)
         {
             var book = resource.RequireValue<Book>();
             var revert = new Dictionary<string, object>(changes.Count);
