@@ -18,8 +18,8 @@ namespace BookCollection
             ResService service = new ResService("library");
 
             // Add handler for "example.mymodel" resource
-            service.MapHandler("book.$id", new BookModelHandler());
-            service.MapHandler("books", new BookCollectionHandler());
+            service.AddHandler("book.$id", new BookModelHandler());
+            service.AddHandler("books", new BookCollectionHandler());
 
             // Start the service
             service.Serve("nats://127.0.0.1:4222");

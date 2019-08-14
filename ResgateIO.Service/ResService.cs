@@ -9,7 +9,7 @@ using Newtonsoft.Json.Linq;
 
 namespace ResgateIO.Service
 {
-    public class ResService
+    public class ResService: Router
     {
         // Public read-only values
         public static readonly JRaw DeleteAction = new JRaw("{\"action\":\"delete\"}");
@@ -17,7 +17,6 @@ namespace ResgateIO.Service
 
         // Properties
         public IConnection Connection { get; private set; }
-        public String Name { get; }
 
         // Enums
         private enum State { Stopped, Starting, Started, Stopping };
@@ -27,7 +26,6 @@ namespace ResgateIO.Service
         private readonly Object stateLock = new Object();
         private Dictionary<string, IAsyncSubscription> subs;
         private Dictionary<string, Work> rwork;
-        private readonly PatternTree patterns = new PatternTree();
         private TimerQueue<QueryEvent> queryTimerQueue;
         private TimeSpan queryDuration = DefaultQueryDuration;
 
@@ -47,13 +45,21 @@ namespace ResgateIO.Service
         internal static readonly byte[] ResponseSuccess = Encoding.UTF8.GetBytes("{\"result\":null}");
         internal static readonly byte[] ResponseNoQueryEvents = Encoding.UTF8.GetBytes("{\"result\":{\"events\":[]}}");
 
+
         /// <summary>
-        /// Creates a new ResService
+        /// Initializes a new instance of the ResService class without a resource name prefix.
+        /// </summary>
+        public ResService() : base()
+        {
+            Log = new ConsoleLogger();
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the ResService class with a service resource name prefix.
         /// </summary>
         /// <param name="name">Name of the service. The name must be a non-empty alphanumeric string with no embedded whitespace.</param>
-        public ResService(string name)
+        public ResService(string name) : base(name)
         {
-            Name = name;
             Log = new ConsoleLogger();
         }
 
@@ -90,25 +96,6 @@ namespace ResgateIO.Service
                 Log = logger;
             }
             return this;
-        }
-
-        /// <summary>
-        /// Registers a handler for the given resource pattern.
-        ///
-        /// A pattern may contain placeholders that acts as wildcards, and will be
-        /// parsed and stored in the request.PathParams map.
-        /// A placeholder is a resource name part starting with a dollar ($) character:
-        ///   s.MapHandler("user.$id", handler) // Will match "user.10", "user.foo", etc.
-        ///
-        /// If the pattern is already registered, or if there are conflicts among
-        /// the handlers, an exception will be thrown.
-        /// </summary>
-        /// <param name="pattern">Resource pattern</param>
-        /// <param name="handler">Resource handler</param>
-        public void MapHandler(String pattern, IResourceHandler handler)
-        {
-            assertStopped();
-            patterns.Add(Name + "." + pattern, handler);
         }
 
         /// <summary>
@@ -149,12 +136,15 @@ namespace ResgateIO.Service
 
             Options opts = ConnectionFactory.GetDefaultOptions();
             opts.Url = url;
-            opts.Name = Name;
             opts.AllowReconnect = true;
             opts.MaxReconnect = Options.ReconnectForever;
             opts.ReconnectedEventHandler += handleReconnect;
             opts.DisconnectedEventHandler += handleDisconnect;
             opts.ClosedEventHandler += handleClosed;
+            if (Pattern != "")
+            {
+                opts.Name = Pattern;
+            }
 
             IConnection conn = new ConnectionFactory().CreateConnection(opts);
             serve(conn);
@@ -224,7 +214,7 @@ namespace ResgateIO.Service
             foreach (RequestType type in types)
             {
                 String typeStr = type.ToActionString();
-                IAsyncSubscription sub = Connection.SubscribeAsync(typeStr + "." + Name + ".>", handleMessage);
+                IAsyncSubscription sub = Connection.SubscribeAsync(typeStr + "." + Pattern + ".>", handleMessage);
                 subs[typeStr] = sub;
             }
         }
@@ -321,7 +311,7 @@ namespace ResgateIO.Service
         {
             // TODO: Reset should be based on actual registered patterns
             // instead of wildcarded on the service name.
-            Send("system.reset", new SystemResetDto(new string[] { Name + ".>" }, new string[] { Name + ".>" }));
+            Send("system.reset", new SystemResetDto(new string[] { Pattern + ".>" }, new string[] { Pattern + ".>" }));
         }
 
         /// <summary>
@@ -398,7 +388,7 @@ namespace ResgateIO.Service
         
         private void processRequest(Msg msg, String rtype, String rname, String method)
         {
-            PatternTree.Match match = patterns.Get(rname);
+            Router.Match match = GetHandler(rname);
             Request req;
 
             // Check if there is no matching handler

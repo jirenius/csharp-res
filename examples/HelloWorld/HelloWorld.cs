@@ -18,7 +18,7 @@ namespace HelloWorld
             ResService service = new ResService("example");
 
             // Add handler for "example.mymodel" resource
-            service.MapHandler("mymodel", new MyModelHandler());
+            service.AddHandler("mymodel", new MyModelHandler());
 
             // Start the service
             service.Serve("nats://127.0.0.1:4222");
