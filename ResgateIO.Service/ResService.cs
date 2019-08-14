@@ -100,11 +100,13 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
-        /// Sets the patterns used for resources and access when a ResetAll is made.
-        /// If set to null (default), the service will determine if it has any registered
-        /// handler with HandlerType.Get and HandlerType.Access enabled.
-        /// If so, it will setresources and access respectively using the service Pattern
-        /// with a full wildcard for reset.
+        /// Sets the resource patterns matching the resources owned by the service.
+        /// If set to null, the service will default to set ownership of all resources
+        /// starting with its own name if one was provided (eg. "serviceName.>") to the
+        /// constructor, or to all resources if no name was provided.
+        /// It will take resource ownership if it has at least one handler of
+        /// HandlerTypes Get, Call, or Auth.
+        /// It will take access ownership if it has at least one handler of HandlerTypes.Access.
         /// </summary>
         /// <remarks>
         //  For more details on system reset, see:
@@ -113,7 +115,7 @@ namespace ResgateIO.Service
         /// <param name="resources">Resource patterns, or null if using default.</param>
         /// <param name="access">Access patterns, or null if using default.</param>
         /// <returns>The ResService instance.</returns>
-        public ResService SetReset(string[] resources, string[] access)
+        public ResService SetOwnedResources(string[] resources, string[] access)
         {
             resetResources = resources;
             resetAccess = access;
@@ -198,6 +200,62 @@ namespace ResgateIO.Service
             Log.Info("Stopped");
         }
 
+        /// <summary>
+        /// Matches the resource ID, rid, with the registered resource handlers,
+        /// and returns the matching IResourceContext, or null if no matching resource
+        /// handler was found.
+        /// </summary>
+        /// <remarks>
+        /// Should only be called from within the resource's group callback.
+        /// Using the returned value from another goroutine may cause race conditions.
+        /// </remarks>
+        /// <param name="rid">Resource ID.</param>
+        /// <returns>Resource context matching the resource ID, or null if no match is found.</returns>
+        public IResourceContext Resource(string rid)
+        {
+            string rname = rid;
+            string query = "";
+            int idx = rid.IndexOf('?');
+            if (idx > -1)
+            {
+                rname = rid.Substring(0, idx);
+                query = rid.Substring(idx + 1);
+            }
+            Router.Match match = GetHandler(rname);
+            return match == null
+                ? null
+                : new ResourceContext(this, rname, match.Handler, match.Params, query);
+        }
+
+        /// <summary>
+        /// Matches the resource ID, rid, with the registered resource handlers,
+        /// before calling the callback on the resource's worker thread.
+        /// It will throw an ArgumentException if there is no handler matching
+        /// the resource ID, rid.
+        /// </summary>
+        /// <param name="rid">Resource ID.</param>
+        /// <param name="callback">Callback to be called on the resource's worker thread.</param>
+        public void With(string rid, Action<IResourceContext> callback)
+        {
+            IResourceContext resource = Resource(rid);
+            if (resource == null)
+            {
+                throw new ArgumentException("No matching handler found for resource ID: " + rid);
+            }
+
+            runWith(resource.ResourceName, () => callback(resource));
+        }
+
+        /// <summary>
+        /// Calls the callback on the resource's worker thread.
+        /// </summary>
+        /// <param name="resource">Resource context.</param>
+        /// <param name="callback">Callback to be called on the resource's worker thread.</param>
+        public void With(IResourceContext resource, Action callback)
+        {
+            runWith(resource.ResourceName, callback);
+        }
+
         private void serve(IConnection conn)
         {
             Connection = conn;
@@ -230,7 +288,7 @@ namespace ResgateIO.Service
 
         private void subscribe()
         {
-            setResetDefault();
+            setDefaultResourceOwnership();
 
             foreach (string type in new string[] { "get", "call", "auth" })
             {
@@ -283,10 +341,10 @@ namespace ResgateIO.Service
                 rname = rname.Substring(0, lastIdx);
             }
 
-            RunWith(rname, () => processRequest(msg, rtype, rname, method));
+            runWith(rname, () => processRequest(msg, rtype, rname, method));
         }
 
-        public void RunWith(String resourceName, Action callback)
+        private void runWith(string workId, Action callback)
         {
             lock (stateLock)
             {
@@ -296,14 +354,14 @@ namespace ResgateIO.Service
                 }
 
 
-                if (rwork.TryGetValue(resourceName, out Work work))
+                if (rwork.TryGetValue(workId, out Work work))
                 {
                     work.AddTask(callback);
                 }
                 else
                 {
-                    work = new Work(resourceName, callback);
-                    rwork.Add(resourceName, work);
+                    work = new Work(workId, callback);
+                    rwork.Add(workId, work);
                     ThreadPool.QueueUserWorkItem(new WaitCallback(processWork), work);
                 }
             }
@@ -346,7 +404,7 @@ namespace ResgateIO.Service
         /// </remarks>
         public void ResetAll()
         {
-            setResetDefault();
+            setDefaultResourceOwnership();
             Reset(resetResources, resetAccess);
         }
 
@@ -491,11 +549,11 @@ namespace ResgateIO.Service
             }
         }
 
-        private void setResetDefault()
+        private void setDefaultResourceOwnership()
         {
             if (resetResources == null)
             {
-                resetResources = Contains(h => h.EnabledHandlers.HasFlag(HandlerTypes.Get))
+                resetResources = Contains(h => (h.EnabledHandlers & (HandlerTypes.Get | HandlerTypes.Call | HandlerTypes.Auth)) != HandlerTypes.None)
                     ? new string[] { MergePattern(Pattern, ">") }
                     : new string[] { };
             }

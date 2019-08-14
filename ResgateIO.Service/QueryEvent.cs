@@ -46,10 +46,7 @@ namespace ResgateIO.Service
                 subscription.Dispose();
                 subscription = null;
             }
-            Resource.Service.RunWith(Resource.ResourceName, () =>
-            {
-                closeCallback();
-            });
+            Resource.Service.With(Resource, closeCallback);
         }
 
         private void closeCallback()
@@ -69,7 +66,7 @@ namespace ResgateIO.Service
 
             Log.Trace(String.Format("Q=> {0}: {1}", subj, Encoding.UTF8.GetString(msg.Data)));
 
-            Resource.Service.RunWith(Resource.ResourceName, () =>
+            Resource.Service.With(Resource, () =>
             {
                 if (callback == null)
                 {
