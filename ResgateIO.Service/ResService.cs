@@ -24,10 +24,11 @@ namespace ResgateIO.Service
         // Fields
         private State state = State.Stopped;
         private readonly Object stateLock = new Object();
-        private Dictionary<string, IAsyncSubscription> subs;
         private Dictionary<string, Work> rwork;
         private TimerQueue<QueryEvent> queryTimerQueue;
         private TimeSpan queryDuration = DefaultQueryDuration;
+        private string[] resetResources = null;
+        private string[] resetAccess = null;
 
         // Internal logger
         internal ILogger Log { get; private set; }
@@ -95,6 +96,27 @@ namespace ResgateIO.Service
             {
                 Log = logger;
             }
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the patterns used for resources and access when a ResetAll is made.
+        /// If set to null (default), the service will determine if it has any registered
+        /// handler with HandlerType.Get and HandlerType.Access enabled.
+        /// If so, it will setresources and access respectively using the service Pattern
+        /// with a full wildcard for reset.
+        /// </summary>
+        /// <remarks>
+        //  For more details on system reset, see:
+        //      https://resgate.io/docs/specification/res-service-protocol/#system-reset-event
+        /// </remarks>
+        /// <param name="resources">Resource patterns, or null if using default.</param>
+        /// <param name="access">Access patterns, or null if using default.</param>
+        /// <returns>The ResService instance.</returns>
+        public ResService SetReset(string[] resources, string[] access)
+        {
+            resetResources = resources;
+            resetAccess = access;
             return this;
         }
 
@@ -191,12 +213,12 @@ namespace ResgateIO.Service
             {
                 subscribe();
                 // Always start with a reset
-                Reset();
+                ResetAll();
                 Log.Info("Listening for requests");
             }
             catch (Exception ex)
             {
-                Log.Error("Failed to subscribe: {0}" + ex.Message);
+                Log.Error(String.Format("Failed to subscribe: {0}", ex.Message));
                 close();
             }
         }
@@ -208,14 +230,18 @@ namespace ResgateIO.Service
 
         private void subscribe()
         {
-            var types = Enum.GetValues(typeof(RequestType));
-            subs = new Dictionary<string, IAsyncSubscription>(types.Length);
+            setResetDefault();
 
-            foreach (RequestType type in types)
+            foreach (string type in new string[] { "get", "call", "auth" })
             {
-                String typeStr = type.ToActionString();
-                IAsyncSubscription sub = Connection.SubscribeAsync(typeStr + "." + Pattern + ".>", handleMessage);
-                subs[typeStr] = sub;
+                foreach (string p in resetResources)
+                {
+                    Connection.SubscribeAsync(type + "." + p, handleMessage);
+                }
+            }
+            foreach (string p in resetAccess)
+            {
+                Connection.SubscribeAsync("access." + p, handleMessage);
             }
         }
 
@@ -300,18 +326,28 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
-        /// Sends a system.reset event to trigger any gateway to invalidate their cache for this service
-        /// and request the resource anew.
+        /// Reset sends a system reset event.
+        /// </summary>
+        /// <param name="resources">Resource patterns to reset cached get responses for.</param>
+        /// <param name="access">Resource patterns to reset cached access responses for.</param>
+        public void Reset(string[] resources, string[] access)
+        {
+            Send("system.reset", new SystemResetDto(resources, access));
+        }
+
+        /// <summary>
+        /// Sends a system.reset to trigger any gateway to update their cache
+        /// for all resources handled by the service.
+        /// The method is automatically called on server start and reconnects.
         /// </summary>
         /// <remarks>
         /// See the protocol specification for more information:
-        ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#system-reset-event
+        ///    https://resgate.io/docs/specification/res-service-protocol/#system-reset-event
         /// </remarks>
-        public void Reset()
+        public void ResetAll()
         {
-            // TODO: Reset should be based on actual registered patterns
-            // instead of wildcarded on the service name.
-            Send("system.reset", new SystemResetDto(new string[] { Pattern + ".>" }, new string[] { Pattern + ".>" }));
+            setResetDefault();
+            Reset(resetResources, resetAccess);
         }
 
         /// <summary>
@@ -394,6 +430,7 @@ namespace ResgateIO.Service
             // Check if there is no matching handler
             if (match == null)
             {
+                // [TODO] Allow for a default handler
                 req = new Request(this, msg);
                 req.NotFound();
                 return;
@@ -433,7 +470,7 @@ namespace ResgateIO.Service
         private void handleReconnect(object sender, ConnEventArgs args)
         {
             Log.Info("Reconnected to NATS. Sending reset event.");
-            Reset();
+            ResetAll();
         }
 
         private void handleDisconnect(object sender, ConnEventArgs args)
@@ -454,5 +491,20 @@ namespace ResgateIO.Service
             }
         }
 
+        private void setResetDefault()
+        {
+            if (resetResources == null)
+            {
+                resetResources = Contains(h => h.EnabledHandlers.HasFlag(HandlerTypes.Get))
+                    ? new string[] { MergePattern(Pattern, ">") }
+                    : new string[] { };
+            }
+            if (resetAccess == null)
+            {
+                resetAccess = Contains(h => h.EnabledHandlers.HasFlag(HandlerTypes.Access))
+                    ? new string[] { MergePattern(Pattern, ">") }
+                    : new string[] { };
+            }
+        }
     }
 }

@@ -59,7 +59,7 @@ namespace ResgateIO.Service
         public string FullPattern {
             get
             {
-                return parent == null ? pattern : mergePattern(parent.FullPattern, pattern);
+                return parent == null ? pattern : MergePattern(parent.FullPattern, pattern);
             }
         }
 
@@ -107,7 +107,7 @@ namespace ResgateIO.Service
 
             if (tuple.Item1.Handler != null)
             {
-                throw new InvalidOperationException("Registration already done for pattern: " + mergePattern(pattern, subpattern));
+                throw new InvalidOperationException("Registration already done for pattern: " + MergePattern(pattern, subpattern));
             }
             tuple.Item1.Params = tuple.Item2;
             tuple.Item1.Handler = handler;
@@ -134,7 +134,7 @@ namespace ResgateIO.Service
             {
                 throw new InvalidOperationException("Router is already mounted.");
             }
-            string spattern = mergePattern(subpattern, child.pattern);
+            string spattern = MergePattern(subpattern, child.pattern);
             if (spattern == "")
             {
                 throw new InvalidOperationException("Attempting to mount to root.");
@@ -142,7 +142,7 @@ namespace ResgateIO.Service
             Tuple<Node, List<PathParam>> tuple = fetch(spattern, child.root);
             if (tuple.Item1 != child.root)
             {
-                throw new InvalidOperationException("Attempting to mount to existing pattern: " + mergePattern(pattern, spattern));
+                throw new InvalidOperationException("Attempting to mount to existing pattern: " + MergePattern(pattern, spattern));
             }
             child.pattern = spattern;
             child.parent = this;
@@ -188,7 +188,7 @@ namespace ResgateIO.Service
                             {
                                 if (p.Name == name)
                                 {
-                                    throw new ArgumentException(String.Format("Invalid resource pattern: placeholder {0} found multiple times in pattern: {1}", t, mergePattern(pattern, subpattern)));
+                                    throw new ArgumentException(String.Format("Invalid resource pattern: placeholder {0} found multiple times in pattern: {1}", t, MergePattern(pattern, subpattern)));
                                 }
                             }
                             pathParams.Add(new PathParam(name, i));
@@ -218,7 +218,7 @@ namespace ResgateIO.Service
                         {
                             if (doMount)
                             {
-                                throw new ArgumentException(String.Format("Invalid resource pattern: attempting to mount on full wildcard pattern: {0}", mergePattern(pattern, subpattern)));
+                                throw new ArgumentException(String.Format("Invalid resource pattern: attempting to mount on full wildcard pattern: {0}", MergePattern(pattern, subpattern)));
                             }
                             current.Wild = new Node();
                         }
@@ -271,7 +271,7 @@ namespace ResgateIO.Service
         /// any path params.
         /// </summary>
         /// <param name="resourceName">Resource name</param>
-        /// <returns>Returns found match, or nil if there is no match.</returns>
+        /// <returns>Returns found match, or null if there is no match.</returns>
         public Match GetHandler(string resourceName)
         {
             Match match = new Match();
@@ -313,6 +313,16 @@ namespace ResgateIO.Service
             return match.Handler == null ? null : match;
         }
 
+        /// <summary>
+        /// Traverses through the registered handlers to see if any of them matches the predicate.
+        /// </summary>
+        /// <param name="predicate">Predicate to match.</param>
+        /// <returns>True if a handler matching the predicate is found, otherwise false.</returns>
+        public bool Contains(Predicate<IResourceHandler> predicate)
+        {
+            return contains(root, predicate);
+        }
+
         private bool matchNode(Node current, string[] tokens, int tokenIdx, Match nodeMatch)
         {            
             Node next = null;
@@ -345,17 +355,17 @@ namespace ResgateIO.Service
                                 }
                             }
                             return true;
-				        }
-			        }
+                        }
+                    }
                     else
                     {
-				        // Match against next node
-				        if (matchNode(next, tokens, tokenIdx, nodeMatch))
+                        // Match against next node
+                        if (matchNode(next, tokens, tokenIdx, nodeMatch))
                         {
                             return true;
                         }
-			        }
-		        }
+                    }
+                }
 
                 // To avoid repeating code above, set node to test to l.param
                 // and run it all again.
@@ -382,7 +392,14 @@ namespace ResgateIO.Service
             return false;
         }
 
-        private string mergePattern(string a, string b)
+        /// <summary>
+        /// Merges two pattern with a separating dot if needed.
+        /// The patterns may be empty.
+        /// </summary>
+        /// <param name="a">Prefixing pattern.</param>
+        /// <param name="b">Suffixing pattern.</param>
+        /// <returns>Merged pattern.</returns>
+        internal static string MergePattern(string a, string b)
         {
             if (a == "")
             {
@@ -393,6 +410,41 @@ namespace ResgateIO.Service
                 return a;
             }
             return a + "." + b;
+        }
+
+        private bool contains(Node n, Predicate<IResourceHandler> predicate)
+        {
+            if (n.Wild != null && n.Wild.Handler != null && predicate(n.Wild.Handler))
+            {
+                return true;
+            }
+            if (
+                n.Param != null &&
+                (
+                    (n.Param.Handler != null && predicate(n.Param.Handler)) ||
+                    contains(n.Param, predicate)
+                )
+            )
+            {
+                return true;
+            }
+            if (n.Nodes != null)
+            {
+                foreach (KeyValuePair<string, Node> pair in n.Nodes)
+                {
+                    Node nn = pair.Value;
+                    if (
+
+                        (nn.Handler != null && predicate(nn.Handler)) ||
+                        contains(nn, predicate)
+                    )
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
     }
 }
