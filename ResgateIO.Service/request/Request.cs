@@ -7,11 +7,16 @@ using Newtonsoft.Json.Linq;
 
 namespace ResgateIO.Service
 {
-    public class Request: Resource, IAccessRequest, IModelRequest, ICollectionRequest, ICallRequest, IAuthRequest
+    /// <summary>
+    /// Provides context information and methods for responding to a request.
+    /// </summary>
+    public class Request: ResourceContext, IAccessRequest, IGetRequest, ICallRequest, IAuthRequest, IModelRequest, ICollectionRequest
     {
         private readonly Msg msg;
 
         private bool replied = false;
+
+        private ILogger Log { get { return Service.Log; } }
 
         public RequestType Type { get; }
 
@@ -121,7 +126,7 @@ namespace ResgateIO.Service
                 throw new InvalidOperationException("Response already sent on request");
             }
             replied = true;
-            Console.WriteLine("<== {0}: {1}", msg.Subject, Encoding.UTF8.GetString(data));
+            Log.Trace(String.Format("<== {0}: {1}", msg.Subject, Encoding.UTF8.GetString(data)));
             Service.RawSend(msg.Reply, data);
         }
 
@@ -148,12 +153,12 @@ namespace ResgateIO.Service
             {
                 try
                 {
-                    byte[] data = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new SuccessDto(result)));
+                    byte[] data = JsonUtils.Serialize(new SuccessDto(result));
                     RawResponse(data);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error serializing success response: {0}" + ex.Message);
+                    Log.Error(String.Format("Error serializing success response: {0}", ex.Message));
                     Error(new ResError(ex));
                 }
             }
@@ -171,7 +176,7 @@ namespace ResgateIO.Service
             }
             catch(Exception ex)
             {
-                Console.WriteLine("Error serializing error response: {0}" + ex.Message);
+                Log.Error(String.Format("Error serializing error response: {0}", ex.Message));
                 RawResponse(ResService.ResponseInternalError);
             }
         }
@@ -321,76 +326,60 @@ namespace ResgateIO.Service
                 switch (Type)
                 {
                     case RequestType.Access:
-                        if (!(Handler is IAccessHandler accessHandler))
+                        if (Handler.EnabledHandlers.HasFlag(HandlerTypes.Access))
                         {
-                            return;
+                            Handler.Access(this);
                         }
-
-                        accessHandler.Access(this);
                         break;
 
                     case RequestType.Get:
-                        if (Handler is IModelHandler modelHandler)
+                        if (Handler.EnabledHandlers.HasFlag(HandlerTypes.Get))
                         {
-                            modelHandler.Get(this);
-                        }
-                        else
-                        {
-                            if (!(Handler is ICollectionHandler collectionHandler))
-                            {
-                                return;
-                            }
-                            collectionHandler.Get(this);
+                            Handler.Get(this);
                         }
                         break;
 
                     case RequestType.Call:
-                        if (Handler is ICallHandler callHandler)
+                        if (Handler.EnabledHandlers.HasFlag(HandlerTypes.Call))
                         {
-                            callHandler.Call(this);
-                        }
-                        
-                        if (!replied)
-                        {
-                            MethodNotFound();
+                            Handler.Call(this);
                         }
                         break;
 
                     case RequestType.Auth:
-                        if (Handler is IAuthHandler authHandler)
+                        if (Handler.EnabledHandlers.HasFlag(HandlerTypes.Auth))
                         {
-                            authHandler.Auth(this);
-                        }
-
-                        if (!replied)
-                        {
-                            MethodNotFound();
+                            Handler.Auth(this);
                         }
                         break;
 
                     default:
-                        Console.WriteLine("Unknown request type: {0}", msg.Subject);
+                        Log.Error(String.Format("Unknown request type: {0}", msg.Subject));
                         return;
-                    
-                }
-
-                if (!replied)
-                {
-                    RawResponse(ResService.ResponseMissingResponse);
                 }
             }
-            catch(Exception ex)
+            catch(ResException ex)
             {
                 if (!replied)
                 {
                     // If a reply isn't sent yet, send an error response
-                    // and return, as throwing exceptions within a handler
+                    // and return, as throwing a ResException within a handler
                     // is considered valid behaviour.
                     Error(new ResError(ex));
                     return;
                 }
 
-                Console.WriteLine("Error handling request {0}: {1}", msg.Subject, ex.Message);
+                Log.Error(String.Format("Error handling request {0}: {1} - {2}", msg.Subject, ex.Code, ex.Message));
+            }
+            catch(Exception ex)
+            {
+                if (!replied)
+                {
+                    Error(new ResError(ex));
+                }
+
+                // Write to log as only ResExceptions are considered valid behaviour.
+                Log.Error(String.Format("Error handling request {0}: {1}", msg.Subject, ex.Message));
             }
         }
 
@@ -428,6 +417,39 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
+        /// Attempts to set the timeout duration of the request.
+        /// The call has no effect if the requester has already timed out the request,
+        /// or if a reply has already been sent.
+        /// </summary>
+        /// <param name="milliseconds">Timeout duration in milliseconds.</param>
+        public void Timeout(int milliseconds)
+        {
+            if (milliseconds < 0)
+            {
+                throw new InvalidOperationException("Negative timeout duration");
+            }
+            if (replied)
+            {
+                return;
+            }
+
+            var str = "timeout:\"" + milliseconds.ToString() + "\"";
+            Log.Trace(String.Format("<-- {0}: {1}", msg.Subject, str));
+            Service.RawSend(msg.Reply, Encoding.UTF8.GetBytes(str));
+        }
+
+        /// <summary>
+        /// Attempts to set the timeout duration of the request.
+        /// The call has no effect if the requester has already timed out the request,
+        /// or if a reply has already been sent.
+        /// </summary>
+        /// <param name="milliseconds">Timeout duration.</param>
+        public void Timeout(TimeSpan duration)
+        {
+            Timeout((int)duration.TotalMilliseconds);
+        }
+
+        /// <summary>
         /// Sends a connection token event that sets the connection's access token,
         /// discarding any previously set token.
         /// A change of token will invalidate any previous access response received using the old token.
@@ -443,5 +465,11 @@ namespace ResgateIO.Service
         {
             Service.Send("conn." + CID + ".token", new TokenEventDto(token));
         }
+
+        /// <summary>
+        /// Flag telling if the request handler is called as a result of Value
+        /// or RequireValue being called from another handler.
+        /// </summary>
+        public bool ForValue { get { return false; } }
     }
 }
