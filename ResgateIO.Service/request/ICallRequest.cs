@@ -1,9 +1,13 @@
 ﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 
 namespace ResgateIO.Service
 {
-    public interface ICallRequest : IResourceRequest
+    /// <summary>
+    /// Provides context information and methods for responding to a call request.
+    /// </summary>
+    public interface ICallRequest : IResourceContext
     {
         /// <summary>
         /// Resource method.
@@ -74,5 +78,21 @@ namespace ResgateIO.Service
         /// <typeparam name="T">Type to parse the token into.</typeparam>
         /// <returns>Parsed token object.</returns>
         T ParseToken<T>();
+
+        /// <summary>
+        /// Attempts to set the timeout duration of the request.
+        /// The call has no effect if the requester has already timed out the request,
+        /// or if a reply has already been sent.
+        /// </summary>
+        /// <param name="milliseconds">Timeout duration in milliseconds.</param>
+        void Timeout(int milliseconds);
+
+        /// <summary>
+        /// Attempts to set the timeout duration of the request.
+        /// The call has no effect if the requester has already timed out the request,
+        /// or if a reply has already been sent.
+        /// </summary>
+        /// <param name="milliseconds">Timeout duration.</param>
+        void Timeout(TimeSpan duration);
     }
 }

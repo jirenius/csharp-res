@@ -5,14 +5,14 @@
     <Version>0.1.0</Version>
     <Authors>Samuel Jirenius</Authors>
     <Company>Resgate.io</Company>
-    <Description>RES service library for building realtime web services using Resgate.</Description>
+    <Description>RES service library for building realtime APIs using Resgate.</Description>
     <RepositoryType></RepositoryType>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NATS.Client" Version="0.8.1" />
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+    <PackageReference Include="NATS.Client" Version="0.9.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
   </ItemGroup>
 
 </Project>

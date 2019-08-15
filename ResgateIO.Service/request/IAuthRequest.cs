@@ -1,9 +1,13 @@
 ﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 
 namespace ResgateIO.Service
 {
-    public interface IAuthRequest : IResourceRequest
+    /// <summary>
+    /// Provides context information and methods for responding to an auth request.
+    /// </summary>
+    public interface IAuthRequest : IResourceContext
     {
         /// <summary>
         /// Resource method.
@@ -111,5 +115,21 @@ namespace ResgateIO.Service
         /// </remarks>
         /// <param name="token">Access token. A null token clears any previously set token.</param>
         void ConnectionTokenEvent(object token);
+
+        /// <summary>
+        /// Attempts to set the timeout duration of the request.
+        /// The call has no effect if the requester has already timed out the request,
+        /// or if a reply has already been sent.
+        /// </summary>
+        /// <param name="milliseconds">Timeout duration in milliseconds.</param>
+        void Timeout(int milliseconds);
+
+        /// <summary>
+        /// Attempts to set the timeout duration of the request.
+        /// The call has no effect if the requester has already timed out the request,
+        /// or if a reply has already been sent.
+        /// </summary>
+        /// <param name="milliseconds">Timeout duration.</param>
+        void Timeout(TimeSpan duration);
     }
 }

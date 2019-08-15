@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ResgateIO.Service.UnitTests
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HelloWorld", "examples\HelloWorld\HelloWorld.csproj", "{B0C17113-0EF1-431C-AC38-495E6FEA9DE5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BookCollection", "examples\BookCollection\BookCollection.csproj", "{CEEE43F2-361C-4D1A-911F-57C56B09FF60}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BookCollection", "examples\BookCollection\BookCollection.csproj", "{CEEE43F2-361C-4D1A-911F-57C56B09FF60}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace ResgateIO.Service
+﻿namespace ResgateIO.Service
 {
     public enum RequestType
     {

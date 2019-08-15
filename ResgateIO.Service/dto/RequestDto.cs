@@ -10,7 +10,6 @@ namespace ResgateIO.Service
 
     internal class RequestDto
     {
-
         [JsonProperty(PropertyName = "cid")]
         public string CID;
 

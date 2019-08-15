@@ -1,19 +1,17 @@
 ﻿using ResgateIO.Service;
-using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace BookCollection
 {
-    class BookModelHandler : IModelHandler, IAccessHandler, ICallHandler
+    class BookModelHandler : ModelHandler
     {
-        public void Access(IAccessRequest request)
+        public override void Access(IAccessRequest request)
         {
             // Allow everone to access this resource
             request.AccessGranted();
         }
 
-        public void Get(IModelRequest request)
+        public override void Get(IModelRequest request)
         {
             Book book = BookStore.GetBook(request.ResourceName);
             if (book == null)
@@ -26,14 +24,8 @@ namespace BookCollection
             }
         }
 
-        public void Call(ICallRequest request)
+        public override void Call(ICallRequest request)
         {
-            Book book = BookStore.GetBook(request.ResourceName);
-            if (book == null)
-            {
-                request.NotFound();
-            }
-
             switch (request.Method)
             {
                 // Handle setting of the book properties
@@ -41,42 +33,16 @@ namespace BookCollection
                     Book bookParams = request.ParseParams<Book>();
                     var changed = new Dictionary<string, object>(2);
 
-                    // Check if the title property was changed
+                    // Check if the title property was provided
                     if (bookParams.Title != null)
                     {
-                        // Verify it is not empty
-                        string title = bookParams.Title.Trim();
-                        if (title == "")
-                        {
-                            request.InvalidParams("Title must not be empty");
-                            return;
-                        }
-
-                        if (title != book.Title)
-                        {
-                            // Update the model.
-                            book.Title = title;
-                            changed["title"] = title;
-                        }
+                        changed["title"] = bookParams.Title.Trim();
                     }
 
-                    // Check if the author property was changed
+                    // Check if the author property was provided
                     if (bookParams.Author != null)
                     {
-                        // Verify it is not empty
-                        string author = bookParams.Author.Trim();
-                        if (author == "")
-                        {
-                            request.InvalidParams("Author must not be empty");
-                            return;
-                        }
-
-                        if (author != book.Author)
-                        {
-                            // Update the model.
-                            book.Author = author;
-                            changed["author"] = author;
-                        }
+                        changed["author"] = bookParams.Author.Trim();
                     }
 
                     // Send a change event with updated fields
@@ -90,6 +56,42 @@ namespace BookCollection
                     request.MethodNotFound();
                     break;
             }
+        }
+
+        public override Dictionary<string, object> ApplyChange(ResourceContext resource, Dictionary<string, object> changes)
+        {
+            var book = resource.RequireValue<Book>();
+            var revert = new Dictionary<string, object>(changes.Count);
+
+            if (changes.TryGetValue("title", out object titleObject))
+            {
+                string title = (string)titleObject;
+                if (title == "")
+                {
+                    throw new ResException("Title must not be empty.");
+                }
+                if (title != book.Title)
+                {
+                    revert["title"] = book.Title;
+                    book.Title = title;
+                }
+            }
+
+            if (changes.TryGetValue("author", out object authorObject))
+            {
+                string author = (string)authorObject;
+                if (author == "")
+                {
+                    throw new ResException("Author must not be empty.");
+                }
+                if (author != book.Author)
+                {
+                    revert["author"] = book.Author;
+                    book.Author = author;
+                }
+            }
+
+            return revert;
         }
     }
 }
