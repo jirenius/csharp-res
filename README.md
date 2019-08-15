@@ -6,6 +6,7 @@
 
 <p align="center">
 <a href="http://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
+<a href="https://www.nuget.org/packages/ResgateIO.Service"><img src="https://img.shields.io/nuget/v/ResgateIO.Service.svg?maxAge=2592000" alt="License"></a>
 </p>
 
 ---

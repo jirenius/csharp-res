@@ -1,12 +1,4 @@
-<p align="center"><a href="https://resgate.io" target="_blank" rel="noopener noreferrer"><img width="100" src="https://resgate.io/img/resgate-logo.png" alt="Resgate logo"></a></p>
-
-
-<h2 align="center"><b>RES Service for C#</b><br/>Synchronize Your Clients</h2>
-</p>
-
-<p align="center">
-<a href="http://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
-</p>
+# RES Service for .NET : Synchronize Your Clients
 
 ---
 
@@ -22,4 +14,4 @@ The [GitHub repository](https://github.com/jirenius/csharp-res) contains example
 
 The ResgateIO.Service library is still under development, and minor versions may still contain breaking changes. Any feedback on the package API or its implementation is highly appreciated!
 
-If you find any issues, feel free to [report them](https://github.com/jirenius/csharp-res/issues/new) as an Issue on GitHub.
+If you find any issues, feel free to [report them](https://github.com/jirenius/csharp-res/issues/new) as an issue on GitHub.
