@@ -390,6 +390,10 @@ namespace ResgateIO.Service
         /// <param name="access">Resource patterns to reset cached access responses for.</param>
         public void Reset(string[] resources, string[] access)
         {
+            if ((resources == null || resources.Length == 0) && (access == null || access.Length == 0))
+            {
+                return;
+            }
             Send("system.reset", new SystemResetDto(resources, access));
         }
 
