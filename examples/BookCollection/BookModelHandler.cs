@@ -58,7 +58,7 @@ namespace BookCollection
             }
         }
 
-        public override Dictionary<string, object> ApplyChange(ResourceContext resource, Dictionary<string, object> changes)
+        public override Dictionary<string, object> ApplyChange(IResourceContext resource, IDictionary<string, object> changes)
         {
             var book = resource.RequireValue<Book>();
             var revert = new Dictionary<string, object>(changes.Count);
