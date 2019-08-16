@@ -52,6 +52,56 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Fact]
+        public void SetModelGet_WithHandler_ModelGetFlagSet()
+        {
+            var handler = new DynamicHandler().SetModelGet(r => { });
+            Assert.Equal(HandlerTypes.Get, handler.EnabledHandlers);
+            Assert.Equal(ResourceType.Model, handler.Type);
+        }
+
+        [Fact]
+        public void SetModelGet_NoHandler_ModelGetFlagNotSet()
+        {
+            var handler = new DynamicHandler().SetModelGet(r => { }).SetModelGet(null);
+            Assert.Equal(HandlerTypes.None, handler.EnabledHandlers);
+            Assert.Equal(ResourceType.Unknown, handler.Type);
+        }
+
+        [Fact]
+        public void SetModelGet_WithHandler_IsCalled()
+        {
+            int called = 0;
+            var handler = new DynamicHandler().SetModelGet(r => called++);
+            handler.Get(null);
+            Assert.Equal(1, called);
+        }
+
+        [Fact]
+        public void SetCollectionGet_WithHandler_CollectionGetFlagSet()
+        {
+            var handler = new DynamicHandler().SetCollectionGet(r => { });
+            Assert.Equal(HandlerTypes.Get, handler.EnabledHandlers);
+            Assert.Equal(ResourceType.Collection, handler.Type);
+        }
+
+        [Fact]
+        public void SetCollectionGet_NoHandler_CollectionGetFlagNotSet()
+        {
+            var handler = new DynamicHandler().SetCollectionGet(r => { }).SetCollectionGet(null);
+            Assert.Equal(HandlerTypes.None, handler.EnabledHandlers);
+            Assert.Equal(ResourceType.Unknown, handler.Type);
+        }
+
+        [Fact]
+        public void SetCollectionGet_WithHandler_IsCalled()
+        {
+            int called = 0;
+            var handler = new DynamicHandler().SetCollectionGet(r => called++);
+            handler.Get(null);
+            Assert.Equal(1, called);
+        }
+
+        [Fact]
         public void SetCall_WithHandler_CallFlagSet()
         {
             var handler = new DynamicHandler().SetCall(r => { });
@@ -210,6 +260,22 @@ namespace ResgateIO.Service.UnitTests
             var handler = new DynamicHandler().SetApplyDelete(r => { called++; return null; });
             handler.ApplyDelete(null);
             Assert.Equal(1, called);
+        }
+
+        [Fact]
+        public void SetType_WithModel_TypeIsSet()
+        {
+            var handler = new DynamicHandler().SetType(ResourceType.Model);
+            Assert.Equal(ResourceType.Model, handler.Type);
+        }
+
+        [Fact]
+        public void EnabledHandlers_WithMultipleHandlers_FlagsAreSet()
+        {
+            var handler = new DynamicHandler()
+                .SetAccess(r => { })
+                .SetGet(r => { });
+            Assert.Equal(HandlerTypes.Access | HandlerTypes.Get, handler.EnabledHandlers);
         }
     }
 }

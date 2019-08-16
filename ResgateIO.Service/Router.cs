@@ -103,11 +103,16 @@ namespace ResgateIO.Service
         /// <param name="handler">Resource handler.</param>
         public void AddHandler(string subpattern, IResourceHandler handler)
         {
+            if (handler == null)
+            {
+                throw new ArgumentNullException("handler must not be null.");
+            }
+
             Tuple<Node, List<PathParam>> tuple = fetch(subpattern, null);
 
             if (tuple.Item1.Handler != null)
             {
-                throw new InvalidOperationException("Registration already done for pattern: " + MergePattern(pattern, subpattern));
+                throw new ArgumentException("Registration already done for pattern: " + MergePattern(pattern, subpattern));
             }
             tuple.Item1.Params = tuple.Item2;
             tuple.Item1.Handler = handler;
@@ -387,6 +392,7 @@ namespace ResgateIO.Service
                         nodeMatch.Params[pp.Name] = tokens[pp.Idx];
                     }
                 }
+                return true;
             }
 
             return false;

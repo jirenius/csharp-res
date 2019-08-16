@@ -116,7 +116,7 @@ namespace ResgateIO.Service
             if (getHandler != null)
             {
                 get = r => getHandler((ICollectionRequest)r);
-                resourceType = ResourceType.Model;
+                resourceType = ResourceType.Collection;
             }
             else
             {

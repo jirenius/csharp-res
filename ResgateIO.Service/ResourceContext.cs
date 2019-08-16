@@ -157,9 +157,9 @@ namespace ResgateIO.Service
                     throw new InvalidOperationException("Reserved event name: \"query\"");
             }
 
-            if (!isValidPart(eventName))
+            if (!ResService.IsValidPart(eventName))
             {
-                throw new InvalidOperationException("Invalid event name: " + eventName);
+                throw new ArgumentException("Invalid event name: " + eventName);
             }
 
             sendEvent(eventName, payload);
@@ -305,21 +305,6 @@ namespace ResgateIO.Service
         private void sendEvent(string eventName, object payload)
         {
             Service.Send("event." + ResourceName + "." + eventName, payload);
-        }
-
-        private bool isValidPart(string eventName)
-        {
-            foreach (char c in eventName)
-            {
-                if (c == '?') {
-                    return false;
-                }
-                if (c < 33 || c > 126 || c == '?' || c == '*' || c == '>' || c == '.')
-                {
-                    return false;
-                }
-            }
-            return true;
         }
     }
 }

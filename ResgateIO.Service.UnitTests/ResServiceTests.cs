@@ -1,3 +1,5 @@
+using System;
+using System.Threading;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -53,6 +55,18 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Fact]
+        public void Serve_RegisteredAccessAndGetHandler_SendsResourceAndAccessInSystemReset()
+        {
+            Service.AddHandler("model", new DynamicHandler()
+                .SetAccess(r => r.AccessDenied())
+                .SetGet(r => r.NotFound()));
+            Service.Serve(Conn);
+            Conn.GetMsg()
+                .AssertSubject("system.reset")
+                .AssertPayload(new { resources = new string[] { "test.>" }, access = new string[] { "test.>" } });
+        }
+
+        [Fact]
         public void Shutdown_ClosesConnection()
         {
             Service.Serve(Conn);
@@ -67,5 +81,52 @@ namespace ResgateIO.Service.UnitTests
             Service.Serve(Conn);
         }
 
+        [Fact]
+        public void TokenEvent_WithToken_SendsTokenEvent()
+        {
+            var token = new { id = 42, user = "foo", role = "admin" };
+            Service.Serve(Conn);
+            Service.TokenEvent(Test.CID, token);
+            Conn.GetMsg()
+                .AssertSubject("conn." + Test.CID + ".token")
+                .AssertPayload(new { token });
+        }
+
+        [Fact]
+        public void TokenEvent_WithNullToken_SendsNullTokenEvent()
+        {
+            Service.Serve(Conn);
+            Service.TokenEvent(Test.CID, null);
+            Conn.GetMsg()
+                .AssertSubject("conn." + Test.CID + ".token")
+                .AssertPayload(new { token = (object)null });
+        }
+
+        [Fact]
+        public void TokenEvent_WithInvalidCID_ThrowsException()
+        {
+            Service.Serve(Conn);
+            Assert.Throws<ArgumentException>(() => Service.TokenEvent("invalid.*.cid", null));
+        }
+
+        [Fact]
+        public void With_WithValidResourceID_CallsCallback()
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler("model", new DynamicHandler().SetGet(r => r.NotFound()));
+            Service.Serve(Conn);
+            Service.With("test.model", r => ev.Set());
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+        }
+
+        [Fact]
+        public void With_WithoutMatchingPattern_ThrowsException()
+        {
+            Service.Serve(Conn);
+            Assert.Throws<ArgumentException>(() =>
+            {
+                Service.With("test.model", r => { });
+            });
+        }
     }
 }

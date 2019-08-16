@@ -344,28 +344,22 @@ namespace ResgateIO.Service
             runWith(rname, () => processRequest(msg, rtype, rname, method));
         }
 
-        private void runWith(string workId, Action callback)
+private void runWith(string workId, Action callback)
+{
+    lock (stateLock)
+    { 
+        if (rwork.TryGetValue(workId, out Work work))
         {
-            lock (stateLock)
-            {
-                if (state != State.Started)
-                {
-                    return;
-                }
-
-
-                if (rwork.TryGetValue(workId, out Work work))
-                {
-                    work.AddTask(callback);
-                }
-                else
-                {
-                    work = new Work(workId, callback);
-                    rwork.Add(workId, work);
-                    ThreadPool.QueueUserWorkItem(new WaitCallback(processWork), work);
-                }
-            }
+            work.AddTask(callback);
         }
+        else
+        {
+            work = new Work(workId, callback);
+            rwork.Add(workId, work);
+            ThreadPool.QueueUserWorkItem(new WaitCallback(processWork), work);
+        }
+    }
+}
 
         /// <summary>
         /// Sends a connection token event that sets the connection's access token,
@@ -378,8 +372,12 @@ namespace ResgateIO.Service
         /// </remarks>
         /// <param name="cid">Connection ID</param>
         /// <param name="token">Access token. A null token clears any previously set token.</param>
-        public void ConnectionTokenEvent(string cid, object token)
+        public void TokenEvent(string cid, object token)
         {
+            if (!IsValidPart(cid))
+            {
+                throw new ArgumentException("Invalid connection ID: " + cid);
+            }
             Send("conn." + cid + ".token", new TokenEventDto(token));
         }
 
@@ -455,6 +453,22 @@ namespace ResgateIO.Service
         {
             queryEvent.Start();
             queryTimerQueue.Add(queryEvent);
+        }
+
+        internal static bool IsValidPart(string part)
+        {
+            foreach (char c in part)
+            {
+                if (c == '?')
+                {
+                    return false;
+                }
+                if (c < 33 || c > 126 || c == '?' || c == '*' || c == '>' || c == '.')
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         private void onQueryEventExpire(QueryEvent queryEvent)
@@ -568,5 +582,6 @@ namespace ResgateIO.Service
                     : new string[] { };
             }
         }
+
     }
 }
