@@ -1,0 +1,215 @@
+using System;
+using Xunit;
+
+namespace ResgateIO.Service.UnitTests
+{
+    public class DynamicHandlerTests
+    {
+        [Fact]
+        public void SetAccess_WithHandler_AccessFlagSet()
+        {
+            var handler = new DynamicHandler().SetAccess(r => { });
+            Assert.Equal(HandlerTypes.Access, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetAccess_NoHandler_AccessFlagNotSet()
+        {
+            var handler = new DynamicHandler().SetAccess(r => { }).SetAccess(null);
+            Assert.Equal(HandlerTypes.None, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetAccess_WithHandler_IsCalled()
+        {
+            int called = 0;
+            var handler = new DynamicHandler().SetAccess(r => called++);
+            handler.Access(null);
+            Assert.Equal(1, called);
+        }
+
+        [Fact]
+        public void SetGet_WithHandler_GetFlagSet()
+        {
+            var handler = new DynamicHandler().SetGet(r => { });
+            Assert.Equal(HandlerTypes.Get, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetGet_NoHandler_GetFlagNotSet()
+        {
+            var handler = new DynamicHandler().SetGet(r => { }).SetGet(null);
+            Assert.Equal(HandlerTypes.None, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetGet_WithHandler_IsCalled()
+        {
+            int called = 0;
+            var handler = new DynamicHandler().SetGet(r => called++);
+            handler.Get(null);
+            Assert.Equal(1, called);
+        }
+
+        [Fact]
+        public void SetCall_WithHandler_CallFlagSet()
+        {
+            var handler = new DynamicHandler().SetCall(r => { });
+            Assert.Equal(HandlerTypes.Call, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetCall_NoHandler_CallFlagNotSet()
+        {
+            var handler = new DynamicHandler().SetCall(r => { }).SetCall(null);
+            Assert.Equal(HandlerTypes.None, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetCall_WithHandler_IsCalled()
+        {
+            int called = 0;
+            var handler = new DynamicHandler().SetCall(r => called++);
+            handler.Call(null);
+            Assert.Equal(1, called);
+        }
+
+        [Fact]
+        public void SetAuth_WithHandler_AuthFlagSet()
+        {
+            var handler = new DynamicHandler().SetAuth(r => { });
+            Assert.Equal(HandlerTypes.Auth, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetAuth_NoHandler_AuthFlagNotSet()
+        {
+            var handler = new DynamicHandler().SetAuth(r => { }).SetAuth(null);
+            Assert.Equal(HandlerTypes.None, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetAuth_WithHandler_IsCalled()
+        {
+            int called = 0;
+            var handler = new DynamicHandler().SetAuth(r => called++);
+            handler.Auth(null);
+            Assert.Equal(1, called);
+        }
+
+        [Fact]
+        public void SetApplyChange_WithHandler_ApplyChangeFlagSet()
+        {
+            var handler = new DynamicHandler().SetApplyChange((r, c) => null);
+            Assert.Equal(HandlerTypes.ApplyChange, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetApplyChange_NoHandler_ApplyChangeFlagNotSet()
+        {
+            var handler = new DynamicHandler().SetApplyChange((r, c) => null).SetApplyChange(null);
+            Assert.Equal(HandlerTypes.None, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetApplyChange_WithHandler_IsCalled()
+        {
+            int called = 0;
+            var handler = new DynamicHandler().SetApplyChange((r, c) => { called++; return null; });
+            handler.ApplyChange(null, null);
+            Assert.Equal(1, called);
+        }
+
+        [Fact]
+        public void SetApplyAdd_WithHandler_ApplyAddFlagSet()
+        {
+            var handler = new DynamicHandler().SetApplyAdd((r, o, i) => { });
+            Assert.Equal(HandlerTypes.ApplyAdd, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetApplyAdd_NoHandler_ApplyAddFlagNotSet()
+        {
+            var handler = new DynamicHandler().SetApplyAdd((r, o, i) => { }).SetApplyAdd(null);
+            Assert.Equal(HandlerTypes.None, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetApplyAdd_WithHandler_IsCalled()
+        {
+            int called = 0;
+            var handler = new DynamicHandler().SetApplyAdd((r, o, i) => called++);
+            handler.ApplyAdd(null, null, 0);
+            Assert.Equal(1, called);
+        }
+
+        [Fact]
+        public void SetApplyRemove_WithHandler_ApplyRemoveFlagSet()
+        {
+            var handler = new DynamicHandler().SetApplyRemove((r, i) => null);
+            Assert.Equal(HandlerTypes.ApplyRemove, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetApplyRemove_NoHandler_ApplyRemoveFlagNotSet()
+        {
+            var handler = new DynamicHandler().SetApplyRemove((r, i) => null).SetApplyRemove(null);
+            Assert.Equal(HandlerTypes.None, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetApplyRemove_WithHandler_IsCalled()
+        {
+            int called = 0;
+            var handler = new DynamicHandler().SetApplyRemove((r, i) => { called++; return null; });
+            handler.ApplyRemove(null, 0);
+            Assert.Equal(1, called);
+        }
+
+        [Fact]
+        public void SetApplyCreate_WithHandler_ApplyCreateFlagSet()
+        {
+            var handler = new DynamicHandler().SetApplyCreate((r, o) => { });
+            Assert.Equal(HandlerTypes.ApplyCreate, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetApplyCreate_NoHandler_ApplyCreateFlagNotSet()
+        {
+            var handler = new DynamicHandler().SetApplyCreate((r, o) => { }).SetApplyCreate(null);
+            Assert.Equal(HandlerTypes.None, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetApplyCreate_WithHandler_IsCalled()
+        {
+            int called = 0;
+            var handler = new DynamicHandler().SetApplyCreate((r, o) => called++);
+            handler.ApplyCreate(null, null);
+            Assert.Equal(1, called);
+        }
+
+        [Fact]
+        public void SetApplyDelete_WithHandler_ApplyDeleteFlagSet()
+        {
+            var handler = new DynamicHandler().SetApplyDelete(r => null);
+            Assert.Equal(HandlerTypes.ApplyDelete, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetApplyDelete_NoHandler_ApplyDeleteFlagNotSet()
+        {
+            var handler = new DynamicHandler().SetApplyDelete(r => null).SetApplyDelete(null);
+            Assert.Equal(HandlerTypes.None, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetApplyDelete_WithHandler_IsCalled()
+        {
+            int called = 0;
+            var handler = new DynamicHandler().SetApplyDelete(r => { called++; return null; });
+            handler.ApplyDelete(null);
+            Assert.Equal(1, called);
+        }
+    }
+}

@@ -1,4 +1,5 @@
 ﻿using NATS.Client;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -104,7 +105,7 @@ namespace ResgateIO.Service.UnitTests
         /// <returns>Inbox for the request.</returns>
         public string NATSRequest(string subject, object data)
         {
-            return NATSRequest(subject, JsonUtils.Serialize(data));
+            return NATSRequest(subject, Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(data)));
         }
 
         /// <summary>

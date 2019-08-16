@@ -60,7 +60,7 @@ namespace ResgateIO.Service
         /// <returns>This instance.</returns>
         public DynamicHandler SetAccess(Action<IAccessRequest> accessHandler)
         {
-            toggleHandlers(HandlerTypes.Get, accessHandler == null);
+            toggleHandlers(HandlerTypes.Access, accessHandler != null);
             access = accessHandler;
             return this;
         }
@@ -134,7 +134,7 @@ namespace ResgateIO.Service
         /// <returns>This instance.</returns>
         public DynamicHandler SetCall(Action<ICallRequest> callHandler)
         {
-            toggleHandlers(HandlerTypes.Get, callHandler != null);
+            toggleHandlers(HandlerTypes.Call, callHandler != null);
             call = callHandler;
             return this;
         }
@@ -147,7 +147,7 @@ namespace ResgateIO.Service
         /// <returns>This instance.</returns>
         public DynamicHandler SetAuth(Action<IAuthRequest> authHandler)
         {
-            toggleHandlers(HandlerTypes.Get, authHandler != null);
+            toggleHandlers(HandlerTypes.Auth, authHandler != null);
             auth = authHandler;
             return this;
         }
@@ -160,7 +160,7 @@ namespace ResgateIO.Service
         /// <returns>This instance.</returns>
         public DynamicHandler SetApplyChange(Func<IResourceContext, IDictionary<string, object>, Dictionary<string, object>> applyChangeHandler)
         {
-            toggleHandlers(HandlerTypes.Get, applyChangeHandler != null);
+            toggleHandlers(HandlerTypes.ApplyChange, applyChangeHandler != null);
             applyChange = applyChangeHandler;
             return this;
         }
@@ -173,7 +173,7 @@ namespace ResgateIO.Service
         /// <returns>This instance.</returns>
         public DynamicHandler SetApplyAdd(Action<IResourceContext, object, int> applyAddHandler)
         {
-            toggleHandlers(HandlerTypes.Get, applyAddHandler != null);
+            toggleHandlers(HandlerTypes.ApplyAdd, applyAddHandler != null);
             applyAdd = applyAddHandler;
             return this;
         }
@@ -186,7 +186,7 @@ namespace ResgateIO.Service
         /// <returns>This instance.</returns>
         public DynamicHandler SetApplyRemove(Func<IResourceContext, int, object> applyRemoveHandler)
         {
-            toggleHandlers(HandlerTypes.Get, applyRemoveHandler != null);
+            toggleHandlers(HandlerTypes.ApplyRemove, applyRemoveHandler != null);
             applyRemove = applyRemoveHandler;
             return this;
         }
@@ -199,7 +199,7 @@ namespace ResgateIO.Service
         /// <returns>This instance.</returns>
         public DynamicHandler SetApplyCreate(Action<IResourceContext, object> applyCreateHandler)
         {
-            toggleHandlers(HandlerTypes.Get, applyCreateHandler != null);
+            toggleHandlers(HandlerTypes.ApplyCreate, applyCreateHandler != null);
             applyCreate = applyCreateHandler;
             return this;
         }
@@ -212,7 +212,7 @@ namespace ResgateIO.Service
         /// <returns>This instance.</returns>
         public DynamicHandler SetApplyDelete(Func<IResourceContext, object> applyDeleteHandler)
         {
-            toggleHandlers(HandlerTypes.Get, applyDeleteHandler != null);
+            toggleHandlers(HandlerTypes.ApplyDelete, applyDeleteHandler != null);
             applyDelete = applyDeleteHandler;
             return this;
         }

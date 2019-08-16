@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using Xunit;
 
@@ -29,7 +30,10 @@ namespace ResgateIO.Service.UnitTests
             {
                 return default(T);
             }
-            return JsonUtils.Deserialize<T>(Data);
+
+            using (var stream = new MemoryStream(Data))
+            using (var reader = new StreamReader(stream, Encoding.UTF8))
+                return JsonSerializer.Create().Deserialize(reader, typeof(T)) as T;
         }
 
         public MockMsg AssertSubject(string subject)
@@ -40,7 +44,7 @@ namespace ResgateIO.Service.UnitTests
 
         public MockMsg AssertPayload(object payload)
         {
-            string payloadJson = Encoding.UTF8.GetString(JsonUtils.Serialize(payload));
+            string payloadJson = JsonConvert.SerializeObject(payload);
             string dataJson = Encoding.UTF8.GetString(Data);
             Assert.True(
                 JToken.DeepEquals(JToken.Parse(dataJson), JToken.Parse(payloadJson)),
@@ -71,10 +75,10 @@ namespace ResgateIO.Service.UnitTests
         {
             Assert.True(TryGetPath(path, out JToken o), "payload does not contain path: " + path);
            
-            string payloadJson = Encoding.UTF8.GetString(JsonUtils.Serialize(payload));
+            string payloadJson = JsonConvert.SerializeObject(payload);
             Assert.True(
                 JToken.DeepEquals(o, JToken.Parse(payloadJson)),
-                String.Format("Expected:\n{0}\nActual:\n{1}", payloadJson, Encoding.UTF8.GetString(JsonUtils.Serialize(payload)))
+                String.Format("Expected:\n{0}\nActual:\n{1}", payloadJson, JsonConvert.SerializeObject(o))
             );
             return this;
         }
