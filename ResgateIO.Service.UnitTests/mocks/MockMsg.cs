@@ -114,12 +114,7 @@ namespace ResgateIO.Service.UnitTests
         public MockMsg AssertError(ResError err)
         {
             AssertNoPath("result");
-            AssertPathPayload("error.code", err.Code);
-            AssertPathPayload("error.message", err.Message);
-            if (err.Data != null)
-            {
-                AssertPathPayload("error.data", err.Data);
-            }
+            AssertPathPayload("error", err);
             return this;
         }
 
@@ -137,6 +132,10 @@ namespace ResgateIO.Service.UnitTests
                 string[] parts = path.Split('.');
                 foreach (string part in parts)
                 {
+                    if (!(o is JObject obj && obj.ContainsKey(part)))
+                    {
+                        return false;
+                    }
                     o = o[part];
                 }
                 token = o;

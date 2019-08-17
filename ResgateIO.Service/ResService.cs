@@ -34,7 +34,7 @@ namespace ResgateIO.Service
         internal ILogger Log { get; private set; }
 
         // Predefined raw data responses
-        internal static readonly byte[] ResponseAccessDenied = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.accessDenied\",\"message\":\"Access denied\"}}");
+        internal static readonly byte[] ResponseAccessDenied = Encoding.UTF8.GetBytes("{\"result\":{\"get\":false}}");
         internal static readonly byte[] ResponseInternalError = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.internalError\",\"message\":\"Internal error\"}}");
         internal static readonly byte[] ResponseNotFound = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.notFound\",\"message\":\"Not found\"}}");
         internal static readonly byte[] ResponseMethodNotFound = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.methodNotFound\",\"message\":\"Method not found\"}}");
@@ -43,6 +43,7 @@ namespace ResgateIO.Service
         internal static readonly byte[] ResponseBadRequest = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.internalError\",\"message\":\"Internal error: bad request\"}}");
         internal static readonly byte[] ResponseMissingQuery = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.internalError\",\"message\":\"Internal error: missing query\"}}");
         internal static readonly byte[] ResponseAccessGranted = Encoding.UTF8.GetBytes("{\"result\":{\"get\":true,\"call\":\"*\"}}");
+        internal static readonly byte[] ResponseAccessGetOnly = Encoding.UTF8.GetBytes("{\"result\":{\"get\":true}}");
         internal static readonly byte[] ResponseSuccess = Encoding.UTF8.GetBytes("{\"result\":null}");
         internal static readonly byte[] ResponseNoQueryEvents = Encoding.UTF8.GetBytes("{\"result\":{\"events\":[]}}");
 
@@ -308,7 +309,7 @@ namespace ResgateIO.Service
             Msg msg = e.Message;
             String subj = msg.Subject;
 
-            Log.Trace(String.Format("==> {0}: {1}", subj, Encoding.UTF8.GetString(msg.Data)));
+            Log.Trace(String.Format("==> {0}: {1}", subj, msg.Data == null ? "<null>" : Encoding.UTF8.GetString(msg.Data)));
 
             // Assert there is a reply subject
             if (String.IsNullOrEmpty(msg.Reply))
@@ -514,7 +515,11 @@ private void runWith(string workId, Action callback)
 
             try
             {
-                RequestDto reqInput = JsonUtils.Deserialize<RequestDto>(msg.Data);
+                byte[] d = msg.Data;
+                RequestDto reqInput = d == null || d.Length == 0 || (d.Length == 2 && d[0] == '{' && d[1] == '}')
+                    ? RequestDto.Empty
+                    : JsonUtils.Deserialize<RequestDto>(msg.Data);
+
                 req = new Request(
                     this,
                     msg,
@@ -534,7 +539,7 @@ private void runWith(string workId, Action callback)
             }
             catch(Exception ex)
             {
-                Log.Error(String.Format("Error deserializing incoming request: {0}", Encoding.UTF8.GetString(msg.Data)));
+                Log.Error(String.Format("Error deserializing incoming request: {0}", msg.Data == null ? "<null>" : Encoding.UTF8.GetString(msg.Data)));
                 req = new Request(this, msg);
                 req.Error(new ResError(ex));
                 return;

@@ -234,15 +234,34 @@ namespace ResgateIO.Service
         /// <param name="call">Accessible call methods as a comma separated list</param>
         public void Access(bool get, string call)
         {
-            if (!get && String.IsNullOrEmpty(call))
+            if (get)
             {
-                RawResponse(ResService.ResponseAccessDenied);
+                if (String.IsNullOrEmpty(call))
+                {
+                    RawResponse(ResService.ResponseAccessGetOnly);
+                }
+                else if (call.Length == 1 && call[0] == '*')
+                {
+                    RawResponse(ResService.ResponseAccessGranted);
+                }
+                else
+                {
+                    Ok(new AccessDto(get, call));
+                }
             }
             else
             {
-                Ok(new AccessDto(get, call));
+                if (String.IsNullOrEmpty(call))
+                {
+                    RawResponse(ResService.ResponseAccessDenied);
+                }
+                else
+                {
+                    Ok(new AccessDto(get, call));
+                }
             }
         }
+                    
 
         /// <summary>
         /// Sends a system.accessDenied response.
