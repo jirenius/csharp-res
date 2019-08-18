@@ -68,7 +68,7 @@ namespace ResgateIO.Service.UnitTests
         }
 
         /// <summary>
-        /// Sends a request from NATS to service.
+        /// Sends a request from NATS to service with raw data payload.
         /// </summary>
         /// <param name="subject">NATS message subject.</param>
         /// <param name="data">JSON encoded message data.</param>'
@@ -98,14 +98,24 @@ namespace ResgateIO.Service.UnitTests
         }
 
         /// <summary>
-        /// Sends a request from NATS to service.
+        /// Sends a request from NATS to service with data object to use as JSON encoded payload.
         /// </summary>
         /// <param name="subject">NATS message subject.</param>
         /// <param name="data">JSON serializable message data.</param>'
         /// <returns>Inbox for the request.</returns>
         public string NATSRequest(string subject, object data)
         {
-            return NATSRequest(subject, Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(data)));
+            return NATSRequest(subject, data == null ? null : Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(data)));
+        }
+
+        /// <summary>
+        /// Sends a request from NATS to service without data payload.
+        /// </summary>
+        /// <param name="subject">NATS message subject.</param>
+        /// <returns>Inbox for the request.</returns>
+        public string NATSRequest(string subject)
+        {
+            return NATSRequest(subject, null);
         }
 
         /// <summary>

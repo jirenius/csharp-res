@@ -111,6 +111,23 @@ namespace ResgateIO.Service.UnitTests
             return this;
         }
 
+        public MockMsg AssertError(string code, string message)
+        {
+            AssertNoPath("result");
+            AssertPathPayload("error.code", code);
+            AssertPathPayload("error.message", message);
+            return this;
+        }
+
+        public MockMsg AssertError(string code, string message, object data)
+        {
+            AssertNoPath("result");
+            AssertPathPayload("error.code", code);
+            AssertPathPayload("error.message", message);
+            AssertPathPayload("error.data", data);
+            return this;
+        }
+
         public MockMsg AssertError(ResError err)
         {
             AssertNoPath("result");

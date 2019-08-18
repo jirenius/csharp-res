@@ -1,5 +1,6 @@
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
 using System.Text;
 using Xunit;
 using Xunit.Abstractions;
@@ -59,13 +60,13 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void Error_SendsErrorResponse()
         {
-            Service.AddHandler("model", new DynamicHandler().SetAccess(r => r.Error(ResError.NotFound)));
+            Service.AddHandler("model", new DynamicHandler().SetAccess(r => r.Error(Test.CustomError)));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
             string inbox = Conn.NATSRequest("access.test.model", null);
             Conn.GetMsg()
                 .AssertSubject(inbox)
-                .AssertError(ResError.NotFound);
+                .AssertError(Test.CustomError);
         }
 
         [Fact]
@@ -116,6 +117,69 @@ namespace ResgateIO.Service.UnitTests
             Conn.GetMsg()
                 .AssertSubject(inbox)
                 .AssertError(ResError.NotFound);
+        }
+
+        [Fact]
+        public void AccessRequest_ThrownException_SendsInternalErrorResponse()
+        {
+            Service.AddHandler("model", new DynamicHandler()
+                .SetAccess(r => throw new Exception(Test.ErrorMessage)));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("access.test.model", null);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertError(ResError.CodeInternalError, Test.ErrorMessage);
+        }
+
+        [Fact]
+        public void AccessRequest_ThrownResException_SendsErrorResponse()
+        {
+            Service.AddHandler("model", new DynamicHandler()
+                .SetAccess(r => throw new ResException(Test.CustomError)));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("access.test.model", null);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertError(Test.CustomError);
+        }
+
+        [Fact]
+        public void AccessRequest_MultipleRequests_RespondedInOrder()
+        {
+            const int requestCount = 100;
+            Service.AddHandler("model", new DynamicHandler().SetAccess(r => r.AccessGranted()));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+
+            string[] inboxes = new string[requestCount];
+            for (int i = 0; i < requestCount; i++)
+            {
+                inboxes[i] = Conn.NATSRequest("access.test.model", null);
+            }
+            for (int i = 0; i < requestCount; i++)
+            {
+                Conn.GetMsg()
+                    .AssertSubject(inboxes[i])
+                    .AssertResult();
+            }
+        }
+
+        [Fact]
+        public void AccessRequest_MultipleAccessGrantedCalls_SendsSingleAccessGrantedResponse()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetAccess(r =>
+            {
+                r.AccessGranted();
+                r.AccessGranted();
+            }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("access.test.model", null);
+            Conn.GetMsg().AssertSubject(inbox);
+            string inbox2 = Conn.NATSRequest("access.test.model", null);
+            Conn.GetMsg().AssertSubject(inbox2);
         }
     }
 }

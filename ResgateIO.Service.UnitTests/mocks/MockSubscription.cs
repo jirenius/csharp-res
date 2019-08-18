@@ -9,6 +9,9 @@ namespace ResgateIO.Service.UnitTests
         public MockConnection Conn { get;  }
         public string Subject { get; }
 
+        private bool isFWC;
+        private string[] parts;
+
         public EventHandler<MsgHandlerEventArgs> Handler { get; }
 
         public MockSubscription(MockConnection conn, string subject, EventHandler<MsgHandlerEventArgs> handler)
@@ -16,6 +19,13 @@ namespace ResgateIO.Service.UnitTests
             Conn = conn;
             Subject = subject;
             Handler = handler;
+
+            isFWC = subject == ">" || subject.EndsWith(".>");
+            parts = subject.Split('.');
+            if (isFWC)
+            {
+                Array.Resize(ref parts, parts.Length - 1);
+            }
         }
 
         public void Dispose()
@@ -23,8 +33,20 @@ namespace ResgateIO.Service.UnitTests
             Conn.Unsubscribe(this);
         }
 
-        public bool Matches(string subject)
+        public bool Matches(string s)
         {
+            string[] mparts = s.Split('.');
+            if (mparts.Length < parts.Length || (!isFWC && mparts.Length != parts.Length))
+            {
+                return false;
+            }
+            for (int i = 0; i < parts.Length; i++)
+            {
+                if (parts[i] != mparts[i] && parts[i] != "*")
+                {
+                    return false;
+                }
+            }
             return true;
         }
 
