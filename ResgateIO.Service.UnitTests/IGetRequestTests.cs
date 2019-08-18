@@ -104,6 +104,22 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Fact]
+        public void Timeout_WithNegativeDuration_ThrowsException()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetGet(r =>
+            {
+                Assert.Throws<ArgumentException>(() => r.Timeout(-1));
+                r.NotFound();
+            }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("get.test.model", Test.EmptyRequest);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertError(ResError.CodeInternalError);
+        }
+
+        [Fact]
         public void GetRequest_ThrownException_SendsInternalErrorResponse()
         {
             Service.AddHandler("model", new DynamicHandler()

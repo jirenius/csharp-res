@@ -11,6 +11,23 @@ namespace ResgateIO.Service.UnitTests
     {
         public IAccessRequestTests(ITestOutputHelper output) : base(output) { }
 
+        [Fact]
+        public void Properties_WithValidRequest_ReturnsCorrectValue()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetAccess(r =>
+            {
+                Assert.Equal(Test.CID, r.CID);
+                Assert.True(JToken.DeepEquals(r.RawToken, Test.Token), "RawToken is not equal to sent token");
+                r.Error(Test.CustomError);
+            }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("access.test.model", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertError(Test.CustomError);
+        }
+
         [Theory]
         [InlineData(true, null, "{\"get\":true}")]
         [InlineData(true, "", "{\"get\":true}")]
@@ -27,7 +44,7 @@ namespace ResgateIO.Service.UnitTests
             Service.AddHandler("model", new DynamicHandler().SetAccess(r => r.Access(getAccess, callAccess)));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
-            string inbox = Conn.NATSRequest("access.test.model", null);
+            string inbox = Conn.NATSRequest("access.test.model", Test.Request);
             Conn.GetMsg()
                 .AssertSubject(inbox)
                 .AssertResult(JObject.Parse(expectedJson));
@@ -39,7 +56,7 @@ namespace ResgateIO.Service.UnitTests
             Service.AddHandler("model", new DynamicHandler().SetAccess(r => r.AccessDenied()));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
-            string inbox = Conn.NATSRequest("access.test.model", null);
+            string inbox = Conn.NATSRequest("access.test.model", Test.Request);
             Conn.GetMsg()
                 .AssertSubject(inbox)
                 .AssertResult(new { get = false });
@@ -51,7 +68,7 @@ namespace ResgateIO.Service.UnitTests
             Service.AddHandler("model", new DynamicHandler().SetAccess(r => r.AccessGranted()));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
-            string inbox = Conn.NATSRequest("access.test.model", null);
+            string inbox = Conn.NATSRequest("access.test.model", Test.Request);
             Conn.GetMsg()
                 .AssertSubject(inbox)
                 .AssertResult(new { get = true, call = "*" });
@@ -63,7 +80,7 @@ namespace ResgateIO.Service.UnitTests
             Service.AddHandler("model", new DynamicHandler().SetAccess(r => r.Error(Test.CustomError)));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
-            string inbox = Conn.NATSRequest("access.test.model", null);
+            string inbox = Conn.NATSRequest("access.test.model", Test.Request);
             Conn.GetMsg()
                 .AssertSubject(inbox)
                 .AssertError(Test.CustomError);
@@ -75,7 +92,7 @@ namespace ResgateIO.Service.UnitTests
             Service.AddHandler("model", new DynamicHandler().SetAccess(r => r.NotFound()));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
-            string inbox = Conn.NATSRequest("access.test.model", null);
+            string inbox = Conn.NATSRequest("access.test.model", Test.Request);
             Conn.GetMsg()
                 .AssertSubject(inbox)
                 .AssertError(ResError.NotFound);
@@ -91,7 +108,7 @@ namespace ResgateIO.Service.UnitTests
             }));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
-            string inbox = Conn.NATSRequest("access.test.model", null);
+            string inbox = Conn.NATSRequest("access.test.model", Test.Request);
             Conn.GetMsg()
                 .AssertSubject(inbox)
                 .AssertPayload(Encoding.UTF8.GetBytes("timeout:\"3000\""));
@@ -110,7 +127,7 @@ namespace ResgateIO.Service.UnitTests
             }));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
-            string inbox = Conn.NATSRequest("access.test.model", null);
+            string inbox = Conn.NATSRequest("access.test.model", Test.Request);
             Conn.GetMsg()
                 .AssertSubject(inbox)
                 .AssertPayload(Encoding.UTF8.GetBytes("timeout:\"4000\""));
@@ -120,13 +137,29 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Fact]
+        public void Timeout_WithNegativeDuration_ThrowsException()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetAccess(r =>
+            {
+                Assert.Throws<ArgumentException>(() => r.Timeout(-1));
+                r.NotFound();
+            }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("access.test.model", Test.EmptyRequest);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertError(ResError.CodeInternalError);
+        }
+
+        [Fact]
         public void AccessRequest_ThrownException_SendsInternalErrorResponse()
         {
             Service.AddHandler("model", new DynamicHandler()
                 .SetAccess(r => throw new Exception(Test.ErrorMessage)));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
-            string inbox = Conn.NATSRequest("access.test.model", null);
+            string inbox = Conn.NATSRequest("access.test.model", Test.Request);
             Conn.GetMsg()
                 .AssertSubject(inbox)
                 .AssertError(ResError.CodeInternalError, Test.ErrorMessage);
@@ -139,7 +172,7 @@ namespace ResgateIO.Service.UnitTests
                 .SetAccess(r => throw new ResException(Test.CustomError)));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
-            string inbox = Conn.NATSRequest("access.test.model", null);
+            string inbox = Conn.NATSRequest("access.test.model", Test.Request);
             Conn.GetMsg()
                 .AssertSubject(inbox)
                 .AssertError(Test.CustomError);
@@ -156,7 +189,7 @@ namespace ResgateIO.Service.UnitTests
             string[] inboxes = new string[requestCount];
             for (int i = 0; i < requestCount; i++)
             {
-                inboxes[i] = Conn.NATSRequest("access.test.model", null);
+                inboxes[i] = Conn.NATSRequest("access.test.model", Test.Request);
             }
             for (int i = 0; i < requestCount; i++)
             {
@@ -176,9 +209,9 @@ namespace ResgateIO.Service.UnitTests
             }));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
-            string inbox = Conn.NATSRequest("access.test.model", null);
+            string inbox = Conn.NATSRequest("access.test.model", Test.Request);
             Conn.GetMsg().AssertSubject(inbox);
-            string inbox2 = Conn.NATSRequest("access.test.model", null);
+            string inbox2 = Conn.NATSRequest("access.test.model", Test.Request);
             Conn.GetMsg().AssertSubject(inbox2);
         }
     }

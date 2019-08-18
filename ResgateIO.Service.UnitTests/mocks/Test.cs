@@ -1,4 +1,4 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Text;
 
@@ -7,6 +7,8 @@ namespace ResgateIO.Service.UnitTests
     public static class Test
     {
         public const string CID = "testcid";
+        public static readonly JToken Token = JToken.Parse("{\"id\":12,\"role\":\"foo\"}");
+        public static readonly JToken Params = JToken.Parse("{\"arg1\":12,\"arg2\":\"foo\"}");
         public const string Host = "local";
         public const string RemoteAddr = "127.0.0.1";
         public const string URI = "/ws";
@@ -26,12 +28,14 @@ namespace ResgateIO.Service.UnitTests
 
         public const int TimeoutDuration = 200; // milliseconds
         public static readonly byte[] EmptyRequest = Encoding.UTF8.GetBytes("{}");
-        public static readonly RequestDto DefaultRequest = new RequestDto { CID = CID };
+        public static readonly RequestDto Request = new RequestDto { CID = CID, RawToken = Token };
+        public static readonly RequestDto RequestWithParams = new RequestDto { CID = CID, RawToken = Token, RawParams = Params };
         public static readonly RequestDto AuthRequest = new RequestDto { CID = CID, Header = Header, Host = Host, RemoteAddr = RemoteAddr, URI = URI };
         public const string ErrorMessage = "Custom error";
         public static readonly ResError CustomError = new ResError("test.custom", ErrorMessage, new { foo = "bar" });
 
         public static readonly object Model = new { id = 42, foo = "bar" };
         public static readonly object Collection = new object[] { 42, "foo", null };
+        public static readonly object Result = new { foo = "bar" };
     }
 }
