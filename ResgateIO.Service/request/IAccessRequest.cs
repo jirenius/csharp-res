@@ -14,9 +14,9 @@ namespace ResgateIO.Service
         string CID { get; }
 
         /// <summary>
-        /// JSON encoded access token, or nil if the request had no token.
+        /// Gets the access token, or null if the request had no token.
         /// </summary>
-        JToken RawToken { get; }
+        JToken Token { get; }
 
         /// <summary>
         /// Sends a successful response for the access request.
@@ -54,7 +54,7 @@ namespace ResgateIO.Service
         /// Deserializes the token into an object of type T.
         /// </summary>
         /// <typeparam name="T">Type to parse the token into.</typeparam>
-        /// <returns>Parsed token object.</returns>
+        /// <returns>An object with the parsed token, or default value on a null token.</returns>
         T ParseToken<T>();
 
         /// <summary>

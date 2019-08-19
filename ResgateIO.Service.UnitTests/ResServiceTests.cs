@@ -84,12 +84,11 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void TokenEvent_WithToken_SendsTokenEvent()
         {
-            var token = new { id = 42, user = "foo", role = "admin" };
             Service.Serve(Conn);
-            Service.TokenEvent(Test.CID, token);
+            Service.TokenEvent(Test.CID, Test.Token);
             Conn.GetMsg()
                 .AssertSubject("conn." + Test.CID + ".token")
-                .AssertPayload(new { token });
+                .AssertPayload(new { token = Test.Token });
         }
 
         [Fact]

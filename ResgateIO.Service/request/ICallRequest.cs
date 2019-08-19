@@ -20,14 +20,14 @@ namespace ResgateIO.Service
         string CID { get; }
 
         /// <summary>
-        /// JSON encoded access token, or nil if the request had no token.
+        /// Gets the access token, or null if the request had no token.
         /// </summary>
-        JToken RawToken { get; }
+        JToken Token { get; }
 
         /// <summary>
-        /// JSON encoded parameters, or nil if the request had no parameters.
+        /// Gets the method parameters, or null if the request had no parameters.
         /// </summary>
-        JToken RawParams { get; }
+        JToken Params { get; }
 
         /// <summary>
         /// Sends a successful empty response to a request.
@@ -66,17 +66,22 @@ namespace ResgateIO.Service
         void InvalidParams(string message);
 
         /// <summary>
+        /// Sends a system.invalidParams response with a custom error message and data.
+        /// </summary>
+        void InvalidParams(string message, object data);
+
+        /// <summary>
         /// Deserializes the parameters into an object of type T.
         /// </summary>
         /// <typeparam name="T">Type to parse the parameters into.</typeparam>
-        /// <returns>An object with the parameters.</returns>
+        /// <returns>An object with the parameters, or default value on null parameters.</returns>
         T ParseParams<T>();
 
         /// <summary>
         /// Deserializes the token into an object of type T.
         /// </summary>
         /// <typeparam name="T">Type to parse the token into.</typeparam>
-        /// <returns>Parsed token object.</returns>
+        /// <returns>An object with the parsed token, or default value on a null token.</returns>
         T ParseToken<T>();
 
         /// <summary>

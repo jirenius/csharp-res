@@ -14,12 +14,12 @@ namespace ResgateIO.Service.UnitTests
         // JSON encoded method parameters, or nil if the request had no parameters.
         // For access and get requests it is unused.
         [JsonProperty(PropertyName = "params")]
-        public JToken RawParams;
+        public object Params;
 
         // JSON encoded access token, or nil if the request had no token.
         // For get requests it is unused.
         [JsonProperty(PropertyName = "token")]
-        public JToken RawToken;
+        public object Token;
 
         // HTTP headers sent by client on connect.
         // This field is only populated for auth requests.

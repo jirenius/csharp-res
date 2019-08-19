@@ -17,7 +17,8 @@ namespace ResgateIO.Service.UnitTests
             Service.AddHandler("model", new DynamicHandler().SetAccess(r =>
             {
                 Assert.Equal(Test.CID, r.CID);
-                Assert.True(JToken.DeepEquals(r.RawToken, Test.Token), "RawToken is not equal to sent token");
+                Assert.Equal(Test.TokenId, (int)r.Token["id"]);
+                Assert.Equal(Test.TokenRole, (string)r.Token["role"]);
                 r.Error(Test.CustomError);
             }));
             Service.Serve(Conn);

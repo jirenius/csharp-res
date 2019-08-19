@@ -1,14 +1,15 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Text;
+using Xunit;
 
 namespace ResgateIO.Service.UnitTests
 {
     public static class Test
     {
         public const string CID = "testcid";
-        public static readonly JToken Token = JToken.Parse("{\"id\":12,\"role\":\"foo\"}");
-        public static readonly JToken Params = JToken.Parse("{\"arg1\":12,\"arg2\":\"foo\"}");
         public const string Host = "local";
         public const string RemoteAddr = "127.0.0.1";
         public const string URI = "/ws";
@@ -27,15 +28,40 @@ namespace ResgateIO.Service.UnitTests
         };
 
         public const int TimeoutDuration = 200; // milliseconds
+        public const int TokenId = 12;
+        public const string TokenRole = "foo";
+        public const int ParamNumber = 42;
+        public const string ParamText = "bar";
+        public static readonly TokenDto Token = new TokenDto { Id = TokenId, Role = TokenRole };
+        public static readonly ParamsDto Params = new ParamsDto { Number = ParamNumber, Text = ParamText };
         public static readonly byte[] EmptyRequest = Encoding.UTF8.GetBytes("{}");
-        public static readonly RequestDto Request = new RequestDto { CID = CID, RawToken = Token };
-        public static readonly RequestDto RequestWithParams = new RequestDto { CID = CID, RawToken = Token, RawParams = Params };
-        public static readonly RequestDto AuthRequest = new RequestDto { CID = CID, Header = Header, Host = Host, RemoteAddr = RemoteAddr, URI = URI };
+        public static readonly RequestDto Request = new RequestDto { CID = CID, Token = Token };
+        public static readonly RequestDto RequestWithoutToken = new RequestDto { CID = CID };
+        public static readonly RequestDto RequestWithParams = new RequestDto { CID = CID, Token = Token, Params = Params };
+        public static readonly RequestDto AuthRequest = new RequestDto { CID = CID, Header = Header, Host = Host, RemoteAddr = RemoteAddr, URI = URI, Token = Token, Params = Params };
+        public static readonly RequestDto AuthRequestWithoutTokenAndParams = new RequestDto { CID = CID, Header = Header, Host = Host, RemoteAddr = RemoteAddr, URI = URI };
         public const string ErrorMessage = "Custom error";
-        public static readonly ResError CustomError = new ResError("test.custom", ErrorMessage, new { foo = "bar" });
+        public static readonly object ErrorData = new { foo = "bar" };
+        public static readonly ResError CustomError = new ResError("test.custom", ErrorMessage, ErrorData);
 
         public static readonly object Model = new { id = 42, foo = "bar" };
         public static readonly object Collection = new object[] { 42, "foo", null };
         public static readonly object Result = new { foo = "bar" };
+
+        /// <summary>
+        /// Asserts that two objects will be serialized into deep equal JSON structures.
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <returns></returns>
+        public static void AssertJsonEqual(object expected, object actual)
+        {
+            string expectedJson = JsonConvert.SerializeObject(expected);
+            string actualJson = JsonConvert.SerializeObject(actual);
+            Assert.True(
+                JToken.DeepEquals(JToken.Parse(expectedJson), JToken.Parse(actualJson)),
+                String.Format("Json mismatch:\nExpected:\n\t{0}\nActual:\n\t{1}", expectedJson, actualJson)
+            );
+        }
     }
 }
