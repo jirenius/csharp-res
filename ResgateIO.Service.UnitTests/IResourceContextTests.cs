@@ -876,5 +876,81 @@ namespace ResgateIO.Service.UnitTests
                 .AssertNoPayload();
         }
         #endregion
+
+        #region CreateEvent
+        [Fact]
+        public void CreateEvent_UsingRequest_SendsCreateEvent()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            {
+                r.CreateEvent(Test.Model);
+                r.Ok();
+            }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject("event.test.model.create")
+                .AssertNoPayload();
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(null);
+        }
+
+        [Fact]
+        public void CreateEvent_UsingWith_SendsCreateEvent()
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler("model", new DynamicHandler());
+            Service.Serve(Conn);
+            Service.With("test.model", r =>
+            {
+                r.CreateEvent(Test.Model);
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+            Conn.GetMsg()
+                .AssertSubject("event.test.model.create")
+                .AssertNoPayload();
+        }
+        #endregion
+
+        #region DeleteEvent
+        [Fact]
+        public void DeleteEvent_UsingRequest_SendsDeleteEvent()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            {
+                r.DeleteEvent();
+                r.Ok();
+            }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject("event.test.model.delete")
+                .AssertNoPayload();
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(null);
+        }
+
+        [Fact]
+        public void DeleteEvent_UsingWith_SendsDeleteEvent()
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler("model", new DynamicHandler());
+            Service.Serve(Conn);
+            Service.With("test.model", r =>
+            {
+                r.DeleteEvent();
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+            Conn.GetMsg()
+                .AssertSubject("event.test.model.delete")
+                .AssertNoPayload();
+        }
+        #endregion
     }
 }

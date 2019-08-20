@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace ResgateIO.Service
 {
@@ -18,7 +19,7 @@ namespace ResgateIO.Service
         /// Resource name.
         /// </summary>
         public string ResourceName { get; }
-        
+
         /// <summary>
         /// Parameters that are derived from the resource name.
         /// </summary>
@@ -33,7 +34,7 @@ namespace ResgateIO.Service
         /// Context scoped key/value collection used to store and share data between handlers.
         /// </summary>
         public IDictionary Items { get; }
-        
+
         /// <summary>
         /// Resource handler.
         /// </summary>
@@ -208,6 +209,12 @@ namespace ResgateIO.Service
             {
                 Dictionary<string, object> rev = Handler.ApplyChange(this, properties);
                 if (rev == null || rev.Count == 0)
+                {
+                    return;
+                }
+                // Delete keys not present in the revert Dictionary
+                properties = properties.Where(x => rev.ContainsKey(x.Key)).ToDictionary(x => x.Key, x => x.Value);
+                if (properties.Count == 0)
                 {
                     return;
                 }
