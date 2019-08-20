@@ -22,6 +22,7 @@ namespace ResgateIO.Service.UnitTests
         private BlockingCollection<MockMsg> queue = new BlockingCollection<MockMsg>();
 
         private bool closed = false;
+        private bool failNextSubscription = false;
         private Random r = null;
 
         // Constructor
@@ -142,10 +143,16 @@ namespace ResgateIO.Service.UnitTests
         {
             lock (locker)
             {
+                if (failNextSubscription)
+                {
+                    failNextSubscription = false;
+                    throw new Exception("Failing subscription as requested.");
+                }
                 if (subStrings.Contains(subject))
                 {
                     throw new Exception("Already subscribing to subject: " + subject);
                 }
+
                 subStrings.Add(subject);
 
                 MockSubscription sub = new MockSubscription(this, subject, handler);
@@ -159,12 +166,20 @@ namespace ResgateIO.Service.UnitTests
         {
             lock (locker)
             {
-                if (subStrings.Contains(sub.Subject))
+                if (!subStrings.Contains(sub.Subject))
                 {
                     throw new Exception("No subscription found on subject: " + sub.Subject);
                 }
                 subStrings.Remove(sub.Subject);
                 subs.Remove(sub);
+            }
+        }
+
+        public void FailNextSubscription()
+        {
+            lock (locker)
+            {
+                failNextSubscription = true;
             }
         }
 

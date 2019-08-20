@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace ResgateIO.Service
 {
-    public delegate void QueryCallBack(IQueryRequest request);
+    public delegate void QueryCallback(IQueryRequest request);
 
     /// <summary>
     /// Provides context information and methods for emitting events for a resource.
@@ -154,7 +154,7 @@ namespace ResgateIO.Service
         ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#query-event
         /// </remarks>
         /// <param name="callback">Query request callback delegate.</param>
-        void QueryEvent(QueryCallBack callback);
+        void QueryEvent(QueryCallback callback);
 
         /// <summary>
         /// Sends a create event to signal the resource has been created.

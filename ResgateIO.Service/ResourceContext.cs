@@ -296,7 +296,7 @@ namespace ResgateIO.Service
         ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#query-event
         /// </remarks>
         /// <param name="callback">Query request callback delegate.</param>
-        public void QueryEvent(QueryCallBack callback)
+        public void QueryEvent(QueryCallback callback)
         {
             Service.AddQueryEvent(new QueryEvent(this, callback));
         }

@@ -68,6 +68,18 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
+        /// Sets the duration in milliseconds for which the service will listen for query requests sent on a query event.
+        /// Default is 3000 milliseconds.
+        /// </summary>
+        /// <remarks>Service must be stopped when calling the method.</remarks>
+        /// <param name="duration">Query event duration in milliseconds.</param>
+        /// <returns>The ResService instance.</returns>
+        public ResService SetQueryDuration(int duration)
+        {
+            return SetQueryDuration(TimeSpan.FromMilliseconds((double)duration));
+        }
+
+        /// <summary>
         /// Sets the duration for which the service will listen for query requests sent on a query event.
         /// Default is 3 seconds.
         /// </summary>
@@ -462,8 +474,10 @@ private void runWith(string workId, Action callback)
 
         internal void AddQueryEvent(QueryEvent queryEvent)
         {
-            queryEvent.Start();
-            queryTimerQueue.Add(queryEvent);
+            if (queryEvent.Start())
+            {
+                queryTimerQueue.Add(queryEvent);
+            }
         }
 
         internal static bool IsValidPart(string part)
