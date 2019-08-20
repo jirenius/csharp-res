@@ -27,6 +27,7 @@ namespace ResgateIO.Service
         public IResourceHandler Handler { get { return resource.Handler; } }
         public virtual T Value<T>() where T : class { return resource.Value<T>(); }
         public virtual T RequireValue<T>() where T : class { return resource.RequireValue<T>(); }
+        public void Event(string eventName) { resource.Event(eventName); }
         public void Event(string eventName, object payload) { resource.Event(eventName, payload); }
         public virtual void ChangeEvent(Dictionary<string, object> properties) { resource.ChangeEvent(properties); }
         public virtual void AddEvent(object value, int idx) { resource.AddEvent(value, idx); }

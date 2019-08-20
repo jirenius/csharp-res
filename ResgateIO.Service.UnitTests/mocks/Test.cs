@@ -44,7 +44,7 @@ namespace ResgateIO.Service.UnitTests
         public static readonly object ErrorData = new { foo = "bar" };
         public static readonly ResError CustomError = new ResError("test.custom", ErrorMessage, ErrorData);
 
-        public static readonly object Model = new { id = 42, foo = "bar" };
+        public static readonly object Model = new ModelDto { Id = 42, Foo = "bar" };
         public static readonly object Collection = new object[] { 42, "foo", null };
         public static readonly object Result = new { foo = "bar" };
 

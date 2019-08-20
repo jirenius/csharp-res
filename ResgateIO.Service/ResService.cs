@@ -15,6 +15,8 @@ namespace ResgateIO.Service
         public static readonly JRaw DeleteAction = new JRaw("{\"action\":\"delete\"}");
         public static readonly TimeSpan DefaultQueryDuration = new TimeSpan(0, 0, 3);
 
+        internal static readonly byte[] EmptyData = new byte[] { };
+
         // Properties
         public IConnection Connection { get; private set; }
 
@@ -439,10 +441,18 @@ private void runWith(string workId, Action callback)
         {
             try
             {
-                string json = JsonConvert.SerializeObject(payload);
-                byte[] data = Encoding.UTF8.GetBytes(json);
-                Log.Trace(String.Format("<-- {0}: {1}", subject, json));
-                RawSend(subject, data);
+                if (payload != null)
+                {
+                    string json = JsonConvert.SerializeObject(payload);
+                    byte[] data = Encoding.UTF8.GetBytes(json);
+                    Log.Trace(String.Format("<-- {0}: {1}", subject, json));
+                    RawSend(subject, data);
+                }
+                else
+                {
+                    Log.Trace(String.Format("<-- {0}", subject));
+                    RawSend(subject, EmptyData);
+                }
             }
             catch (Exception ex)
             {

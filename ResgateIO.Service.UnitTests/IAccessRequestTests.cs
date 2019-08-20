@@ -142,8 +142,8 @@ namespace ResgateIO.Service.UnitTests
         {
             Service.AddHandler("model", new DynamicHandler().SetAccess(r =>
             {
-                Assert.Throws<ArgumentException>(() => r.Timeout(-1));
-                r.NotFound();
+                r.Timeout(-1);
+                r.AccessGranted();
             }));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");

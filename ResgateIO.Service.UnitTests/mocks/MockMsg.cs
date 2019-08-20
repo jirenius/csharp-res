@@ -44,6 +44,7 @@ namespace ResgateIO.Service.UnitTests
 
         public MockMsg AssertPayload(object payload)
         {
+            Assert.NotEmpty(Data);
             string payloadJson = JsonConvert.SerializeObject(payload);
             string dataJson = Encoding.UTF8.GetString(Data);
             Assert.True(
@@ -56,6 +57,12 @@ namespace ResgateIO.Service.UnitTests
         public MockMsg AssertPayload(byte[] payload)
         {
             Assert.Equal(payload, Data);
+            return this;
+        }
+
+        public MockMsg AssertNoPayload()
+        {
+            Assert.Empty(Data);
             return this;
         }
 

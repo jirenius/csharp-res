@@ -313,8 +313,8 @@ namespace ResgateIO.Service.UnitTests
         {
             Service.AddHandler("model", new DynamicHandler().SetAuth(r =>
             {
-                Assert.Throws<ArgumentException>(() => r.Timeout(-1));
-                r.NotFound();
+                r.Timeout(-1);
+                r.Ok();
             }));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
