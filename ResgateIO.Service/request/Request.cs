@@ -28,21 +28,27 @@ namespace ResgateIO.Service
 
         /// <summary>
         /// Connection ID of the requesting client connection.
-        /// This property is not set for RequestType.Get.
         /// </summary>
+        /// <remarks>
+        /// This property is not set for RequestType.Get.
+        /// </remarks>
         public string CID { get; }
 
         /// <summary>
-        /// JSON encoded method parameters, or nil if the request had no parameters.
-        /// This property is not set for RequestType.Access and RequestType.Get.
+        /// Gets the method parameters, or null if the request had no parameters.
         /// </summary>
-        public JToken RawParams { get; }
+        /// <remarks>
+        /// This property is not set for RequestType.Access and RequestType.Get.
+        /// </remarks>
+        public JToken Params { get; }
 
         /// <summary>
-        /// JSON encoded access token, or nil if the request had no token.
-        /// This property is not set for RequestType.Get.
+        /// Gets the access token, or null if the request had no token.
         /// </summary>
-        public JToken RawToken { get; }
+        /// <remarks>
+        /// This property is not set for RequestType.Get.
+        /// </remarks>
+        public JToken Token { get; }
 
         /// <summary>
         /// HTTP headers sent by client on connect.
@@ -102,8 +108,8 @@ namespace ResgateIO.Service
             Type = RequestTypeHelper.FromString(rtype);
             Method = method;
             CID = cid;
-            RawParams = rawParams;
-            RawToken = rawToken;
+            Params = rawParams == null || rawParams.Type == JTokenType.Null ? null : rawParams;
+            Token = rawToken == null || rawToken.Type == JTokenType.Null ? null : rawToken;
             Header = header;
             Host = host;
             RemoteAddr = remoteAddr;
@@ -212,14 +218,28 @@ namespace ResgateIO.Service
         }
         
         /// <summary>
-         /// Sends a system.invalidParams response with a custom error message.
-         /// </summary>
-         /// <remarks>
-         /// Only valid for RequestType.Call and RequestType.Auth.
-         /// </remarks>
+        /// Sends a system.invalidParams response with a custom error message.
+        /// </summary>
+        /// <remarks>
+        /// Only valid for RequestType.Call and RequestType.Auth.
+        /// </remarks>
+        /// <param name="message">Error message.</param>
         public void InvalidParams(string message)
         {
             Error(new ResError(ResError.CodeInvalidParams, message));
+        }
+
+        /// <summary>
+        /// Sends a system.invalidParams response with a custom error message and data.
+        /// </summary>
+        /// <remarks>
+        /// Only valid for RequestType.Call and RequestType.Auth.
+        /// </remarks>
+        /// <param name="message">Error message.</param>
+        /// <param name="data">Additional data. Must be JSON serializable.</param>
+        public void InvalidParams(string message, object data)
+        {
+            Error(new ResError(ResError.CodeInvalidParams, message, data));
         }
 
         /// <summary>
@@ -234,15 +254,34 @@ namespace ResgateIO.Service
         /// <param name="call">Accessible call methods as a comma separated list</param>
         public void Access(bool get, string call)
         {
-            if (!get && String.IsNullOrEmpty(call))
+            if (get)
             {
-                RawResponse(ResService.ResponseAccessDenied);
+                if (String.IsNullOrEmpty(call))
+                {
+                    RawResponse(ResService.ResponseAccessGetOnly);
+                }
+                else if (call.Length == 1 && call[0] == '*')
+                {
+                    RawResponse(ResService.ResponseAccessGranted);
+                }
+                else
+                {
+                    Ok(new AccessDto(get, call));
+                }
             }
             else
             {
-                Ok(new AccessDto(get, call));
+                if (String.IsNullOrEmpty(call))
+                {
+                    RawResponse(ResService.ResponseAccessDenied);
+                }
+                else
+                {
+                    Ok(new AccessDto(get, call));
+                }
             }
         }
+                    
 
         /// <summary>
         /// Sends a system.accessDenied response.
@@ -388,16 +427,22 @@ namespace ResgateIO.Service
         /// </summary>
         /// <remarks>Only valid for RequestType.Call and RequestType.Auth requests.</remarks>
         /// <typeparam name="T">Type to parse the parameters into.</typeparam>
-        /// <returns>An object with the parameters.</returns>
+        /// <returns>An object with the parameters, or default value on null parameters.</returns>
         public T ParseParams<T>()
         {
-            if (RawParams == null)
+            if (Params == null)
             {
                 return default(T);
             }
 
-            // TODO Catch exceptions and wrap them in a system.invalidParams exception.
-            return RawParams.ToObject<T>();
+            try
+            {
+                return Params.ToObject<T>();
+            }
+            catch (Exception ex)
+            {
+                throw new ResException(ResError.InvalidParams, ex);
+            }
         }
 
         /// <summary>
@@ -405,15 +450,15 @@ namespace ResgateIO.Service
         /// </summary>
         /// <remarks>Not valid for RequestType.Get requests.</remarks>
         /// <typeparam name="T">Type to parse the token into.</typeparam>
-        /// <returns>Parsed token object.</returns>
+        /// <returns>An object with the parsed token, or default value on a null token.</returns>
         public T ParseToken<T>()
         {
-            if (RawToken == null)
+            if (Token == null)
             {
                 return default(T);
             }
 
-            return RawToken.ToObject<T>();
+            return Token.ToObject<T>();
         }
 
         /// <summary>
@@ -455,13 +500,13 @@ namespace ResgateIO.Service
         /// A change of token will invalidate any previous access response received using the old token.
         /// </summary>
         /// <remarks>
-        /// To set the connection token for a different connection ID, use ResService.ConnectionTokenEvent.
+        /// To set the connection token for a different connection ID, use ResService.TokenEvent.
         /// Only valid for RequestType.Auth requests.
         /// See the protocol specification for more information:
         ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#connection-token-event
         /// </remarks>
         /// <param name="token">Access token. A null token clears any previously set token.</param>
-        public void ConnectionTokenEvent(object token)
+        public void TokenEvent(object token)
         {
             Service.Send("conn." + CID + ".token", new TokenEventDto(token));
         }

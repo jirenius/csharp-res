@@ -8,12 +8,12 @@ namespace ResgateIO.Service
     internal class QueryEvent
     {
         public IResourceContext Resource { get; }
-        private QueryCallBack callback;
+        private QueryCallback callback;
         private IAsyncSubscription subscription;
 
         private ILogger Log { get { return Resource.Service.Log; } }
 
-        public QueryEvent(IResourceContext resource, QueryCallBack callback)
+        public QueryEvent(IResourceContext resource, QueryCallback callback)
         {
             Resource = resource;
             this.callback = callback;
@@ -55,7 +55,14 @@ namespace ResgateIO.Service
             {
                 return;
             }
-            callback(null);
+            try
+            {
+                callback(null);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(String.Format("Failed calling query request callback with null for {0}: {1}", Resource.ResourceName, ex.Message));
+            }
             callback = null;
         }
 
@@ -79,7 +86,7 @@ namespace ResgateIO.Service
                     QueryRequestDto reqInput = JsonUtils.Deserialize<QueryRequestDto>(msg.Data);
                     if (String.IsNullOrEmpty(reqInput.Query))
                     {
-                        Log.Trace(String.Format("Missing query in query request {0}", qr.ResourceName));
+                        Log.Error(String.Format("Missing query in query request {0}", qr.ResourceName));
                         qr.RawResponse(ResService.ResponseMissingQuery);
                         return;
                     }
@@ -91,8 +98,35 @@ namespace ResgateIO.Service
                     qr.RawResponse(ResService.ResponseBadRequest);
                     return;
                 }
-               
-                callback(qr);
+
+                try
+                {
+                    callback(qr);
+                }
+                catch(ResException ex)
+                {
+                    if (!qr.Replied)
+                    {
+                        // If a reply isn't sent yet, send an error response,
+                        // as throwing a ResException within a query callback
+                        // is considered valid behaviour.
+                        qr.Error(new ResError(ex));
+                        return;
+                    }
+
+                    Log.Error(String.Format("Error handling query request {0}: {1} - {2}", qr.ResourceName, ex.Code, ex.Message));
+                }
+                catch (Exception ex)
+                {
+                    if (!qr.Replied)
+                    {
+                        qr.Error(new ResError(ex));
+                    }
+
+                    // Write to log as only ResExceptions are considered valid behaviour.
+                    Log.Error(String.Format("Error handling query request {0}: {1}", qr.ResourceName, ex.Message));
+                    return;
+                }
                 if (qr.Replied)
                 {
                     return;

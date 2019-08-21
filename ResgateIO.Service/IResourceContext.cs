@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace ResgateIO.Service
 {
-    public delegate void QueryCallBack(IQueryRequest request);
+    public delegate void QueryCallback(IQueryRequest request);
 
     /// <summary>
     /// Provides context information and methods for emitting events for a resource.
@@ -66,7 +66,7 @@ namespace ResgateIO.Service
         T RequireValue<T>() where T : class;
 
         /// <summary>
-        /// Sends a custom event on the resource.
+        /// Sends a custom event on the resource without payload.
         /// Throws an exception if the event is one of the pre-defined or reserved events,
         /// "change", "delete", "add", "remove", "patch", "reaccess", "unsubscribe", or "query".
         /// For pre-defined events, the matching method, ChangeEvent, AddEvent,
@@ -76,7 +76,21 @@ namespace ResgateIO.Service
         /// See the protocol specification for more information:
         ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#custom-event
         /// </remarks>
-        /// <param name="eventName">Name of the event</param>
+        /// <param name="eventName">Name of the event.</param>
+        void Event(string eventName);
+
+        /// <summary>
+        /// Sends a custom event on the resource with payload.
+        /// Throws an exception if the event is one of the pre-defined or reserved events,
+        /// "change", "delete", "add", "remove", "patch", "reaccess", "unsubscribe", or "query".
+        /// For pre-defined events, the matching method, ChangeEvent, AddEvent,
+        /// RemoveEvent, or ReaccessEvent should be used instead.
+        /// </summary>
+        /// <remarks>
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#custom-event
+        /// </remarks>
+        /// <param name="eventName">Name of the event.</param>
         /// <param name="payload">JSON serializable payload. May be null.</param>
         void Event(string eventName, object payload);
 
@@ -140,7 +154,7 @@ namespace ResgateIO.Service
         ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#query-event
         /// </remarks>
         /// <param name="callback">Query request callback delegate.</param>
-        void QueryEvent(QueryCallBack callback);
+        void QueryEvent(QueryCallback callback);
 
         /// <summary>
         /// Sends a create event to signal the resource has been created.

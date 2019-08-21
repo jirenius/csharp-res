@@ -20,14 +20,14 @@ namespace ResgateIO.Service
         string CID { get; }
 
         /// <summary>
-        /// JSON encoded access token, or nil if the request had no token.
+        /// Gets the access token, or null if the request had no token.
         /// </summary>
-        JToken RawToken { get; }
+        JToken Token { get; }
 
         /// <summary>
-        /// JSON encoded parameters, or nil if the request had no parameters.
+        /// Gets the method parameters, or null if the request had no parameters.
         /// </summary>
-        JToken RawParams { get; }
+        JToken Params { get; }
 
         /// <summary>
         /// HTTP headers sent by client on connect.
@@ -90,17 +90,22 @@ namespace ResgateIO.Service
         void InvalidParams(string message);
 
         /// <summary>
+        /// Sends a system.invalidParams response with a custom error message and data.
+        /// </summary>
+        void InvalidParams(string message, object data);
+
+        /// <summary>
         /// Deserializes the parameters into an object of type T.
         /// </summary>
         /// <typeparam name="T">Type to parse the parameters into.</typeparam>
-        /// <returns>An object with the parameters.</returns>
+        /// <returns>An object with the parameters, or default value on null parameters.</returns>
         T ParseParams<T>();
 
         /// <summary>
         /// Deserializes the token into an object of type T.
         /// </summary>
         /// <typeparam name="T">Type to parse the token into.</typeparam>
-        /// <returns>Parsed token object.</returns>
+        /// <returns>An object with the parsed token, or default value on a null token.</returns>
         T ParseToken<T>();
 
         /// <summary>
@@ -109,12 +114,12 @@ namespace ResgateIO.Service
         /// A change of token will invalidate any previous access response received using the old token.
         /// </summary>
         /// <remarks>
-        /// To set the connection token for a different connection ID, use ResService.ConnectionTokenEvent.
+        /// To set the connection token for a different connection ID, use ResService.TokenEvent.
         /// See the protocol specification for more information:
         ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#connection-token-event
         /// </remarks>
         /// <param name="token">Access token. A null token clears any previously set token.</param>
-        void ConnectionTokenEvent(object token);
+        void TokenEvent(object token);
 
         /// <summary>
         /// Attempts to set the timeout duration of the request.

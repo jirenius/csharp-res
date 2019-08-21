@@ -3,7 +3,7 @@
     /// <summary>
     /// Provides a base class for model based resource handler classes.
     /// </summary>
-    public abstract class ModelHandler : ResourceHandler
+    public abstract class ModelHandler : BaseHandler
     {   
         /// <summary>
         /// Initializes a new instance of the ModelHandler class.
