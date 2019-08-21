@@ -6,7 +6,7 @@ namespace ResgateIO.Service.UnitTests
 {
     public class MockSubscription : IAsyncSubscription
     {
-        public MockConnection Conn { get;  }
+        public MockConnection Conn { get; }
         public string Subject { get; }
 
         private bool isFWC;
@@ -75,7 +75,9 @@ namespace ResgateIO.Service.UnitTests
 
         public long Dropped => throw new NotImplementedException();
 
+#pragma warning disable 67
         public event EventHandler<MsgHandlerEventArgs> MessageHandler;
+#pragma warning restore 67
 
         public void AutoUnsubscribe(int max)
         {

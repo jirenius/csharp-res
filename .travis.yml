@@ -1,0 +1,7 @@
+language: csharp
+mono: none
+dotnet: 2.1.508
+script:
+ - cd ResgateIO.Service.UnitTests
+ - dotnet restore
+ - dotnet test
