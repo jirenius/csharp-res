@@ -103,7 +103,8 @@ namespace ResgateIO.Service
 
         /// <summary>
         /// Attempts to set the timeout duration of the query request.
-        /// The call has no effect if the requester has already timed out the request.
+        /// The call has no effect if the requester has already timed out the request,
+        /// or if a response has already been sent.
         /// </summary>
         /// <param name="milliseconds">Timeout duration in milliseconds.</param>
         public void Timeout(int milliseconds)
@@ -116,6 +117,17 @@ namespace ResgateIO.Service
             var str = "timeout:\"" + milliseconds.ToString() + "\"";
             Log.Trace(String.Format("<-- {0}: {1}", msg.Subject, str));
             Service.RawSend(msg.Reply, Encoding.UTF8.GetBytes(str));
+        }
+
+        /// <summary>
+        /// Attempts to set the timeout duration of the query request.
+        /// The call has no effect if the requester has already timed out the request,
+        /// or if a response has already been sent.
+        /// </summary>
+        /// <param name="milliseconds">Timeout duration.</param>
+        public void Timeout(TimeSpan duration)
+        {
+            Timeout((int)duration.TotalMilliseconds);
         }
 
         /// <summary>

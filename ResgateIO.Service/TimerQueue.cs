@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
+[assembly: InternalsVisibleTo("ResgateIO.Service.UnitTests")]
 namespace ResgateIO.Service
 {
     /// <summary>
@@ -126,10 +128,15 @@ namespace ResgateIO.Service
                     nodes.Remove(item);
                     remove(node);
 
-                    // If the element was first, we need to start a new timer
-                    if (f == node && first != null)
+                    // If the element was first, we must dispose current timer.
+                    if (f == node)
                     {
-                        startTimer();
+                        disposeTimer();
+                        // Start a new timer if there are still items in the queue.
+                        if (first != null)
+                        {
+                            startTimer();
+                        }
                     }
                 }
                 else
@@ -160,6 +167,7 @@ namespace ResgateIO.Service
                     // If the element was first, we need to start a new timer
                     if (f == node)
                     {
+                        disposeTimer();
                         startTimer();
                     }
                 }
@@ -179,12 +187,7 @@ namespace ResgateIO.Service
                 first = null;
                 last = null;
                 nodes.Clear();
-                counter++;
-                if (timer != null)
-                {
-                    timer.Dispose();
-                    timer = null;
-                }
+                disposeTimer();
                 return f;
             }
         }
@@ -212,15 +215,15 @@ namespace ResgateIO.Service
 
         private void push(Node node)
         {
-            if (last != null)
-            {
-                last.Next = node;
-                node.Previous = last;
-            }
-            else
+            if (last == null)
             {
                 first = node;
                 node.Previous = null;
+            }
+            else
+            {
+                last.Next = node;
+                node.Previous = last;
             }
 
             node.Next = null;
@@ -229,17 +232,11 @@ namespace ResgateIO.Service
 
         private void startTimer()
         {
-            if (timer != null)
-            {
-                timer.Dispose();
-            }
-
             TimeSpan span = first.Time.Subtract(DateTime.Now);
             if (span.CompareTo(TimeSpan.Zero) < 0)
             {
                 span = TimeSpan.Zero;
             }
-            counter++;
             timer = new Timer(onTimeout, counter, (int)span.TotalMilliseconds, Timeout.Infinite);
         }
 
@@ -259,8 +256,7 @@ namespace ResgateIO.Service
                 remove(first);
                 nodes.Remove(item);
 
-                timer.Dispose();
-                timer = null;
+                disposeTimer();
 
                 if (first != null)
                 {
@@ -269,6 +265,16 @@ namespace ResgateIO.Service
             }
 
             callback(item);
+        }
+
+        private void disposeTimer()
+        {
+            if (timer != null)
+            {
+                counter++;
+                timer.Dispose();
+                timer = null;
+            }
         }
 
         /// <summary>

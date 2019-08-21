@@ -1,6 +1,7 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Threading;
 using Xunit;
 using Xunit.Abstractions;
@@ -275,16 +276,66 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void QueryRequest_CallingTimeoutWithTimespan_SendsPreresponse()
         {
+            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            {
+                r.QueryEvent(qr => {
+                    qr.Timeout(TimeSpan.FromSeconds(42));
+                });
+                r.Ok();
+            }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            Assert.True(Conn.GetMsg()
+                .AssertSubject("event.test.model.query")
+                .TryGetPath("subject", out JToken subject), "no subject property in query event");
+            string inboxQR = Conn.NATSRequest((string)subject, new { query = "foo=bar" });
+            Conn.GetMsg().AssertSubject(inbox).AssertResult(null);
+            Conn.GetMsg().AssertSubject(inboxQR).AssertPayload(Encoding.UTF8.GetBytes("timeout:\"42000\""));
+            Conn.GetMsg().AssertSubject(inboxQR).AssertResult(JToken.Parse("{\"events\":[]}"));
         }
 
         [Fact]
         public void QueryRequest_CallingTimeoutWithMilliseconds_SendsPreresponse()
         {
+            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            {
+                r.QueryEvent(qr => {
+                    qr.Timeout(42000);
+                });
+                r.Ok();
+            }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            Assert.True(Conn.GetMsg()
+                .AssertSubject("event.test.model.query")
+                .TryGetPath("subject", out JToken subject), "no subject property in query event");
+            string inboxQR = Conn.NATSRequest((string)subject, new { query = "foo=bar" });
+            Conn.GetMsg().AssertSubject(inbox).AssertResult(null);
+            Conn.GetMsg().AssertSubject(inboxQR).AssertPayload(Encoding.UTF8.GetBytes("timeout:\"42000\""));
+            Conn.GetMsg().AssertSubject(inboxQR).AssertResult(JToken.Parse("{\"events\":[]}"));
         }
 
         [Fact]
         public void QueryRequest_CallingTimeoutWithInvalidDuration_SendsInternalErrorResponse()
         {
+            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            {
+                r.QueryEvent(qr => {
+                    qr.Timeout(TimeSpan.FromSeconds(-1));
+                });
+                r.Ok();
+            }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            Assert.True(Conn.GetMsg()
+                .AssertSubject("event.test.model.query")
+                .TryGetPath("subject", out JToken subject), "no subject property in query event");
+            string inboxQR = Conn.NATSRequest((string)subject, new { query = "foo=bar" });
+            Conn.GetMsg().AssertSubject(inbox).AssertResult(null);
+            Conn.GetMsg().AssertSubject(inboxQR).AssertError(ResError.CodeInternalError);
         }
         #endregion
     }
