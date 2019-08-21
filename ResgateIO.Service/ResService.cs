@@ -11,6 +11,8 @@ namespace ResgateIO.Service
 {
     public class ResService: Router
     {
+        private const int shutdownTimeout = 5000; // milliseconds
+
         // Public read-only values
         public static readonly JRaw DeleteAction = new JRaw("{\"action\":\"delete\"}");
         public static readonly TimeSpan DefaultQueryDuration = new TimeSpan(0, 0, 3);
@@ -31,6 +33,7 @@ namespace ResgateIO.Service
         private TimeSpan queryDuration = DefaultQueryDuration;
         private string[] resetResources = null;
         private string[] resetAccess = null;
+        private CountdownEvent activeWorkers = null;
 
         // Internal logger
         internal ILogger Log { get; private set; }
@@ -206,8 +209,13 @@ namespace ResgateIO.Service
             Log.Info("Stopping service...");
 
             close();
-            // TODO: Wait for all the threads to be done
+            activeWorkers.Signal();
+            if (!activeWorkers.Wait(shutdownTimeout))
+            {
+                Log.Error(String.Format("Timed out waiting for {0} worker thread(s) to finish.", activeWorkers.CurrentCount));
+            }
 
+            activeWorkers.Dispose();
             queryTimerQueue.Dispose();
             Connection.Dispose();
 
@@ -276,6 +284,7 @@ namespace ResgateIO.Service
             Connection = conn;
             rwork = new Dictionary<string, Work>();
             queryTimerQueue = new TimerQueue<QueryEvent>(onQueryEventExpire, queryDuration);
+            activeWorkers = new CountdownEvent(1);
 
             lock (stateLock)
             {
@@ -371,6 +380,7 @@ private void runWith(string workId, Action callback)
         {
             work = new Work(workId, callback);
             rwork.Add(workId, work);
+            activeWorkers.AddCount();
             ThreadPool.QueueUserWorkItem(new WaitCallback(processWork), work);
         }
     }
@@ -506,20 +516,28 @@ private void runWith(string workId, Action callback)
             Work work = (Work)obj;
             Action task;
 
-            while (true) {
-                lock (stateLock)
+            try
+            {
+                while (true)
                 {
-                    task = work.NextTask();
-                    // Check if work tasks are exhausted
-                    if (task == null)
+                    lock (stateLock)
                     {
-                        // Work completed
-                        rwork.Remove(work.ResourceName);
-                        return;
+                        task = work.NextTask();
+                        // Check if work tasks are exhausted
+                        if (task == null)
+                        {
+                            // Work completed
+                            rwork.Remove(work.ResourceName);
+                            return;
+                        }
                     }
-                }
 
-                task();
+                    task();
+                }
+            }
+            finally
+            {
+                activeWorkers.Signal();
             }
         }
         
