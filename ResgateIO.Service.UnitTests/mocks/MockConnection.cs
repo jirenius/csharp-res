@@ -79,19 +79,22 @@ namespace ResgateIO.Service.UnitTests
             var inbox = NewInbox();
             Msg msg = new Msg(subject, inbox, data);
 
-            foreach (MockSubscription sub in subs)
+            lock (locker)
             {
-                if (sub.Matches(subject))
+                foreach (MockSubscription sub in subs)
                 {
-                    var e = new MsgHandlerEventArgs();
-                    // Since the message field is internal,
-                    // use reflection to set it.
-                    var prop = e
-                        .GetType()
-                        .GetField("msg", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    prop.SetValue(e, msg);
+                    if (sub.Matches(subject))
+                    {
+                        var e = new MsgHandlerEventArgs();
+                        // Since the message field is internal,
+                        // use reflection to set it.
+                        var prop = e
+                            .GetType()
+                            .GetField("msg", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                        prop.SetValue(e, msg);
 
-                    sub.Handler((IConnection)this, e);
+                        sub.Handler((IConnection)this, e);
+                    }
                 }
             }
 

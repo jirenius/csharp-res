@@ -218,7 +218,7 @@ namespace ResgateIO.Service.UnitTests
             }));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
-            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            string inbox = Conn.NATSRequest("call.test.model.method", new RequestDto { CID = Test.CID, Token = Test.Token, Params = new { query } });
             Assert.True(Conn.GetMsg()
                 .AssertSubject("event.test.model.query")
                 .TryGetPath("subject", out JToken subject), "no subject property in query event");
