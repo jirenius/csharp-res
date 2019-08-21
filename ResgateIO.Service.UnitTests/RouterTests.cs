@@ -200,5 +200,61 @@ namespace ResgateIO.Service.UnitTests
             Assert.True(r.Contains(rh => rh.Type == ResourceType.Collection));
             Assert.False(r.Contains(rh => rh.Type == ResourceType.Unknown));
         }
+
+        [Theory]
+        [InlineData(null, null, "sub", "model", "sub.model")]
+        [InlineData("", null, "sub", "model", "sub.model")]
+        [InlineData(null, "", "sub", "model", "sub.model")]
+        [InlineData("", "", "sub", "model", "sub.model")]
+        [InlineData(null, "sub", null, "model", "sub.model")]
+        [InlineData(null, "sub", "", "model", "sub.model")]
+        [InlineData("test", null, "sub", "model", "test.sub.model")]
+        [InlineData("test", "sub", null, "model", "test.sub.model")]
+        [InlineData("test", null, "sub", "$id", "test.sub.foo")]
+        [InlineData("test", "sub", null, ">", "test.sub.foo.bar")]
+        public void Mount_ToSubpath_MountsRouter(string rootPattern, string subPattern, string mountPattern, string handlerPattern, string resourceName)
+        {
+            var handler = new DynamicHandler();
+            Router r = rootPattern == null ? new Router() : new Router(rootPattern);
+            Router sub = subPattern == null ? new Router() : new Router(subPattern);
+            sub.AddHandler(handlerPattern, handler);
+            if (mountPattern == null)
+                r.Mount(sub);
+            else
+                r.Mount(mountPattern, sub);
+            Router.Match m = r.GetHandler(resourceName);
+            Assert.NotNull(m);
+            Assert.Equal(handler, m.Handler);
+        }
+
+        [Fact]
+        public void Mount_ToRoot_ThrowsInvalidOperationException()
+        {
+            Router r = new Router("test");
+            Router sub = new Router();
+            Assert.Throws<InvalidOperationException>(() => r.Mount(sub));
+        }
+
+        [Fact]
+        public void Mount_MountedRouter_ThrowsInvalidOperationException()
+        {
+            Router r1 = new Router("test1");
+            Router r2 = new Router("test2");
+            Router sub = new Router("sub");
+            r1.Mount(sub);
+            Assert.Throws<InvalidOperationException>(() => r2.Mount(sub));
+        }
+
+        [Theory]
+        [InlineData("model")]
+        [InlineData("model.$id")]
+        [InlineData("model.>")]
+        public void Mount_ToExistingPattern_ThrowsInvalidOperationException(string pattern)
+        {
+            Router r = new Router("test");
+            r.AddHandler(pattern, new DynamicHandler());
+            Router sub = new Router();
+            Assert.Throws<InvalidOperationException>(() => r.Mount(pattern, sub));
+        }
     }
 }
