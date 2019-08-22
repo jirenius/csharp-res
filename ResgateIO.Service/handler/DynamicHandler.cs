@@ -21,6 +21,8 @@ namespace ResgateIO.Service
         private Func<IResourceContext, int, object> applyRemove = null;
         private Action<IResourceContext, object> applyCreate = null;
         private Func<IResourceContext, object> applyDelete = null;
+        private Dictionary<string, Action<ICallRequest>> callMethods = null;
+        private Dictionary<string, Action<IAuthRequest>> authMethods = null;
 
         /// <summary>
         /// Initializes a new instance of the DynamicHandler class.
@@ -134,8 +136,43 @@ namespace ResgateIO.Service
         /// <returns>This instance.</returns>
         public DynamicHandler SetCall(Action<ICallRequest> callHandler)
         {
-            toggleHandlers(HandlerTypes.Call, callHandler != null);
+            toggleHandlers(HandlerTypes.Call, callHandler != null || callMethods != null);
             call = callHandler;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the call handler for a specific method, and sets the EnableHandlers bit flag appropriately.
+        /// </summary>
+        /// <param name="method">Name of the method. Must only contain alpha-numeric characters.</param>
+        /// <param name="callHandler">Call method handler. Null removes any previously registered handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler SetCallMethod(string method, Action<ICallRequest> callHandler)
+        {
+            if (!ResService.IsValidPart(method))
+            {
+                throw new ArgumentException("Invalid method name: " + method);
+            }
+            if (callHandler == null)
+            {
+                if (callMethods != null)
+                {
+                    callMethods.Remove(method);
+                    if (callMethods.Count == 0)
+                    {
+                        callMethods = null;
+                    }
+                }
+            }
+            else
+            {
+                if (callMethods == null)
+                {
+                    callMethods = new Dictionary<string, Action<ICallRequest>>();
+                }
+                callMethods[method] = callHandler;
+            }
+            toggleHandlers(HandlerTypes.Call, call != null || callMethods != null);
             return this;
         }
 
@@ -147,8 +184,43 @@ namespace ResgateIO.Service
         /// <returns>This instance.</returns>
         public DynamicHandler SetAuth(Action<IAuthRequest> authHandler)
         {
-            toggleHandlers(HandlerTypes.Auth, authHandler != null);
+            toggleHandlers(HandlerTypes.Auth, authHandler != null || authMethods != null);
             auth = authHandler;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the auth handler for a specific method, and sets the EnableHandlers bit flag appropriately
+        /// </summary>
+        /// <param name="method">Name of the method. Must only contain alpha-numeric characters.</param>
+        /// <param name="authHandler">Auth method handler. Null removes any previously registered handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler SetAuthMethod(string method, Action<IAuthRequest> authHandler)
+        {
+            if (!ResService.IsValidPart(method))
+            {
+                throw new ArgumentException("Invalid method name: " + method);
+            }
+            if (authHandler == null)
+            {
+                if (authMethods != null)
+                {
+                    authMethods.Remove(method);
+                    if (authMethods.Count == 0)
+                    {
+                        authMethods = null;
+                    }
+                }
+            }
+            else
+            {
+                if (authMethods == null)
+                {
+                    authMethods = new Dictionary<string, Action<IAuthRequest>>();
+                }
+                authMethods[method] = authHandler;
+            }
+            toggleHandlers(HandlerTypes.Auth, auth != null || authMethods != null);
             return this;
         }
 
@@ -241,6 +313,19 @@ namespace ResgateIO.Service
         /// <param name="request">Auth request context.</param>
         public virtual void Auth(IAuthRequest request)
         {
+            if (authMethods != null)
+            {
+                if (authMethods.TryGetValue(request.Method, out Action<IAuthRequest> handler))
+                {
+                    handler(request);
+                    return;
+                }
+                else if (auth == null)
+                {
+                    request.MethodNotFound();
+                    return;
+                }
+            }
             auth?.Invoke(request);
         }
 
@@ -250,6 +335,19 @@ namespace ResgateIO.Service
         /// <param name="request">Call request context.</param>
         public virtual void Call(ICallRequest request)
         {
+            if (callMethods != null)
+            {
+                if (callMethods.TryGetValue(request.Method, out Action<ICallRequest> handler))
+                {
+                    handler(request);
+                    return;
+                }
+                else if (call == null)
+                {
+                    request.MethodNotFound();
+                    return;
+                }
+            }
             call?.Invoke(request);
         }
 
