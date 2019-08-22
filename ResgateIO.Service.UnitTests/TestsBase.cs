@@ -13,10 +13,16 @@ namespace ResgateIO.Service.UnitTests
         public readonly ResService Service;
         public readonly MockConnection Conn;
 
-        public TestsBase(ITestOutputHelper output)
+#pragma warning disable IDE1006 // Naming Styles
+        public ResService service => Service;
+#pragma warning restore IDE1006 // Naming Styles
+
+        public TestsBase(ITestOutputHelper output) : this(output, "test") { }
+
+        public TestsBase(ITestOutputHelper output, string serviceName)
         {
             Output = output;
-            Service = new ResService("test").SetLogger(new TestLogger(Output));
+            Service = new ResService(serviceName).SetLogger(new TestLogger(Output));
             Conn = new MockConnection();
         }
 
