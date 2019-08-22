@@ -2,16 +2,15 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
   <metadata>
     <id>ResgateIO.Service</id>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
     <title>RES Service .NET library</title>
     <authors>Samuel Jirenius</authors>
     <owners>Samuel Jirenius</owners>
     <license type="expression">MIT</license>
     <projectUrl>https://resgate.io</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>RES service library for building realtime APIs using Resgate.</description>
-    <releaseNotes>Initial release</releaseNotes>
-    <summary>RES Service .NET library</summary>
+    <description>RES service library for building realtime APIs with synchronized clients using Resgate.</description>
+    <releaseNotes>Stability and functionality improvements.</releaseNotes>
     <copyright>Copyright 2019 Samuel Jirenius</copyright>
     <repository type="git" url="https://github.com/jirenius/csharp-res" />
     <iconUrl>https://resgate.io/img/resgate-icon-272x272.png</iconUrl>

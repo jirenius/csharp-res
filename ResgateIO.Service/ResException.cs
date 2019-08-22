@@ -30,6 +30,12 @@ namespace ResgateIO.Service
             Code = code;
         }
 
+        public ResException(string code, string message, Exception inner)
+            : base(message, inner)
+        {
+            Code = code;
+        }
+
         public ResException(string code, string message, object errorData)
             : base(message)
         {
@@ -37,8 +43,22 @@ namespace ResgateIO.Service
             ErrorData = errorData;
         }
 
+        public ResException(string code, string message, object errorData, Exception inner)
+            : base(message, inner)
+        {
+            Code = code;
+            ErrorData = errorData;
+        }
+
         public ResException(ResError error)
             : base(error.Message)
+        {
+            Code = error.Code;
+            ErrorData = error.Data;
+        }
+
+        public ResException(ResError error, Exception inner)
+            : base(error.Message, inner)
         {
             Code = error.Code;
             ErrorData = error.Data;

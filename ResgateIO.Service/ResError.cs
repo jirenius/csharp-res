@@ -17,6 +17,14 @@ namespace ResgateIO.Service
         public const string CodeNotFound = "system.notFound";
         public const string CodeTimeout = "system.timeout";
 
+        // Predefined errors
+        public static readonly ResError AccessDenied = new ResError(CodeAccessDenied, "Not found");
+        public static readonly ResError InternalError = new ResError(CodeInternalError, "Internal error");
+        public static readonly ResError InvalidParams = new ResError(CodeInvalidParams, "Invalid parameters");
+        public static readonly ResError MethodNotFound = new ResError(CodeMethodNotFound, "Method not found");
+        public static readonly ResError NotFound = new ResError(CodeNotFound, "Not found");
+        public static readonly ResError Timeout = new ResError(CodeTimeout, "Request timeout");
+
         [JsonProperty(PropertyName = "code")]
         public string Code;
 
@@ -33,7 +41,7 @@ namespace ResgateIO.Service
         public ResError(Exception ex)
         {
             Code = ResError.CodeInternalError;
-            Message = "Internal error: " + ex.Message;
+            Message = ex.Message;
         }
 
         /// <summary>
@@ -45,6 +53,16 @@ namespace ResgateIO.Service
             Code = ex.Code;
             Message = ex.Message;
             Data = ex.ErrorData;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the ResError class with CodeInternalError and custom error message.
+        /// </summary>
+        /// <param name="message">Error message.</param>
+        public ResError(string message)
+        {
+            Code = ResError.CodeInternalError;
+            Message = message;
         }
 
         /// <summary>

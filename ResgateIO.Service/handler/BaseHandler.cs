@@ -7,7 +7,7 @@ namespace ResgateIO.Service
     /// <summary>
     /// Provides a base class for resource handler classes.
     /// </summary>
-    public abstract class ResourceHandler: IResourceHandler
+    public abstract class BaseHandler: IResourceHandler
     {
         private readonly ResourceType resourceType;
         private readonly HandlerTypes enabledHandlers;
@@ -21,17 +21,17 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
-        /// Initializes a new instance of the ResourceHandler class.
+        /// Initializes a new instance of the BaseHandler class.
         /// </summary>
-        public ResourceHandler() : this(ResourceType.Unknown)
+        public BaseHandler() : this(ResourceType.Unknown)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the ResourceHandler class, with resource type being specified.
+        /// Initializes a new instance of the BaseHandler class, with resource type being specified.
         /// </summary>
         /// <param name="type">Resource type.</param>
-        public ResourceHandler(ResourceType type)
+        public BaseHandler(ResourceType type)
         {
             resourceType = type;
             HandlerTypes enabled = HandlerTypes.None;
@@ -42,11 +42,12 @@ namespace ResgateIO.Service
                 { "Get", new Type[] { typeof(IGetRequest) }, HandlerTypes.Get },
                 { "Call", new Type[] { typeof(ICallRequest) }, HandlerTypes.Call },
                 { "Auth", new Type[] { typeof(IAuthRequest) }, HandlerTypes.Auth },
-                { "ApplyChange", new Type[] { typeof(ResourceContext), typeof(Dictionary<string, object>) }, HandlerTypes.ApplyChange },
-                { "ApplyAdd", new Type[] { typeof(ResourceContext), typeof(object), typeof(int) }, HandlerTypes.ApplyAdd },
-                { "ApplyRemove", new Type[] { typeof(ResourceContext), typeof(int) }, HandlerTypes.ApplyRemove },
-                { "ApplyCreate", new Type[] { typeof(ResourceContext), typeof(object) }, HandlerTypes.ApplyCreate },
-                { "ApplyDelete", new Type[] { typeof(ResourceContext) }, HandlerTypes.ApplyDelete },
+                { "New", new Type[] { typeof(INewRequest) }, HandlerTypes.New },
+                { "ApplyChange", new Type[] { typeof(IResourceContext), typeof(IDictionary<string, object>) }, HandlerTypes.ApplyChange },
+                { "ApplyAdd", new Type[] { typeof(IResourceContext), typeof(object), typeof(int) }, HandlerTypes.ApplyAdd },
+                { "ApplyRemove", new Type[] { typeof(IResourceContext), typeof(int) }, HandlerTypes.ApplyRemove },
+                { "ApplyCreate", new Type[] { typeof(IResourceContext), typeof(object) }, HandlerTypes.ApplyCreate },
+                { "ApplyDelete", new Type[] { typeof(IResourceContext) }, HandlerTypes.ApplyDelete },
             };
 
             foreach (Tuple<string, Type[], HandlerTypes> tuple in handlers)
@@ -92,7 +93,6 @@ namespace ResgateIO.Service
         /// <param name="request">Auth request context.</param>
         public virtual void Auth(IAuthRequest request)
         {
-
         }
 
         /// <summary>
@@ -104,12 +104,20 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
+        /// Method called on a new call request.
+        /// </summary>
+        /// <param name="request">New call request context.</param>
+        public virtual void New(INewRequest request)
+        {
+        }
+
+        /// <summary>
         /// Method called to apply a model change event.
         /// </summary>
         /// <param name="resource">Resource to apply the change to.</param>
         /// <param name="changes">Property values to apply to model.</param>
         /// <returns>A dictionary with the values to apply to revert the changes.</returns>
-        public virtual Dictionary<string, object> ApplyChange(ResourceContext resource, Dictionary<string, object> changes)
+        public virtual Dictionary<string, object> ApplyChange(IResourceContext resource, IDictionary<string, object> changes)
         {
             return null;
         }
@@ -120,7 +128,7 @@ namespace ResgateIO.Service
         /// <param name="resource">Resource to add the value to.</param>
         /// <param name="value">Value to add.</param>
         /// <param name="idx">Index position where to add the value.</param>
-        public virtual void ApplyAdd(ResourceContext resource, object value, int idx)
+        public virtual void ApplyAdd(IResourceContext resource, object value, int idx)
         {
         }
 
@@ -130,7 +138,7 @@ namespace ResgateIO.Service
         /// <param name="resource">Resource to remove the value from.</param>
         /// <param name="idx">Index position of the value to remove.</param>
         /// <returns>The removed value.</returns>
-        public virtual object ApplyRemove(ResourceContext resource, int idx)
+        public virtual object ApplyRemove(IResourceContext resource, int idx)
         {
             return null;
         }
@@ -140,7 +148,7 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="resource">Resource to create.</param>
         /// <param name="data">The resource data object.</param>
-        public virtual void ApplyCreate(ResourceContext resource, object data)
+        public virtual void ApplyCreate(IResourceContext resource, object data)
         {
         }
         
@@ -149,7 +157,7 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="resource">Resource to delete.</param>
         /// <returns>The deleted resource data object.</returns>
-        public virtual object ApplyDelete(ResourceContext resource)
+        public virtual object ApplyDelete(IResourceContext resource)
         {
             return null;
         }

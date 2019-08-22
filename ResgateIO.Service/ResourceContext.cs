@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace ResgateIO.Service
 {
@@ -18,7 +19,7 @@ namespace ResgateIO.Service
         /// Resource name.
         /// </summary>
         public string ResourceName { get; }
-        
+
         /// <summary>
         /// Parameters that are derived from the resource name.
         /// </summary>
@@ -33,7 +34,7 @@ namespace ResgateIO.Service
         /// Context scoped key/value collection used to store and share data between handlers.
         /// </summary>
         public IDictionary Items { get; }
-        
+
         /// <summary>
         /// Resource handler.
         /// </summary>
@@ -53,7 +54,7 @@ namespace ResgateIO.Service
             ResourceName = resourceName;
             Handler = handler;
             PathParams = pathParams;
-            Query = query;
+            Query = query == null ? "" : query;
             Items = new Hashtable();
         }
 
@@ -123,7 +124,7 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
-        /// Sends a custom event on the resource.
+        /// Sends a custom event on the resource without payload.
         /// Throws an exception if the event is one of the pre-defined or reserved events,
         /// "change", "delete", "add", "remove", "patch", "reaccess", "unsubscribe", or "query".
         /// For pre-defined events, the matching method, ChangeEvent, AddEvent,
@@ -133,33 +134,50 @@ namespace ResgateIO.Service
         /// See the protocol specification for more information:
         ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#custom-event
         /// </remarks>
-        /// <param name="eventName">Name of the event</param>
+        /// <param name="eventName">Name of the event.</param>
+        public void Event(string eventName)
+        {
+            Event(eventName, null);
+        }
+
+        /// <summary>
+        /// Sends a custom event on the resource with payload.
+        /// Throws an exception if the event is one of the pre-defined or reserved events,
+        /// "change", "delete", "add", "remove", "patch", "reaccess", "unsubscribe", or "query".
+        /// For pre-defined events, the matching method, ChangeEvent, AddEvent,
+        /// RemoveEvent, or ReaccessEvent should be used instead.
+        /// </summary>
+        /// <remarks>
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#custom-event
+        /// </remarks>
+        /// <param name="eventName">Name of the event.</param>
         /// <param name="payload">JSON serializable payload. May be null.</param>
         public void Event(string eventName, object payload)
         {
             switch (eventName)
             {
                 case "change":
-                    throw new InvalidOperationException("Use ChangeEvent to send change events");
+                    throw new ArgumentException("Use ChangeEvent to send change events");
                 case "delete":
-                    throw new InvalidOperationException("Use DeleteEvent to send delete events");
+                    throw new ArgumentException("Use DeleteEvent to send delete events");
                 case "add":
-                    throw new InvalidOperationException("Use AddEvent to send add events");
+                    throw new ArgumentException("Use AddEvent to send add events");
                 case "remove":
-                    throw new InvalidOperationException("Use RemoveEvent to send remove events");
+                    throw new ArgumentException("Use RemoveEvent to send remove events");
                 case "patch":
-                    throw new InvalidOperationException("Reserved event name: \"patch\"");
+                    throw new ArgumentException("Reserved event name: \"patch\"");
                 case "reaccess":
-                    throw new InvalidOperationException("Use ReaccessEvent to send reaccess events");
+                    throw new ArgumentException("Use ReaccessEvent to send reaccess events");
                 case "unsubscribe":
-                    throw new InvalidOperationException("Reserved event name: \"unsubscribe\"");
+                    throw new ArgumentException("Reserved event name: \"unsubscribe\"");
                 case "query":
-                    throw new InvalidOperationException("Reserved event name: \"query\"");
+                    throw new ArgumentException("Reserved event name: \"query\"");
             }
 
-            if (!isValidPart(eventName))
+            if (!ResService.IsValidPart(eventName))
             {
-                throw new InvalidOperationException("Invalid event name: " + eventName);
+                throw new ArgumentException("Invalid event name: " + eventName);
             }
 
             sendEvent(eventName, payload);
@@ -194,6 +212,12 @@ namespace ResgateIO.Service
                 {
                     return;
                 }
+                // Delete keys not present in the revert Dictionary
+                properties = properties.Where(x => rev.ContainsKey(x.Key)).ToDictionary(x => x.Key, x => x.Value);
+                if (properties.Count == 0)
+                {
+                    return;
+                }
             }
             sendEvent("change", new ChangeEventDto(properties));
         }
@@ -216,7 +240,7 @@ namespace ResgateIO.Service
             }
             if (idx < 0)
             {
-                throw new InvalidOperationException("Add event idx less than zero.");
+                throw new ArgumentException("Add event idx less than zero.");
             }
             if (Handler.EnabledHandlers.HasFlag(HandlerTypes.ApplyAdd))
             {
@@ -242,7 +266,7 @@ namespace ResgateIO.Service
             }
             if (idx < 0)
             {
-                throw new InvalidOperationException("Remove event idx less than zero.");
+                throw new ArgumentException("Remove event idx less than zero.");
             }
             if (Handler.EnabledHandlers.HasFlag(HandlerTypes.ApplyRemove))
             {
@@ -272,7 +296,7 @@ namespace ResgateIO.Service
         ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#query-event
         /// </remarks>
         /// <param name="callback">Query request callback delegate.</param>
-        public void QueryEvent(QueryCallBack callback)
+        public void QueryEvent(QueryCallback callback)
         {
             Service.AddQueryEvent(new QueryEvent(this, callback));
         }
@@ -305,21 +329,6 @@ namespace ResgateIO.Service
         private void sendEvent(string eventName, object payload)
         {
             Service.Send("event." + ResourceName + "." + eventName, payload);
-        }
-
-        private bool isValidPart(string eventName)
-        {
-            foreach (char c in eventName)
-            {
-                if (c == '?') {
-                    return false;
-                }
-                if (c < 33 || c > 126 || c == '?' || c == '*' || c == '>' || c == '.')
-                {
-                    return false;
-                }
-            }
-            return true;
         }
     }
 }

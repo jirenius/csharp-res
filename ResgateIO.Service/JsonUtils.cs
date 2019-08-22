@@ -1,5 +1,4 @@
 ﻿using Newtonsoft.Json;
-using System.IO;
 using System.Text;
 
 namespace ResgateIO.Service
@@ -8,9 +7,7 @@ namespace ResgateIO.Service
     {
         public static T Deserialize<T>(byte[] data) where T : class
         {
-            using (var stream = new MemoryStream(data))
-            using (var reader = new StreamReader(stream, Encoding.UTF8))
-                return JsonSerializer.Create().Deserialize(reader, typeof(T)) as T;
+            return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(data));
         }
 
         public static byte[] Serialize(object item)

@@ -11,9 +11,13 @@ namespace ResgateIO.Service
 {
     public class ResService: Router
     {
+        private const int shutdownTimeout = 5000; // milliseconds
+
         // Public read-only values
         public static readonly JRaw DeleteAction = new JRaw("{\"action\":\"delete\"}");
         public static readonly TimeSpan DefaultQueryDuration = new TimeSpan(0, 0, 3);
+
+        internal static readonly byte[] EmptyData = new byte[] { };
 
         // Properties
         public IConnection Connection { get; private set; }
@@ -29,12 +33,13 @@ namespace ResgateIO.Service
         private TimeSpan queryDuration = DefaultQueryDuration;
         private string[] resetResources = null;
         private string[] resetAccess = null;
+        private CountdownEvent activeWorkers = null;
 
         // Internal logger
         internal ILogger Log { get; private set; }
 
         // Predefined raw data responses
-        internal static readonly byte[] ResponseAccessDenied = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.accessDenied\",\"message\":\"Access denied\"}}");
+        internal static readonly byte[] ResponseAccessDenied = Encoding.UTF8.GetBytes("{\"result\":{\"get\":false}}");
         internal static readonly byte[] ResponseInternalError = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.internalError\",\"message\":\"Internal error\"}}");
         internal static readonly byte[] ResponseNotFound = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.notFound\",\"message\":\"Not found\"}}");
         internal static readonly byte[] ResponseMethodNotFound = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.methodNotFound\",\"message\":\"Method not found\"}}");
@@ -43,6 +48,7 @@ namespace ResgateIO.Service
         internal static readonly byte[] ResponseBadRequest = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.internalError\",\"message\":\"Internal error: bad request\"}}");
         internal static readonly byte[] ResponseMissingQuery = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.internalError\",\"message\":\"Internal error: missing query\"}}");
         internal static readonly byte[] ResponseAccessGranted = Encoding.UTF8.GetBytes("{\"result\":{\"get\":true,\"call\":\"*\"}}");
+        internal static readonly byte[] ResponseAccessGetOnly = Encoding.UTF8.GetBytes("{\"result\":{\"get\":true}}");
         internal static readonly byte[] ResponseSuccess = Encoding.UTF8.GetBytes("{\"result\":null}");
         internal static readonly byte[] ResponseNoQueryEvents = Encoding.UTF8.GetBytes("{\"result\":{\"events\":[]}}");
 
@@ -62,6 +68,18 @@ namespace ResgateIO.Service
         public ResService(string name) : base(name)
         {
             Log = new ConsoleLogger();
+        }
+
+        /// <summary>
+        /// Sets the duration in milliseconds for which the service will listen for query requests sent on a query event.
+        /// Default is 3000 milliseconds.
+        /// </summary>
+        /// <remarks>Service must be stopped when calling the method.</remarks>
+        /// <param name="duration">Query event duration in milliseconds.</param>
+        /// <returns>The ResService instance.</returns>
+        public ResService SetQueryDuration(int duration)
+        {
+            return SetQueryDuration(TimeSpan.FromMilliseconds((double)duration));
         }
 
         /// <summary>
@@ -105,7 +123,7 @@ namespace ResgateIO.Service
         /// starting with its own name if one was provided (eg. "serviceName.>") to the
         /// constructor, or to all resources if no name was provided.
         /// It will take resource ownership if it has at least one handler of
-        /// HandlerTypes Get, Call, or Auth.
+        /// HandlerTypes Get, Call, Auth, or New.
         /// It will take access ownership if it has at least one handler of HandlerTypes.Access.
         /// </summary>
         /// <remarks>
@@ -191,8 +209,13 @@ namespace ResgateIO.Service
             Log.Info("Stopping service...");
 
             close();
-            // TODO: Wait for all the threads to be done
+            activeWorkers.Signal();
+            if (!activeWorkers.Wait(shutdownTimeout))
+            {
+                Log.Error(String.Format("Timed out waiting for {0} worker thread(s) to finish.", activeWorkers.CurrentCount));
+            }
 
+            activeWorkers.Dispose();
             queryTimerQueue.Dispose();
             Connection.Dispose();
 
@@ -261,6 +284,7 @@ namespace ResgateIO.Service
             Connection = conn;
             rwork = new Dictionary<string, Work>();
             queryTimerQueue = new TimerQueue<QueryEvent>(onQueryEventExpire, queryDuration);
+            activeWorkers = new CountdownEvent(1);
 
             lock (stateLock)
             {
@@ -308,7 +332,7 @@ namespace ResgateIO.Service
             Msg msg = e.Message;
             String subj = msg.Subject;
 
-            Log.Trace(String.Format("==> {0}: {1}", subj, Encoding.UTF8.GetString(msg.Data)));
+            Log.Trace(String.Format("==> {0}: {1}", subj, msg.Data == null ? "<null>" : Encoding.UTF8.GetString(msg.Data)));
 
             // Assert there is a reply subject
             if (String.IsNullOrEmpty(msg.Reply))
@@ -344,28 +368,23 @@ namespace ResgateIO.Service
             runWith(rname, () => processRequest(msg, rtype, rname, method));
         }
 
-        private void runWith(string workId, Action callback)
+private void runWith(string workId, Action callback)
+{
+    lock (stateLock)
+    { 
+        if (rwork.TryGetValue(workId, out Work work))
         {
-            lock (stateLock)
-            {
-                if (state != State.Started)
-                {
-                    return;
-                }
-
-
-                if (rwork.TryGetValue(workId, out Work work))
-                {
-                    work.AddTask(callback);
-                }
-                else
-                {
-                    work = new Work(workId, callback);
-                    rwork.Add(workId, work);
-                    ThreadPool.QueueUserWorkItem(new WaitCallback(processWork), work);
-                }
-            }
+            work.AddTask(callback);
         }
+        else
+        {
+            work = new Work(workId, callback);
+            rwork.Add(workId, work);
+            activeWorkers.AddCount();
+            ThreadPool.QueueUserWorkItem(new WaitCallback(processWork), work);
+        }
+    }
+}
 
         /// <summary>
         /// Sends a connection token event that sets the connection's access token,
@@ -378,8 +397,12 @@ namespace ResgateIO.Service
         /// </remarks>
         /// <param name="cid">Connection ID</param>
         /// <param name="token">Access token. A null token clears any previously set token.</param>
-        public void ConnectionTokenEvent(string cid, object token)
+        public void TokenEvent(string cid, object token)
         {
+            if (!IsValidPart(cid))
+            {
+                throw new ArgumentException("Invalid connection ID: " + cid);
+            }
             Send("conn." + cid + ".token", new TokenEventDto(token));
         }
 
@@ -390,6 +413,10 @@ namespace ResgateIO.Service
         /// <param name="access">Resource patterns to reset cached access responses for.</param>
         public void Reset(string[] resources, string[] access)
         {
+            if ((resources == null || resources.Length == 0) && (access == null || access.Length == 0))
+            {
+                return;
+            }
             Send("system.reset", new SystemResetDto(resources, access));
         }
 
@@ -436,10 +463,18 @@ namespace ResgateIO.Service
         {
             try
             {
-                string json = JsonConvert.SerializeObject(payload);
-                byte[] data = Encoding.UTF8.GetBytes(json);
-                Log.Trace(String.Format("<-- {0}: {1}", subject, json));
-                RawSend(subject, data);
+                if (payload != null)
+                {
+                    string json = JsonConvert.SerializeObject(payload);
+                    byte[] data = Encoding.UTF8.GetBytes(json);
+                    Log.Trace(String.Format("<-- {0}: {1}", subject, json));
+                    RawSend(subject, data);
+                }
+                else
+                {
+                    Log.Trace(String.Format("<-- {0}", subject));
+                    RawSend(subject, EmptyData);
+                }
             }
             catch (Exception ex)
             {
@@ -449,8 +484,26 @@ namespace ResgateIO.Service
 
         internal void AddQueryEvent(QueryEvent queryEvent)
         {
-            queryEvent.Start();
-            queryTimerQueue.Add(queryEvent);
+            if (queryEvent.Start())
+            {
+                queryTimerQueue.Add(queryEvent);
+            }
+        }
+
+        internal static bool IsValidPart(string part)
+        {
+            foreach (char c in part)
+            {
+                if (c == '?')
+                {
+                    return false;
+                }
+                if (c < 33 || c > 126 || c == '?' || c == '*' || c == '>' || c == '.')
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         private void onQueryEventExpire(QueryEvent queryEvent)
@@ -463,20 +516,28 @@ namespace ResgateIO.Service
             Work work = (Work)obj;
             Action task;
 
-            while (true) {
-                lock (stateLock)
+            try
+            {
+                while (true)
                 {
-                    task = work.NextTask();
-                    // Check if work tasks are exhausted
-                    if (task == null)
+                    lock (stateLock)
                     {
-                        // Work completed
-                        rwork.Remove(work.ResourceName);
-                        return;
+                        task = work.NextTask();
+                        // Check if work tasks are exhausted
+                        if (task == null)
+                        {
+                            // Work completed
+                            rwork.Remove(work.ResourceName);
+                            return;
+                        }
                     }
-                }
 
-                task();
+                    task();
+                }
+            }
+            finally
+            {
+                activeWorkers.Signal();
             }
         }
         
@@ -496,7 +557,11 @@ namespace ResgateIO.Service
 
             try
             {
-                RequestDto reqInput = JsonUtils.Deserialize<RequestDto>(msg.Data);
+                byte[] d = msg.Data;
+                RequestDto reqInput = d == null || d.Length == 0 || (d.Length == 2 && d[0] == '{' && d[1] == '}')
+                    ? RequestDto.Empty
+                    : JsonUtils.Deserialize<RequestDto>(msg.Data);
+
                 req = new Request(
                     this,
                     msg,
@@ -516,7 +581,7 @@ namespace ResgateIO.Service
             }
             catch(Exception ex)
             {
-                Log.Error(String.Format("Error deserializing incoming request: {0}", Encoding.UTF8.GetString(msg.Data)));
+                Log.Error(String.Format("Error deserializing incoming request: {0}", msg.Data == null ? "<null>" : Encoding.UTF8.GetString(msg.Data)));
                 req = new Request(this, msg);
                 req.Error(new ResError(ex));
                 return;
@@ -553,7 +618,7 @@ namespace ResgateIO.Service
         {
             if (resetResources == null)
             {
-                resetResources = Contains(h => (h.EnabledHandlers & (HandlerTypes.Get | HandlerTypes.Call | HandlerTypes.Auth)) != HandlerTypes.None)
+                resetResources = Contains(h => (h.EnabledHandlers & (HandlerTypes.Get | HandlerTypes.Call | HandlerTypes.Auth | HandlerTypes.New)) != HandlerTypes.None)
                     ? new string[] { MergePattern(Pattern, ">") }
                     : new string[] { };
             }
@@ -564,5 +629,6 @@ namespace ResgateIO.Service
                     : new string[] { };
             }
         }
+
     }
 }

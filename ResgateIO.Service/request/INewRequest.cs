@@ -5,15 +5,10 @@ using System.Collections.Generic;
 namespace ResgateIO.Service
 {
     /// <summary>
-    /// Provides context information and methods for responding to a call request.
+    /// Provides context information and methods for responding to a new call request.
     /// </summary>
-    public interface ICallRequest : IResourceContext
+    public interface INewRequest : IResourceContext
     {
-        /// <summary>
-        /// Resource method.
-        /// </summary>
-        string Method { get; }
-
         /// <summary>
         /// Connection ID of the requesting client connection.
         /// </summary>
@@ -32,13 +27,7 @@ namespace ResgateIO.Service
         /// <summary>
         /// Sends a successful empty response to a request.
         /// </summary>
-        void Ok();
-
-        /// <summary>
-        /// Sends a successful response to a request.
-        /// </summary>
-        /// <param name="result">Result object. May be null.</param>
-        void Ok(object result);
+        void New(Ref rid);
 
         /// <summary>
         /// Sends an error response to the request.
