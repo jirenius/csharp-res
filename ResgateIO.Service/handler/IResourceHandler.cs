@@ -40,7 +40,13 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="request">Call request context.</param>
         void Call(ICallRequest request);
-        
+
+        /// <summary>
+        /// Method called on a new call request.
+        /// </summary>
+        /// <param name="request">New call request context.</param>
+        void New(INewRequest request);
+
         /// <summary>
         /// Method called to apply a model change event.
         /// </summary>

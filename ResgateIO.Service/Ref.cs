@@ -19,5 +19,36 @@ namespace ResgateIO.Service
         {
             ResourceID = resourceID;
         }
+
+        public bool IsValid()
+        {
+            bool start = true;
+            foreach (char c in ResourceID)
+            {
+                if (c == '?')
+                {
+                    return !start;
+                }
+
+                if (c < 33 || c > 126 || c == '*' || c == '>')
+                {
+                    return false;
+                }
+
+                if (c == '.')
+                {
+                    if (start)
+                    {
+                        return false;
+                    }
+                    start = true;
+                }
+                else
+                {
+                    start = false;
+                }
+            }
+            return !start;
+        }
     }
 }

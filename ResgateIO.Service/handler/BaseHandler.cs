@@ -42,6 +42,7 @@ namespace ResgateIO.Service
                 { "Get", new Type[] { typeof(IGetRequest) }, HandlerTypes.Get },
                 { "Call", new Type[] { typeof(ICallRequest) }, HandlerTypes.Call },
                 { "Auth", new Type[] { typeof(IAuthRequest) }, HandlerTypes.Auth },
+                { "New", new Type[] { typeof(INewRequest) }, HandlerTypes.New },
                 { "ApplyChange", new Type[] { typeof(IResourceContext), typeof(IDictionary<string, object>) }, HandlerTypes.ApplyChange },
                 { "ApplyAdd", new Type[] { typeof(IResourceContext), typeof(object), typeof(int) }, HandlerTypes.ApplyAdd },
                 { "ApplyRemove", new Type[] { typeof(IResourceContext), typeof(int) }, HandlerTypes.ApplyRemove },
@@ -92,7 +93,6 @@ namespace ResgateIO.Service
         /// <param name="request">Auth request context.</param>
         public virtual void Auth(IAuthRequest request)
         {
-
         }
 
         /// <summary>
@@ -100,6 +100,14 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="request">Call request context.</param>
         public virtual void Call(ICallRequest request)
+        {
+        }
+
+        /// <summary>
+        /// Method called on a new call request.
+        /// </summary>
+        /// <param name="request">New call request context.</param>
+        public virtual void New(INewRequest request)
         {
         }
 

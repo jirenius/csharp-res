@@ -10,10 +10,11 @@ namespace ResgateIO.Service
         Get         = 0x0002,
         Call        = 0x0004,
         Auth        = 0x0008,
-        ApplyChange = 0x0010,
-        ApplyAdd    = 0x0020,
-        ApplyRemove = 0x0040,
-        ApplyCreate = 0x0080,
-        ApplyDelete = 0x0100,
+        New         = 0x0010,
+        ApplyChange = 0x0020,
+        ApplyAdd    = 0x0040,
+        ApplyRemove = 0x0080,
+        ApplyCreate = 0x0100,
+        ApplyDelete = 0x0200,
     }
 }
