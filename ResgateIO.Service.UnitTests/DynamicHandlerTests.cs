@@ -109,10 +109,13 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Fact]
-        public void SetCall_NoHandler_CallFlagNotSet()
+        public void SetCall_NoHandler_CallFlagNotSetAndNoResponse()
         {
             var handler = new DynamicHandler().SetCall(r => { }).SetCall(null);
+            var mock = new MockRequest { Method = "foo" };
+            handler.Call(mock);
             Assert.Equal(HandlerTypes.None, handler.EnabledHandlers);
+            Assert.Empty(mock.Calls);
         }
 
         [Fact]
@@ -125,6 +128,76 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Fact]
+        public void SetCall_NoHandlerWithCallMethodHandler_CallFlagSet()
+        {
+            var handler = new DynamicHandler().SetCallMethod("foo", r => { }).SetCall(r => { }).SetCall(null);
+            Assert.Equal(HandlerTypes.Call, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetCallMethod_WithHandler_CallFlagSet()
+        {
+            var handler = new DynamicHandler().SetCallMethod("foo", r => { });
+            Assert.Equal(HandlerTypes.Call, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetCallMethod_NoHandlerWithoutCallHandler_CallFlagNotSet()
+        {
+            var handler = new DynamicHandler().SetCallMethod("foo", r => { }).SetCallMethod("foo", null);
+            Assert.Equal(HandlerTypes.None, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetCallMethod_WithTwoHandlers_CallFlagSet()
+        {
+            var handler = new DynamicHandler().SetCallMethod("foo", r => { }).SetCallMethod("bar", r => { });
+            Assert.Equal(HandlerTypes.Call, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetCallMethod_NoHandlerWithCallHandler_CallFlagSet()
+        {
+            var handler = new DynamicHandler().SetCall(r => { }).SetCallMethod("foo", r => { }).SetCallMethod("foo", null);
+            Assert.Equal(HandlerTypes.Call, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetCallMethod_NullOnUnregisteredHandlerWithoutCallHandler_CallFlagNotSet()
+        {
+            var handler = new DynamicHandler().SetCallMethod("foo", null);
+            Assert.Equal(HandlerTypes.None, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetCallMethod_NullOnUnregisteredHandlerWithCallHandler_CallFlagSet()
+        {
+            var handler = new DynamicHandler().SetCall(r => { }).SetCallMethod("foo", null);
+            Assert.Equal(HandlerTypes.Call, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetCallMethod_WithHandler_IsCalled()
+        {
+            int called = 0;
+            var handler = new DynamicHandler().SetCallMethod("foo", r => called++);
+            handler.Call(new MockRequest { Method = "foo" });
+            Assert.Equal(1, called);
+        }
+
+        [Fact]
+        public void SetCallMethod_MethodWithoutHandler_CallsMethodNotFound()
+        {
+            int called = 0;
+            var handler = new DynamicHandler().SetCallMethod("foo", r => called++);
+            var mock = new MockRequest { Method = "bar" };
+            handler.Call(mock);
+            Assert.Equal(0, called);
+            Assert.Single(mock.Calls);
+            Assert.Equal("MethodNotFound", mock.Calls[0].Method);
+        }
+
+        [Fact]
         public void SetAuth_WithHandler_AuthFlagSet()
         {
             var handler = new DynamicHandler().SetAuth(r => { });
@@ -132,10 +205,13 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Fact]
-        public void SetAuth_NoHandler_AuthFlagNotSet()
+        public void SetAuth_NoHandler_AuthFlagNotSetAndNoResponse()
         {
             var handler = new DynamicHandler().SetAuth(r => { }).SetAuth(null);
+            var mock = new MockRequest { Method = "foo" };
+            handler.Auth(mock);
             Assert.Equal(HandlerTypes.None, handler.EnabledHandlers);
+            Assert.Empty(mock.Calls);
         }
 
         [Fact]
@@ -145,6 +221,76 @@ namespace ResgateIO.Service.UnitTests
             var handler = new DynamicHandler().SetAuth(r => called++);
             handler.Auth(null);
             Assert.Equal(1, called);
+        }
+
+        [Fact]
+        public void SetAuth_NoHandlerWithAuthMethodHandler_AuthFlagSet()
+        {
+            var handler = new DynamicHandler().SetAuthMethod("foo", r => { }).SetAuth(r => { }).SetAuth(null);
+            Assert.Equal(HandlerTypes.Auth, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetAuthMethod_WithHandler_AuthFlagSet()
+        {
+            var handler = new DynamicHandler().SetAuthMethod("foo", r => { });
+            Assert.Equal(HandlerTypes.Auth, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetAuthMethod_NoHandlerWithoutAuthHandler_AuthFlagNotSet()
+        {
+            var handler = new DynamicHandler().SetAuthMethod("foo", r => { }).SetAuthMethod("foo", null);
+            Assert.Equal(HandlerTypes.None, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetAuthMethod_WithTwoHandlers_AuthFlagSet()
+        {
+            var handler = new DynamicHandler().SetAuthMethod("foo", r => { }).SetAuthMethod("bar", r => { });
+            Assert.Equal(HandlerTypes.Auth, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetAuthMethod_NoHandlerWithAuthHandler_AuthFlagSet()
+        {
+            var handler = new DynamicHandler().SetAuth(r => { }).SetAuthMethod("foo", r => { }).SetAuthMethod("foo", null);
+            Assert.Equal(HandlerTypes.Auth, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetAuthMethod_NullOnUnregisteredHandlerWithoutAuthHandler_AuthFlagNotSet()
+        {
+            var handler = new DynamicHandler().SetAuthMethod("foo", null);
+            Assert.Equal(HandlerTypes.None, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetAuthMethod_NullOnUnregisteredHandlerWithAuthHandler_AuthFlagSet()
+        {
+            var handler = new DynamicHandler().SetAuth(r => { }).SetAuthMethod("foo", null);
+            Assert.Equal(HandlerTypes.Auth, handler.EnabledHandlers);
+        }
+
+        [Fact]
+        public void SetAuthMethod_WithHandler_IsAuthed()
+        {
+            int called = 0;
+            var handler = new DynamicHandler().SetAuthMethod("foo", r => called++);
+            handler.Auth(new MockRequest { Method = "foo" });
+            Assert.Equal(1, called);
+        }
+
+        [Fact]
+        public void SetAuthMethod_MethodWithoutHandler_CallsMethodNotFound()
+        {
+            int called = 0;
+            var handler = new DynamicHandler().SetAuthMethod("foo", r => called++);
+            var mock = new MockRequest { Method = "bar" };
+            handler.Auth(mock);
+            Assert.Equal(0, called);
+            Assert.Single(mock.Calls);
+            Assert.Equal("MethodNotFound", mock.Calls[0].Method);
         }
 
         [Fact]
