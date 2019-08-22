@@ -12,15 +12,16 @@ namespace ResgateIO.Service
         private ResourceType resourceType = ResourceType.Unknown;
         private HandlerTypes enabledHandlers = HandlerTypes.None;
 
-        private Action<IAccessRequest> access = null;
-        private Action<IGetRequest> get = null;
-        private Action<ICallRequest> call = null;
-        private Action<IAuthRequest> auth = null;
-        private Func<IResourceContext, IDictionary<string, object>, Dictionary<string, object>> applyChange = null;
-        private Action<IResourceContext, object, int> applyAdd = null;
-        private Func<IResourceContext, int, object> applyRemove = null;
-        private Action<IResourceContext, object> applyCreate = null;
-        private Func<IResourceContext, object> applyDelete = null;
+        private Action<IAccessRequest> accessHandler = null;
+        private Action<IGetRequest> getHandler = null;
+        private Action<ICallRequest> callHandler = null;
+        private Action<IAuthRequest> authHandler = null;
+        private Action<INewRequest> newHandler = null;
+        private Func<IResourceContext, IDictionary<string, object>, Dictionary<string, object>> applyChangeHandler = null;
+        private Action<IResourceContext, object, int> applyAddHandler = null;
+        private Func<IResourceContext, int, object> applyRemoveHandler = null;
+        private Action<IResourceContext, object> applyCreateHandler = null;
+        private Func<IResourceContext, object> applyDeleteHandler = null;
         private Dictionary<string, Action<ICallRequest>> callMethods = null;
         private Dictionary<string, Action<IAuthRequest>> authMethods = null;
 
@@ -63,7 +64,7 @@ namespace ResgateIO.Service
         public DynamicHandler SetAccess(Action<IAccessRequest> accessHandler)
         {
             toggleHandlers(HandlerTypes.Access, accessHandler != null);
-            access = accessHandler;
+            this.accessHandler = accessHandler;
             return this;
         }
 
@@ -76,7 +77,7 @@ namespace ResgateIO.Service
         public DynamicHandler SetGet(Action<IGetRequest> getHandler)
         {
             toggleHandlers(HandlerTypes.Get, getHandler != null);
-            get = getHandler;
+            this.getHandler = getHandler;
             return this;
         }
 
@@ -93,12 +94,12 @@ namespace ResgateIO.Service
             toggleHandlers(HandlerTypes.Get, getHandler != null);
             if (getHandler != null)
             {
-                get = r => getHandler((IModelRequest)r);
+                this.getHandler = r => getHandler((IModelRequest)r);
                 resourceType = ResourceType.Model;
             }
             else
             {
-                get = null;
+                this.getHandler = null;
                 resourceType = ResourceType.Unknown;
             }
             return this;
@@ -117,12 +118,12 @@ namespace ResgateIO.Service
             toggleHandlers(HandlerTypes.Get, getHandler != null);
             if (getHandler != null)
             {
-                get = r => getHandler((ICollectionRequest)r);
+                this.getHandler = r => getHandler((ICollectionRequest)r);
                 resourceType = ResourceType.Collection;
             }
             else
             {
-                get = null;
+                this.getHandler = null;
                 resourceType = ResourceType.Unknown;
             }
             return this;
@@ -137,7 +138,7 @@ namespace ResgateIO.Service
         public DynamicHandler SetCall(Action<ICallRequest> callHandler)
         {
             toggleHandlers(HandlerTypes.Call, callHandler != null || callMethods != null);
-            call = callHandler;
+            this.callHandler = callHandler;
             return this;
         }
 
@@ -152,6 +153,10 @@ namespace ResgateIO.Service
             if (!ResService.IsValidPart(method))
             {
                 throw new ArgumentException("Invalid method name: " + method);
+            }
+            if (method == "new")
+            {
+                throw new ArgumentException("Must use SetNew to register handler for new call requests");
             }
             if (callHandler == null)
             {
@@ -172,7 +177,7 @@ namespace ResgateIO.Service
                 }
                 callMethods[method] = callHandler;
             }
-            toggleHandlers(HandlerTypes.Call, call != null || callMethods != null);
+            toggleHandlers(HandlerTypes.Call, this.callHandler != null || callMethods != null);
             return this;
         }
 
@@ -185,7 +190,7 @@ namespace ResgateIO.Service
         public DynamicHandler SetAuth(Action<IAuthRequest> authHandler)
         {
             toggleHandlers(HandlerTypes.Auth, authHandler != null || authMethods != null);
-            auth = authHandler;
+            this.authHandler = authHandler;
             return this;
         }
 
@@ -220,7 +225,20 @@ namespace ResgateIO.Service
                 }
                 authMethods[method] = authHandler;
             }
-            toggleHandlers(HandlerTypes.Auth, auth != null || authMethods != null);
+            toggleHandlers(HandlerTypes.Auth, this.authHandler != null || authMethods != null);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the new call handler method, and sets the EnableHandlers bit flag
+        /// if the handler is not null, otherwise it unsets the flag.
+        /// </summary>
+        /// <param name="newHandler">New handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler SetNew(Action<INewRequest> newHandler)
+        {
+            toggleHandlers(HandlerTypes.New, newHandler != null);
+            this.newHandler = newHandler;
             return this;
         }
 
@@ -233,7 +251,7 @@ namespace ResgateIO.Service
         public DynamicHandler SetApplyChange(Func<IResourceContext, IDictionary<string, object>, Dictionary<string, object>> applyChangeHandler)
         {
             toggleHandlers(HandlerTypes.ApplyChange, applyChangeHandler != null);
-            applyChange = applyChangeHandler;
+            this.applyChangeHandler = applyChangeHandler;
             return this;
         }
 
@@ -246,7 +264,7 @@ namespace ResgateIO.Service
         public DynamicHandler SetApplyAdd(Action<IResourceContext, object, int> applyAddHandler)
         {
             toggleHandlers(HandlerTypes.ApplyAdd, applyAddHandler != null);
-            applyAdd = applyAddHandler;
+            this.applyAddHandler = applyAddHandler;
             return this;
         }
 
@@ -259,7 +277,7 @@ namespace ResgateIO.Service
         public DynamicHandler SetApplyRemove(Func<IResourceContext, int, object> applyRemoveHandler)
         {
             toggleHandlers(HandlerTypes.ApplyRemove, applyRemoveHandler != null);
-            applyRemove = applyRemoveHandler;
+            this.applyRemoveHandler = applyRemoveHandler;
             return this;
         }
 
@@ -272,7 +290,7 @@ namespace ResgateIO.Service
         public DynamicHandler SetApplyCreate(Action<IResourceContext, object> applyCreateHandler)
         {
             toggleHandlers(HandlerTypes.ApplyCreate, applyCreateHandler != null);
-            applyCreate = applyCreateHandler;
+            this.applyCreateHandler = applyCreateHandler;
             return this;
         }
 
@@ -285,7 +303,7 @@ namespace ResgateIO.Service
         public DynamicHandler SetApplyDelete(Func<IResourceContext, object> applyDeleteHandler)
         {
             toggleHandlers(HandlerTypes.ApplyDelete, applyDeleteHandler != null);
-            applyDelete = applyDeleteHandler;
+            this.applyDeleteHandler = applyDeleteHandler;
             return this;
         }
 
@@ -295,7 +313,7 @@ namespace ResgateIO.Service
         /// <param name="request">Get request context.</param>
         public virtual void Get(IGetRequest request)
         {
-            get?.Invoke(request);
+            getHandler?.Invoke(request);
         }
 
         /// <summary>
@@ -304,7 +322,7 @@ namespace ResgateIO.Service
         /// <param name="request">Access request context.</param>
         public virtual void Access(IAccessRequest request)
         {
-            access?.Invoke(request);
+            accessHandler?.Invoke(request);
         }
 
         /// <summary>
@@ -320,13 +338,13 @@ namespace ResgateIO.Service
                     handler(request);
                     return;
                 }
-                else if (auth == null)
+                else if (authHandler == null)
                 {
                     request.MethodNotFound();
                     return;
                 }
             }
-            auth?.Invoke(request);
+            authHandler?.Invoke(request);
         }
 
         /// <summary>
@@ -342,13 +360,22 @@ namespace ResgateIO.Service
                     handler(request);
                     return;
                 }
-                else if (call == null)
+                else if (callHandler == null)
                 {
                     request.MethodNotFound();
                     return;
                 }
             }
-            call?.Invoke(request);
+            callHandler?.Invoke(request);
+        }
+
+        /// <summary>
+        /// Method called on a new call request.
+        /// </summary>
+        /// <param name="request">New call request context.</param>
+        public virtual void New(INewRequest request)
+        {
+            newHandler?.Invoke(request);
         }
 
         /// <summary>
@@ -359,7 +386,7 @@ namespace ResgateIO.Service
         /// <returns>A dictionary with the values to apply to revert the changes.</returns>
         public virtual Dictionary<string, object> ApplyChange(IResourceContext resource, IDictionary<string, object> changes)
         {
-            return applyChange?.Invoke(resource, changes);
+            return applyChangeHandler?.Invoke(resource, changes);
         }
         
         /// <summary>
@@ -370,7 +397,7 @@ namespace ResgateIO.Service
         /// <param name="idx">Index position where to add the value.</param>
         public virtual void ApplyAdd(IResourceContext resource, object value, int idx)
         {
-            applyAdd?.Invoke(resource, value, idx);
+            applyAddHandler?.Invoke(resource, value, idx);
         }
 
         /// <summary>
@@ -381,7 +408,7 @@ namespace ResgateIO.Service
         /// <returns>The removed value.</returns>
         public virtual object ApplyRemove(IResourceContext resource, int idx)
         {
-            return applyRemove?.Invoke(resource, idx);
+            return applyRemoveHandler?.Invoke(resource, idx);
         }
 
         /// <summary>
@@ -391,7 +418,7 @@ namespace ResgateIO.Service
         /// <param name="data">The resource data object.</param>
         public virtual void ApplyCreate(IResourceContext resource, object data)
         {
-            applyCreate?.Invoke(resource, data);
+            applyCreateHandler?.Invoke(resource, data);
         }
         
         /// <summary>
@@ -401,7 +428,7 @@ namespace ResgateIO.Service
         /// <returns>The deleted resource data object.</returns>
         public virtual object ApplyDelete(IResourceContext resource)
         {
-            return applyDelete?.Invoke(resource);
+            return applyDeleteHandler?.Invoke(resource);
         }
 
         private void toggleHandlers(HandlerTypes type, bool setFlag)

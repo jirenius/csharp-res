@@ -10,7 +10,7 @@ namespace ResgateIO.Service
     /// <summary>
     /// Provides context information and methods for responding to a request.
     /// </summary>
-    public class Request: ResourceContext, IAccessRequest, IGetRequest, ICallRequest, IAuthRequest, IModelRequest, ICollectionRequest
+    public class Request: ResourceContext, IAccessRequest, IGetRequest, ICallRequest, IAuthRequest, IModelRequest, ICollectionRequest, INewRequest
     {
         private readonly Msg msg;
 
@@ -168,6 +168,20 @@ namespace ResgateIO.Service
                     Error(new ResError(ex));
                 }
             }
+        }
+
+        /// <summary>
+        /// Sends a successful response to a new call request.
+        /// </summary>
+        /// <remarks>Only valid for new call requests.</remarks>
+        /// <param name="resourceID">Valid resource ID to the newly created resource.</param>
+        public void New(Ref resourceID)
+        {
+            if (!resourceID.IsValid())
+            {
+                throw new ArgumentException("Invalid Resource ID: " + resourceID);
+            }
+            Ok(resourceID);
         }
 
         /// <summary>
@@ -369,6 +383,7 @@ namespace ResgateIO.Service
                         {
                             Handler.Access(this);
                         }
+                        // No additional handling. Assume the access request is handled by another service.
                         break;
 
                     case RequestType.Get:
@@ -376,12 +391,31 @@ namespace ResgateIO.Service
                         {
                             Handler.Get(this);
                         }
+                        else
+                        {
+                            NotFound();
+                        }
                         break;
 
                     case RequestType.Call:
-                        if (Handler.EnabledHandlers.HasFlag(HandlerTypes.Call))
+                        if (Method == "new")
+                        {
+                            if (Handler.EnabledHandlers.HasFlag(HandlerTypes.New))
+                            {
+                                Handler.New(this);
+                            }
+                            else
+                            {
+                                MethodNotFound();
+                            }
+                        }
+                        else if (Handler.EnabledHandlers.HasFlag(HandlerTypes.Call))
                         {
                             Handler.Call(this);
+                        }
+                        else
+                        {
+                            MethodNotFound();
                         }
                         break;
 
@@ -389,6 +423,10 @@ namespace ResgateIO.Service
                         if (Handler.EnabledHandlers.HasFlag(HandlerTypes.Auth))
                         {
                             Handler.Auth(this);
+                        }
+                        else
+                        {
+                            MethodNotFound();
                         }
                         break;
 

@@ -123,7 +123,7 @@ namespace ResgateIO.Service
         /// starting with its own name if one was provided (eg. "serviceName.>") to the
         /// constructor, or to all resources if no name was provided.
         /// It will take resource ownership if it has at least one handler of
-        /// HandlerTypes Get, Call, or Auth.
+        /// HandlerTypes Get, Call, Auth, or New.
         /// It will take access ownership if it has at least one handler of HandlerTypes.Access.
         /// </summary>
         /// <remarks>
@@ -618,7 +618,7 @@ private void runWith(string workId, Action callback)
         {
             if (resetResources == null)
             {
-                resetResources = Contains(h => (h.EnabledHandlers & (HandlerTypes.Get | HandlerTypes.Call | HandlerTypes.Auth)) != HandlerTypes.None)
+                resetResources = Contains(h => (h.EnabledHandlers & (HandlerTypes.Get | HandlerTypes.Call | HandlerTypes.Auth | HandlerTypes.New)) != HandlerTypes.None)
                     ? new string[] { MergePattern(Pattern, ">") }
                     : new string[] { };
             }
