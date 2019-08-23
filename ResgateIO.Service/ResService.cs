@@ -492,6 +492,10 @@ private void runWith(string workId, Action callback)
 
         internal static bool IsValidPart(string part)
         {
+            if (String.IsNullOrEmpty(part))
+            {
+                return false;
+            }
             foreach (char c in part)
             {
                 if (c == '?')

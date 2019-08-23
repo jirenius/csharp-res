@@ -37,31 +37,22 @@ namespace BookCollection
             request.New(add.Ref);
         }
 
-        public override void Call(ICallRequest request)
+        [CallMethod("delete")]
+        public void Delete(ICallRequest request)
         {
-            switch (request.Method)
-            {   
-                // Handle deletion of a book
-                case "delete":
-                    // Unmarshal book ID params to a Book model to easily extract the resource ID.
-                    Book deleteParams = request.ParseParams<Book>();
+            // Unmarshal book ID params to a Book model to easily extract the resource ID.
+            Book deleteParams = request.ParseParams<Book>();
 
-                    int idx = BookStore.DeleteBook(deleteParams.ResourceID);
-                    if (idx > -1)
-                    {
-                        request.RemoveEvent(idx);
-                    }
-
-                    // Send success response. It is up to the service to define if a delete
-                    // should be idempotent or not. In this case we send success regardless
-                    // if the book existed or not, making it idempotent.
-                    request.Ok();
-                    break;
-
-                default:
-                    request.MethodNotFound();
-                    break;
+            int idx = BookStore.DeleteBook(deleteParams.ResourceID);
+            if (idx > -1)
+            {
+                request.RemoveEvent(idx);
             }
+
+            // Send success response. It is up to the service to define if a delete
+            // should be idempotent or not. In this case we send success regardless
+            // if the book existed or not, making it idempotent.
+            request.Ok();
         }
     }
 }

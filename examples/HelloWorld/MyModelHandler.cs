@@ -27,29 +27,20 @@ namespace HelloWorld
             request.AccessGranted();
         }
 
-        public override void Call(ICallRequest request)
+        [CallMethod("set")]
+        public void Set(ICallRequest request)
         {
-            switch (request.Method)
+            var modelParams = request.ParseParams<MyModel>();
+
+            // Check if the Message property was changed
+            if (modelParams.Message != null && modelParams.Message != myModel.Message)
             {
-                // Handle setting of the message
-                case "set":
-                    var modelParams = request.ParseParams<MyModel>();
-
-                    // Check if the Message property was changed
-                    if (modelParams.Message != null && modelParams.Message != myModel.Message)
-                    {
-                        // Update the model
-                        myModel.Message = modelParams.Message;
-                        // Send a change event with updated fields
-                        request.ChangeEvent(new Dictionary<string, object> { { "message", myModel.Message } });
-                    }
-                    request.Ok();
-                    break;
-
-                default:
-                    request.MethodNotFound();
-                    break;
+                // Update the model
+                myModel.Message = modelParams.Message;
+                // Send a change event with updated fields
+                request.ChangeEvent(new Dictionary<string, object> { { "message", myModel.Message } });
             }
+            request.Ok();
         }
     }
 }

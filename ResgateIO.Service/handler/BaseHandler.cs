@@ -7,10 +7,50 @@ namespace ResgateIO.Service
     /// <summary>
     /// Provides a base class for resource handler classes.
     /// </summary>
+    /// <remarks>
+    /// The BaseHandler constructor will check if any of its IResourceHandler methods are overridden,
+    /// and enable each corresponding bit flag in EnabledHandlers.
+    /// Additionally, it will search for any public instance method in the derived class that matches
+    /// the signature of a Call or Auth handler. Matching methods will be invoked on call and auth
+    /// requests if the name of the class method, with first letter lowercase, matches the method
+    /// of the call or auth request.
+    /// A different method name can set using the CallMethod and AuthMethod attributes.
+    /// If any matching call or auth methods are found, each corresponding bit flag in EnabledHandlers
+    /// will be set.
+    /// </remarks>
+    /// <example> 
+    /// This sample shows how to define call and auth methods.
+    /// <code>
+    /// class TestHandler : BaseHandler
+    /// {
+    ///     // Will be called on call requests for method "foo".
+    ///     public void Foo(ICallRequest request)
+    ///     {
+    ///         request.Ok();
+    ///     }
+    ///     
+    ///     // Will be called on call requests for method "baz".
+    ///     [CallMethod("baz")]
+    ///     public void Bar(ICallRequest request)
+    ///     {
+    ///         request.Ok();
+    ///     }
+    ///     
+    ///     // Will be ignored and not called on auth requests.
+    ///     [AuthMethod(Ignore = true)]
+    ///     public void Baz(IAuthRequest request) { }
+    /// }
+    /// </code>
+    /// </example>
     public abstract class BaseHandler: IResourceHandler
     {
         private readonly ResourceType resourceType;
         private readonly HandlerTypes enabledHandlers;
+        private Dictionary<string, Action<ICallRequest>> callMethods;
+        private Dictionary<string, Action<IAuthRequest>> authMethods;
+
+        private const string callMethodName = "Call";
+        private const string authMethodName = "Auth";
 
         private class TupleList<T1, T2, T3> : List<Tuple<T1, T2, T3>>
         {
@@ -34,8 +74,9 @@ namespace ResgateIO.Service
         public BaseHandler(ResourceType type)
         {
             resourceType = type;
-            HandlerTypes enabled = HandlerTypes.None;
+            enabledHandlers = HandlerTypes.None;
 
+            // Find overridden IResourceHandler methods
             var handlers = new TupleList<string, Type[], HandlerTypes>
             {
                 { "Access", new Type[] { typeof(IAccessRequest) }, HandlerTypes.Access },
@@ -54,11 +95,19 @@ namespace ResgateIO.Service
             {
                 if (isMethodOverridden(tuple.Item1, tuple.Item2))
                 {
-                    enabled |= tuple.Item3;
+                    enabledHandlers |= tuple.Item3;
                 }
             }
 
-            enabledHandlers = enabled;
+            MethodInfo[] methods = this.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Public);
+            if (findCallMethods(methods))
+            {
+                enabledHandlers |= HandlerTypes.Call;
+            }
+            if (findAuthMethods(methods))
+            {
+                enabledHandlers |= HandlerTypes.Auth;
+            }
         }
 
         /// <summary>
@@ -72,7 +121,7 @@ namespace ResgateIO.Service
         public virtual HandlerTypes EnabledHandlers { get { return enabledHandlers; } }
 
         /// <summary>
-        /// Method called on a get request.
+        /// Get request handler doing nothing.
         /// </summary>
         /// <param name="request">Get request context.</param>
         public virtual void Get(IGetRequest request)
@@ -80,7 +129,7 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
-        /// Method called on an access request.
+        /// Access request handler doing nothing.
         /// </summary>
         /// <param name="request">Access request context.</param>
         public virtual void Access(IAccessRequest request)
@@ -88,23 +137,43 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
-        /// Method called on an auth request.
-        /// </summary>
-        /// <param name="request">Auth request context.</param>
-        public virtual void Auth(IAuthRequest request)
-        {
-        }
-
-        /// <summary>
-        /// Method called on a call request.
+        /// Call request handler.
+        /// It will invoke any call method matching that of the request,
+        /// or else respond with MethodNotFound.
         /// </summary>
         /// <param name="request">Call request context.</param>
         public virtual void Call(ICallRequest request)
         {
+            if (callMethods != null && callMethods.TryGetValue(request.Method, out Action<ICallRequest> h))
+            {
+                h(request);
+            }
+            else
+            {
+                request.MethodNotFound();
+            }
         }
 
         /// <summary>
-        /// Method called on a new call request.
+        /// Auth request handler.
+        /// It will invoke any auth method matching that of the request,
+        /// or else respond with MethodNotFound.
+        /// </summary>
+        /// <param name="request">Auth request context.</param>
+        public virtual void Auth(IAuthRequest request)
+        {
+            if (authMethods != null && authMethods.TryGetValue(request.Method, out Action<IAuthRequest> h))
+            {
+                h(request);
+            }
+            else
+            {
+                request.MethodNotFound();
+            }
+        }
+
+        /// <summary>
+        /// New call request handler doing nothing.
         /// </summary>
         /// <param name="request">New call request context.</param>
         public virtual void New(INewRequest request)
@@ -112,18 +181,18 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
-        /// Method called to apply a model change event.
+        /// Apply change event handler doing nothing.
         /// </summary>
         /// <param name="resource">Resource to apply the change to.</param>
         /// <param name="changes">Property values to apply to model.</param>
-        /// <returns>A dictionary with the values to apply to revert the changes.</returns>
+        /// <returns>A null dictionary.</returns>
         public virtual Dictionary<string, object> ApplyChange(IResourceContext resource, IDictionary<string, object> changes)
         {
             return null;
         }
         
         /// <summary>
-        /// Method called to apply a collection add event.
+        /// Apply change event handler doing nothing.
         /// </summary>
         /// <param name="resource">Resource to add the value to.</param>
         /// <param name="value">Value to add.</param>
@@ -133,27 +202,27 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
-        /// Method called to apply a collection remove event.
+        /// Apply remove event handler doing nothing.
         /// </summary>
         /// <param name="resource">Resource to remove the value from.</param>
         /// <param name="idx">Index position of the value to remove.</param>
-        /// <returns>The removed value.</returns>
+        /// <returns>A null object.</returns>
         public virtual object ApplyRemove(IResourceContext resource, int idx)
         {
             return null;
         }
 
         /// <summary>
-        /// Method called to apply a resource create event.
+        /// Apply create event handler doing nothing.
         /// </summary>
         /// <param name="resource">Resource to create.</param>
         /// <param name="data">The resource data object.</param>
         public virtual void ApplyCreate(IResourceContext resource, object data)
         {
         }
-        
+
         /// <summary>
-        /// Method called to apply a resource delete event.
+        /// Apply delete event handler doing nothing.
         /// </summary>
         /// <param name="resource">Resource to delete.</param>
         /// <returns>The deleted resource data object.</returns>
@@ -162,6 +231,41 @@ namespace ResgateIO.Service
             return null;
         }
 
+        private bool findCallMethods(MethodInfo[] methods)
+        {
+            foreach (MethodInfo method in methods)
+            {
+                CallMethod attr = method.GetCustomAttribute<CallMethod>();
+                if (isResourceMethod(method, typeof(ICallRequest), attr != null, callMethodName)
+                    && method.Name != callMethodName
+                    && (attr == null || !attr.Ignore))
+                {
+                    string methodName = getMethodName(method, attr?.MethodName);
+                    validateMethodName(callMethodName, callMethods != null && callMethods.ContainsKey(methodName), methodName);
+                    callMethods = callMethods ?? new Dictionary<string, Action<ICallRequest>>();
+                    callMethods.Add(methodName, (Action<ICallRequest>)method.CreateDelegate(typeof(Action<ICallRequest>), this));
+                }
+            }
+            return callMethods != null;
+        }
+
+        private bool findAuthMethods(MethodInfo[] methods)
+        {
+            foreach (MethodInfo method in methods)
+            {
+                AuthMethod attr = method.GetCustomAttribute<AuthMethod>();
+                if (isResourceMethod(method, typeof(IAuthRequest), attr != null, authMethodName)
+                    && method.Name != authMethodName
+                    && (attr == null || !attr.Ignore))
+                {
+                    string methodName = getMethodName(method, attr?.MethodName);
+                    validateMethodName(authMethodName, authMethods != null && authMethods.ContainsKey(methodName), methodName);
+                    authMethods = authMethods ?? new Dictionary<string, Action<IAuthRequest>>();
+                    authMethods.Add(methodName, (Action<IAuthRequest>)method.CreateDelegate(typeof(Action<IAuthRequest>), this));
+                }
+            }
+            return authMethods != null;
+        }
 
         private bool isMethodOverridden(string methodName, Type[] types)
         {
@@ -169,10 +273,40 @@ namespace ResgateIO.Service
             return m.GetBaseDefinition().DeclaringType != m.DeclaringType;
         }
 
-        private bool isPropertyOverridden(string propertyName)
+        private bool isResourceMethod(MethodInfo m, Type t, bool hasAttr, string reserved)
         {
-            MethodInfo m = this.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly).GetGetMethod(false);
-            return m.GetBaseDefinition().DeclaringType != m.DeclaringType;
+            ParameterInfo[] args = m.GetParameters();
+            bool isMatch = m.ReturnType == typeof(void)
+                && args.Length == 1
+                && args[0].ParameterType == t
+                && !args[0].IsOut;
+
+            if (hasAttr && !isMatch)
+            {
+                throw new InvalidOperationException(String.Format("Method {0} does not match signature required by {1}Method attribute.", m.Name, reserved));
+            }
+            if (hasAttr && m.Name == reserved)
+            {
+                throw new InvalidOperationException(String.Format("{0}Method attribute not allowed on {0} method.", reserved));
+            }
+            return isMatch;
+        }
+
+        private string getMethodName(MethodInfo m, string name)
+        {
+            return name ?? Char.ToLower(m.Name[0]) + m.Name.Substring(1);
+        }
+
+        private void validateMethodName(string reserved, bool redeclared, string name)
+        {
+            if (!ResService.IsValidPart(name))
+            {
+                throw new InvalidOperationException("Invalid method name: " + name);
+            }
+            if (redeclared)
+            {
+                throw new InvalidOperationException(String.Format("{0} resource method {1} declared multiple times.", reserved, name));
+            }
         }
     }
 }
