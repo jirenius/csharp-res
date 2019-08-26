@@ -365,7 +365,9 @@ namespace ResgateIO.Service
                 rname = rname.Substring(0, lastIdx);
             }
 
-            runWith(rname, () => processRequest(msg, rtype, rname, method));
+            Router.Match match = GetHandler(rname);
+
+            runWith(match == null ? rname : match.Group, () => processRequest(msg, rtype, rname, method, match));
         }
 
 private void runWith(string workId, Action callback)
@@ -545,9 +547,8 @@ private void runWith(string workId, Action callback)
             }
         }
         
-        private void processRequest(Msg msg, String rtype, String rname, String method)
+        private void processRequest(Msg msg, String rtype, String rname, String method, Router.Match match)
         {
-            Router.Match match = GetHandler(rname);
             Request req;
 
             // Check if there is no matching handler

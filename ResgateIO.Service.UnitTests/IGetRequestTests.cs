@@ -203,6 +203,29 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Fact]
+        public void GetRequest_MultipleRequestsSameGroup_RespondedInOrder()
+        {
+            const int requestCount = 50;
+            Service.AddHandler("model.a", "model", new DynamicHandler().SetGet(r => r.Error(Test.CustomError)));
+            Service.AddHandler("model.b", "model", new DynamicHandler().SetGet(r => r.Error(Test.CustomError)));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+
+            string[] inboxes = new string[requestCount * 2];
+            for (int i = 0; i < requestCount; i++)
+            {
+                inboxes[i * 2] = Conn.NATSRequest("get.test.model.a", Test.EmptyRequest);
+                inboxes[i * 2 + 1] = Conn.NATSRequest("get.test.model.b", Test.EmptyRequest);
+            }
+            for (int i = 0; i < requestCount * 2; i++)
+            {
+                Conn.GetMsg()
+                    .AssertSubject(inboxes[i])
+                    .AssertError(Test.CustomError);
+            }
+        }
+
+        [Fact]
         public void GetRequest_MultipleModelCalls_SendsSingleModelResponse()
         {
             Service.AddHandler("model", new DynamicHandler().SetGet(r =>

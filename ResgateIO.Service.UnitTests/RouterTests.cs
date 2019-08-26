@@ -1,4 +1,6 @@
+using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
 using Xunit;
 
 namespace ResgateIO.Service.UnitTests
@@ -53,6 +55,36 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Theory]
+        [InlineData("", "test")]
+        [InlineData("test", "test")]
+        [InlineData("test", "test.$foo")]
+        [InlineData("test.${foo}", "test.$foo")]
+        [InlineData("${foo}", "test.$foo")]
+        [InlineData("${foo}.test", "test.$foo")]
+        [InlineData("${foo}${bar}", "test.$foo.$bar")]
+        [InlineData("${bar}${foo}", "test.$foo.$bar")]
+        [InlineData("${foo}.${bar}", "test.$foo.$bar.>")]
+        [InlineData("${foo}${foo}", "test.$foo.$bar")]
+        public void AddHandler_ValidGroup_NoException(string group, string pattern)
+        {
+            Router r = new Router();
+            r.AddHandler(pattern, group, new DynamicHandler());
+        }
+
+        [Theory]
+        [InlineData("$", "test.$foo")]
+        [InlineData("${", "test.$foo")]
+        [InlineData("${foo", "test.$foo")]
+        [InlineData("${}", "test.$foo")]
+        [InlineData("${$foo}", "test.$foo")]
+        [InlineData("${bar}", "test.$foo")]
+        public void AddHandler_InvalidValidGrouph_ThrowsException(string group, string pattern)
+        {
+            Router r = new Router();
+            Assert.Throws<ArgumentNullException>(() => r.AddHandler(pattern, group, null));
+        }
+
+        [Theory]
         [InlineData("test")]
         [InlineData("test.foo")]
         [InlineData("test.foo.bar")]
@@ -85,6 +117,7 @@ namespace ResgateIO.Service.UnitTests
             r.AddHandler(path, new DynamicHandler());
             Router.Match m = r.GetHandler(resourceName);
             Assert.NotNull(m);
+            Assert.Equal(resourceName, m.Group);
         }
 
         [Theory]
@@ -106,6 +139,30 @@ namespace ResgateIO.Service.UnitTests
             r.AddHandler(path, new DynamicHandler());
             Router.Match m = r.GetHandler(resourceName);
             Assert.Null(m);
+        }
+
+        [Theory]
+        [InlineData("", "model", "model", "foo", "foo")]
+        [InlineData("", "model.foo", "model.foo", "bar", "bar")]
+        [InlineData("", "model.$id", "model.42", "foo.bar", "foo.bar")]
+        [InlineData("", "model.$id", "model.42", "${id}", "42")]
+        [InlineData("", "model.$id", "model.42", "${id}foo", "42foo")]
+        [InlineData("", "model.$id", "model.42", "foo${id}", "foo42")]
+        [InlineData("", "model.$id", "model.42", "foo${id}bar", "foo42bar")]
+        [InlineData("", "model.$id.$type", "model.42.foo", "foo.bar", "foo.bar")]
+        [InlineData("", "model.$id.$type", "model.42.foo", "${id}", "42")]
+        [InlineData("", "model.$id.$type", "model.42.foo", "${type}", "foo")]
+        [InlineData("", "model.$id.$type", "model.42.foo", "${id}${type}", "42foo")]
+        [InlineData("", "model.$id.$type", "model.42.foo", "${id}.${type}", "42.foo")]
+        [InlineData("", "model.$id.$type", "model.42.foo", "${type}${id}", "foo42")]
+        [InlineData("", "model.$id.$type", "model.42.foo", "bar.${type}.${id}.baz", "bar.foo.42.baz")]
+        public void GetHandler_MatchingPathWithGroup_ReturnsHandler(string pattern, string path, string resourceName, string group, string expectedGroup)
+        {
+            Router r = new Router(pattern);
+            r.AddHandler(path, group, new DynamicHandler());
+            Router.Match m = r.GetHandler(resourceName);
+            Assert.NotNull(m);
+            Assert.Equal(expectedGroup, m.Group);
         }
 
         [Theory]
@@ -255,6 +312,56 @@ namespace ResgateIO.Service.UnitTests
             r.AddHandler(pattern, new DynamicHandler());
             Router sub = new Router();
             Assert.Throws<InvalidOperationException>(() => r.Mount(pattern, sub));
+        }
+
+        public static IEnumerable<object[]> GetMountedSubrouterTestData()
+        {
+            yield return new object[] { "", "model", "sub.model", "{}" };
+            yield return new object[] { "", "model.foo", "sub.model.foo", "{}" };
+            yield return new object[] { "", "model.$id", "sub.model.42", "{\"id\":\"42\"}" };
+            yield return new object[] { "", "model.$id.foo", "sub.model.42.foo", "{\"id\":\"42\"}" };
+            yield return new object[] { "", "model.>", "sub.model.foo", "{}" };
+            yield return new object[] { "", "model.>", "sub.model.foo.bar", "{}" };
+            yield return new object[] { "", "model.$id.>", "sub.model.42.foo", "{\"id\":\"42\"}" };
+            yield return new object[] { "", "model.$id.>", "sub.model.42.foo.bar", "{\"id\":\"42\"}" };
+            yield return new object[] { "test", "model", "test.sub.model", "{}" };
+            yield return new object[] { "test", "model.foo", "test.sub.model.foo", "{}" };
+            yield return new object[] { "test", "model.$id", "test.sub.model.42", "{\"id\":\"42\"}" };
+            yield return new object[] { "test", "model.$id.foo", "test.sub.model.42.foo", "{\"id\":\"42\"}" };
+            yield return new object[] { "test", "model.>", "test.sub.model.foo", "{}" };
+            yield return new object[] { "test", "model.>", "test.sub.model.foo.bar", "{}" };
+            yield return new object[] { "test", "model.$id.>", "test.sub.model.42.foo", "{\"id\":\"42\"}" };
+            yield return new object[] { "test", "model.$id.>", "test.sub.model.42.foo.bar", "{\"id\":\"42\"}" };
+        }
+
+        [Theory]
+        [MemberData(nameof(GetMountedSubrouterTestData))]
+        public void GetHandler_FromMountedSubRouter_ReturnsHandler(string rootPattern, string handlerPattern, string resourceName, string expectedParams)
+        {
+            var handler = new DynamicHandler();
+            Router r = rootPattern == null ? new Router() : new Router(rootPattern);
+            Router sub = new Router();
+            sub.AddHandler(handlerPattern, handler);
+            r.Mount("sub", sub);
+            Router.Match m = r.GetHandler(resourceName);
+            Assert.NotNull(m);
+            Assert.Equal(handler, m.Handler);
+            Test.AssertJsonEqual(JObject.Parse(expectedParams), m.Params);
+        }
+
+        [Theory]
+        [MemberData(nameof(GetMountedSubrouterTestData))]
+        public void GetHandler_HandlerAddedAfterToMountedSubRouter_ReturnsHandler(string rootPattern, string handlerPattern, string resourceName, string expectedParams)
+        {
+            var handler = new DynamicHandler();
+            Router r = rootPattern == null ? new Router() : new Router(rootPattern);
+            Router sub = new Router();
+            r.Mount("sub", sub);
+            r.AddHandler("sub." + handlerPattern, handler);
+            Router.Match m = r.GetHandler(resourceName);
+            Assert.NotNull(m);
+            Assert.Equal(handler, m.Handler);
+            Test.AssertJsonEqual(JObject.Parse(expectedParams), m.Params);
         }
     }
 }
