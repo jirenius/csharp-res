@@ -11,7 +11,7 @@ namespace ResgateIO.Service
         private QueryCallback callback;
         private IAsyncSubscription subscription;
 
-        private ILogger Log { get { return Resource.Service.Log; } }
+        private ResService Service { get { return Resource.Service; } }
 
         public QueryEvent(IResourceContext resource, QueryCallback callback)
         {
@@ -30,7 +30,7 @@ namespace ResgateIO.Service
             }
             catch (Exception ex)
             {
-                Log.Error(String.Format("Failed to subscribe to query event for {0}: {1}", Resource.ResourceName, ex.Message));
+                Service.OnError("Failed to subscribe to query event for {0}: {1}", Resource.ResourceName, ex.Message);
                 closeCallback();
                 return false;
             }
@@ -61,7 +61,7 @@ namespace ResgateIO.Service
             }
             catch (Exception ex)
             {
-                Log.Error(String.Format("Failed calling query request callback with null for {0}: {1}", Resource.ResourceName, ex.Message));
+                Service.OnError("Failed calling query request callback with null for {0}: {1}", Resource.ResourceName, ex.Message);
             }
             callback = null;
         }
@@ -71,7 +71,7 @@ namespace ResgateIO.Service
             Msg msg = e.Message;
             String subj = msg.Subject;
 
-            Log.Trace(String.Format("Q=> {0}: {1}", subj, Encoding.UTF8.GetString(msg.Data)));
+            Service.Log.Trace(String.Format("Q=> {0}: {1}", subj, Encoding.UTF8.GetString(msg.Data)));
 
             Resource.Service.With(Resource, () =>
             {
@@ -86,7 +86,7 @@ namespace ResgateIO.Service
                     QueryRequestDto reqInput = JsonUtils.Deserialize<QueryRequestDto>(msg.Data);
                     if (String.IsNullOrEmpty(reqInput.Query))
                     {
-                        Log.Error(String.Format("Missing query in query request {0}", qr.ResourceName));
+                        Service.OnError("Missing query in query request {0}", qr.ResourceName);
                         qr.RawResponse(ResService.ResponseMissingQuery);
                         return;
                     }
@@ -94,7 +94,7 @@ namespace ResgateIO.Service
                 }
                 catch (Exception ex)
                 {
-                    Log.Error(String.Format("Error deserializing query request {0}: {1}", qr.ResourceName, ex.Message));
+                    Service.OnError("Error deserializing query request {0}: {1}", qr.ResourceName, ex.Message);
                     qr.RawResponse(ResService.ResponseBadRequest);
                     return;
                 }
@@ -114,7 +114,7 @@ namespace ResgateIO.Service
                         return;
                     }
 
-                    Log.Error(String.Format("Error handling query request {0}: {1} - {2}", qr.ResourceName, ex.Code, ex.Message));
+                    Service.OnError("Error handling query request {0}: {1} - {2}", qr.ResourceName, ex.Code, ex.Message);
                 }
                 catch (Exception ex)
                 {
@@ -124,7 +124,7 @@ namespace ResgateIO.Service
                     }
 
                     // Write to log as only ResExceptions are considered valid behaviour.
-                    Log.Error(String.Format("Error handling query request {0}: {1}", qr.ResourceName, ex.Message));
+                    Service.OnError("Error handling query request {0}: {1}", qr.ResourceName, ex.Message);
                     return;
                 }
                 if (qr.Replied)

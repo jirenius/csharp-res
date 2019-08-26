@@ -164,7 +164,7 @@ namespace ResgateIO.Service
                 }
                 catch (Exception ex)
                 {
-                    Log.Error(String.Format("Error serializing success response: {0}", ex.Message));
+                    Service.OnError("Error serializing success response: {0}", ex.Message);
                     Error(new ResError(ex));
                 }
             }
@@ -196,7 +196,7 @@ namespace ResgateIO.Service
             }
             catch(Exception ex)
             {
-                Log.Error(String.Format("Error serializing error response: {0}", ex.Message));
+                Service.OnError("Error serializing error response: {0}", ex.Message);
                 RawResponse(ResService.ResponseInternalError);
             }
         }
@@ -431,7 +431,7 @@ namespace ResgateIO.Service
                         break;
 
                     default:
-                        Log.Error(String.Format("Unknown request type: {0}", msg.Subject));
+                        Service.OnError("Unknown request type: {0}", msg.Subject);
                         return;
                 }
             }
@@ -446,7 +446,7 @@ namespace ResgateIO.Service
                     return;
                 }
 
-                Log.Error(String.Format("Error handling request {0}: {1} - {2}", msg.Subject, ex.Code, ex.Message));
+                Service.OnError("Error handling request {0}: {1} - {2}", msg.Subject, ex.Code, ex.Message);
             }
             catch(Exception ex)
             {
@@ -456,7 +456,7 @@ namespace ResgateIO.Service
                 }
 
                 // Write to log as only ResExceptions are considered valid behaviour.
-                Log.Error(String.Format("Error handling request {0}: {1}", msg.Subject, ex.Message));
+                Service.OnError("Error handling request {0}: {1}", msg.Subject, ex.Message);
             }
         }
 
