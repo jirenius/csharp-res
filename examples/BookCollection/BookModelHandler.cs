@@ -24,38 +24,29 @@ namespace BookCollection
             }
         }
 
-        public override void Call(ICallRequest request)
+        [CallMethod("set")]
+        public void Set(ICallRequest request)
         {
-            switch (request.Method)
+            Book bookParams = request.ParseParams<Book>();
+            var changed = new Dictionary<string, object>(2);
+
+            // Check if the title property was provided
+            if (bookParams.Title != null)
             {
-                // Handle setting of the book properties
-                case "set":
-                    Book bookParams = request.ParseParams<Book>();
-                    var changed = new Dictionary<string, object>(2);
-
-                    // Check if the title property was provided
-                    if (bookParams.Title != null)
-                    {
-                        changed["title"] = bookParams.Title.Trim();
-                    }
-
-                    // Check if the author property was provided
-                    if (bookParams.Author != null)
-                    {
-                        changed["author"] = bookParams.Author.Trim();
-                    }
-
-                    // Send a change event with updated fields
-                    request.ChangeEvent(changed);
-
-                    // Send success response
-                    request.Ok();
-                    break;
-
-                default:
-                    request.MethodNotFound();
-                    break;
+                changed["title"] = bookParams.Title.Trim();
             }
+
+            // Check if the author property was provided
+            if (bookParams.Author != null)
+            {
+                changed["author"] = bookParams.Author.Trim();
+            }
+
+            // Send a change event with updated fields
+            request.ChangeEvent(changed);
+
+            // Send success response
+            request.Ok();
         }
 
         public override Dictionary<string, object> ApplyChange(IResourceContext resource, IDictionary<string, object> changes)

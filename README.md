@@ -6,7 +6,7 @@
 
 <p align="center">
 <a href="http://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
-<a href="https://www.nuget.org/packages/ResgateIO.Service"><img src="https://img.shields.io/nuget/v/ResgateIO.Service.svg?maxAge=2592000" alt="NuGet"></a>
+<a href="https://www.nuget.org/packages/ResgateIO.Service"><img src="https://img.shields.io/nuget/v/ResgateIO.Service.svg" alt="NuGet"></a>
 <a href="https://travis-ci.com/jirenius/csharp-res"><img src="https://travis-ci.com/jirenius/csharp-res.svg?branch=master" alt="Build Status"></a>
 </p>
 
