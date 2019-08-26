@@ -19,10 +19,33 @@ namespace ResgateIO.Service
         public IConnection Connection { get; private set; }
 
         // Events
+
+        /// <summary>
+        /// Event triggered when the service has started after sending the initial system reset event.
+        /// </summary>
         public event EventHandler<ServeEventArgs> Serving;
+
+        /// <summary>
+        /// Event triggered when the service has disconnected from NATS server.
+        /// </summary>
         public event EventHandler<ServeEventArgs> Disconnected;
+
+        /// <summary>
+        /// Event triggered when the service has reconnected to NATS server and sent a system reset event.
+        /// </summary>
         public event EventHandler<ServeEventArgs> Reconnected;
+
+        /// <summary>
+        /// Event triggered on errors within the service, or incoming messages not complying with the RES protocol.
+        /// </summary>
+        /// <remarks>
+        /// The same error message will also be logged as Error.
+        /// </remarks>
         public event EventHandler<ErrorEventArgs> Error;
+
+        /// <summary>
+        /// Event triggered when the service has stopped.
+        /// </summary>
         public event EventHandler<ServeEventArgs> Stopped;
 
         // Enums
