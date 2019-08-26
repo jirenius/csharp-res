@@ -47,7 +47,7 @@ namespace ResgateIO.Service
             }
             catch (Exception ex)
             {
-                Log.Error(String.Format("Error serializing error query response: {0}", ex.Message));
+                Service.OnError("Error serializing error query response: {0}", ex.Message);
                 RawResponse(ResService.ResponseInternalError);
             }
         }
@@ -153,7 +153,7 @@ namespace ResgateIO.Service
             }
             catch(Exception ex)
             {
-                Log.Error(String.Format("Error sending query reply {0}: {1}", ResourceName, ex.Message));
+                Service.OnError("Error sending query reply {0}: {1}", ResourceName, ex.Message);
             }
         }
     }

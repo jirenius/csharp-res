@@ -11,16 +11,19 @@ namespace ResgateIO.Service
 {
     public class ResService: Router
     {
-        private const int shutdownTimeout = 5000; // milliseconds
-
         // Public read-only values
         public static readonly JRaw DeleteAction = new JRaw("{\"action\":\"delete\"}");
         public static readonly TimeSpan DefaultQueryDuration = new TimeSpan(0, 0, 3);
 
-        internal static readonly byte[] EmptyData = new byte[] { };
-
         // Properties
         public IConnection Connection { get; private set; }
+
+        // Events
+        public event EventHandler<ServeEventArgs> Serving;
+        public event EventHandler<ServeEventArgs> Disconnected;
+        public event EventHandler<ServeEventArgs> Reconnected;
+        public event EventHandler<ErrorEventArgs> Error;
+        public event EventHandler<ServeEventArgs> Stopped;
 
         // Enums
         private enum State { Stopped, Starting, Started, Stopping };
@@ -37,6 +40,12 @@ namespace ResgateIO.Service
 
         // Internal logger
         internal ILogger Log { get; private set; }
+        
+        // Constants and readonly
+        private const int shutdownTimeout = 5000; // milliseconds
+        internal static readonly byte[] EmptyData = new byte[] { };
+        internal static readonly ServeEventArgs EmptyServeEventArgs = new ServeEventArgs();
+
 
         // Predefined raw data responses
         internal static readonly byte[] ResponseAccessDenied = Encoding.UTF8.GetBytes("{\"result\":{\"get\":false}}");
@@ -180,9 +189,9 @@ namespace ResgateIO.Service
             opts.Url = url;
             opts.AllowReconnect = true;
             opts.MaxReconnect = Options.ReconnectForever;
-            opts.ReconnectedEventHandler += handleReconnect;
-            opts.DisconnectedEventHandler += handleDisconnect;
-            opts.ClosedEventHandler += handleClosed;
+            opts.ReconnectedEventHandler += onReconnect;
+            opts.DisconnectedEventHandler += onDisconnect;
+            opts.ClosedEventHandler += onClosed;
             if (Pattern != "")
             {
                 opts.Name = Pattern;
@@ -212,7 +221,7 @@ namespace ResgateIO.Service
             activeWorkers.Signal();
             if (!activeWorkers.Wait(shutdownTimeout))
             {
-                Log.Error(String.Format("Timed out waiting for {0} worker thread(s) to finish.", activeWorkers.CurrentCount));
+                OnError("Timed out waiting for {0} worker thread(s) to finish.", activeWorkers.CurrentCount);
             }
 
             activeWorkers.Dispose();
@@ -221,6 +230,7 @@ namespace ResgateIO.Service
 
             state = State.Stopped;
             Log.Info("Stopped");
+            Stopped?.Invoke(this, EmptyServeEventArgs);
         }
 
         /// <summary>
@@ -297,10 +307,11 @@ namespace ResgateIO.Service
                 // Always start with a reset
                 ResetAll();
                 Log.Info("Listening for requests");
+                Serving?.Invoke(this, EmptyServeEventArgs);
             }
             catch (Exception ex)
             {
-                Log.Error(String.Format("Failed to subscribe: {0}", ex.Message));
+                OnError("Failed to subscribe: {0}", ex.Message);
                 close();
             }
         }
@@ -337,7 +348,7 @@ namespace ResgateIO.Service
             // Assert there is a reply subject
             if (String.IsNullOrEmpty(msg.Reply))
             {
-                Log.Error(String.Format("Missing reply subject on request: {0}", subj));
+                OnError("Missing reply subject on request: {0}", subj);
                 return;
             }
 
@@ -345,7 +356,7 @@ namespace ResgateIO.Service
             Int32 idx = subj.IndexOf('.');
             if (idx < 0) {
                 // Shouldn't be possible unless NATS is really acting up
-                Log.Error(String.Format("Invalid request subject: {0}", subj));
+                OnError("Invalid request subject: {0}", subj);
                 return;
             }
             String method = null;
@@ -358,7 +369,7 @@ namespace ResgateIO.Service
                 if (idx < 0)
                 {
                     // No method? Resgate must be acting up
-                    Log.Error(String.Format("Invalid request subject: {0}", subj));
+                    OnError("Invalid request subject: {0}", subj);
                     return;
                 }
                 method = rname.Substring(lastIdx + 1);
@@ -451,7 +462,7 @@ private void runWith(string workId, Action callback)
             }
             catch (Exception ex)
             {
-                Log.Error(String.Format("Error sending message {0}: {1}", subject, ex.Message));
+                OnError("Error sending message {0}: {1}", subject, ex.Message);
             }
         }
 
@@ -480,7 +491,7 @@ private void runWith(string workId, Action callback)
             }
             catch (Exception ex)
             {
-                Log.Error(String.Format("Error serializing event payload for {0}: {1}", subject, ex.Message));
+                OnError("Error serializing event payload for {0}: {1}", subject, ex.Message);
             }
         }
 
@@ -510,6 +521,13 @@ private void runWith(string workId, Action callback)
                 }
             }
             return true;
+        }
+
+        internal void OnError(string format, params object[] args)
+        {
+            var msg = String.Format(format, args);
+            Log.Error(msg);
+            Error?.Invoke(this, new ErrorEventArgs(msg));
         }
 
         private void onQueryEventExpire(QueryEvent queryEvent)
@@ -586,7 +604,7 @@ private void runWith(string workId, Action callback)
             }
             catch(Exception ex)
             {
-                Log.Error(String.Format("Error deserializing incoming request: {0}", msg.Data == null ? "<null>" : Encoding.UTF8.GetString(msg.Data)));
+                OnError("Error deserializing incoming request: {0}", msg.Data == null ? "<null>" : Encoding.UTF8.GetString(msg.Data));
                 req = new Request(this, msg);
                 req.Error(new ResError(ex));
                 return;
@@ -595,18 +613,20 @@ private void runWith(string workId, Action callback)
             req.ExecuteHandler();
         }
 
-        private void handleReconnect(object sender, ConnEventArgs args)
+        private void onReconnect(object sender, ConnEventArgs args)
         {
             Log.Info("Reconnected to NATS. Sending reset event.");
             ResetAll();
+            Reconnected?.Invoke(this, EmptyServeEventArgs);
         }
 
-        private void handleDisconnect(object sender, ConnEventArgs args)
+        private void onDisconnect(object sender, ConnEventArgs args)
         {
             Log.Info("Lost connection to NATS.");
+            Disconnected?.Invoke(this, EmptyServeEventArgs);
         }
 
-        private void handleClosed(object sender, ConnEventArgs args)
+        private void onClosed(object sender, ConnEventArgs args)
         {
             Shutdown();
         }
