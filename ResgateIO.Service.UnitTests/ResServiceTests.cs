@@ -127,5 +127,37 @@ namespace ResgateIO.Service.UnitTests
                 Service.With("test.model", r => { });
             });
         }
+
+        [Fact]
+        public void Serving_OnServe_EventHandlerCalled()
+        {
+            int called = 0;
+            Service.Serving += (sender, e) => called++;
+            Service.Serve(Conn);
+            Assert.Equal(1, called);
+        }
+
+        [Fact]
+        public void Stopped_OnStopped_EventHandlerCalled()
+        {
+            int called = 0;
+            Service.Stopped += (sender, e) => called++;
+            Service.Serve(Conn);
+            Assert.Equal(0, called);
+            Service.Shutdown();
+            Assert.Equal(1, called);
+        }
+
+        [Fact]
+        public void Stopped_OnError_EventHandlerCalled()
+        {
+            int called = 0;
+            Service.Error += (sender, e) => called++;
+            Service.AddHandler("model", new DynamicHandler().SetModelGet(r => r.Model(Test.Model)));
+            Conn.FailNextSubscription();
+            Assert.Equal(0, called);
+            Service.Serve(Conn);
+            Assert.Equal(1, called);
+        }
     }
 }

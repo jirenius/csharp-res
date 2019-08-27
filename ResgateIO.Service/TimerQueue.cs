@@ -243,6 +243,8 @@ namespace ResgateIO.Service
         private void onTimeout(Object stateInfo)
         {
             T item;
+            uint c;
+            bool restart;
             lock (locker)
             {
                 // Assert it is the next item in order.
@@ -258,20 +260,24 @@ namespace ResgateIO.Service
 
                 disposeTimer();
 
-                if (first != null)
+                restart = first != null;
+                c = counter;
+            }
+            callback(item);
+            lock (locker)
+            {
+                if (restart && c == counter)
                 {
                     startTimer();
                 }
             }
-
-            callback(item);
         }
 
         private void disposeTimer()
         {
+            counter++;
             if (timer != null)
             {
-                counter++;
                 timer.Dispose();
                 timer = null;
             }

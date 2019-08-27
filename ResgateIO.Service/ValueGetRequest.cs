@@ -97,7 +97,7 @@ namespace ResgateIO.Service
             {
                 if (replied)
                 {
-                    Log.Error(String.Format("Error in value get request for {0}: {1} - {2}", ResourceName, ex.Code, ex.Message));
+                    Service.OnError("Error in value get request for {0}: {1} - {2}", ResourceName, ex.Code, ex.Message);
                 }
                 else
                 {
@@ -111,7 +111,7 @@ namespace ResgateIO.Service
                     ErrorResult = new ResError(ex);
                 }
                 // Log error as only ResExceptions are considered valid behaviour
-                Log.Error(String.Format("Error in value get request for {0}: {1}", ResourceName, ex.Message));
+                Service.OnError("Error in value get request for {0}: {1}", ResourceName, ex.Message);
             }
         }
 
