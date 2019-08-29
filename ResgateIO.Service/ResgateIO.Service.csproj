@@ -1,14 +1,25 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>netstandard1.6;net45</TargetFrameworks>
+    <PackageId>ResgateIO.Service</PackageId>
     <Version>0.3.0</Version>
+    <Title>RES Service .NET library</Title>
     <Authors>Samuel Jirenius</Authors>
+    <Owners>Samuel Jirenius</Owners>
     <Company>Resgate.io</Company>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://resgate.io/</PackageProjectUrl>
     <Description>RES service library for building realtime APIs with synchronized clients using Resgate.</Description>
-    <RepositoryType></RepositoryType>
+    <PackageReleaseNotes>https://github.com/jirenius/csharp-res/releases/tag/v0.3.0</PackageReleaseNotes>
+    <Copyright>Copyright 2019 Samuel Jirenius</Copyright>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/jirenius/csharp-res</RepositoryUrl>
+    <PackageIconUrl>https://resgate.io/img/resgate-icon-272x272.png</PackageIconUrl>
+    <PackageTags>Resgate;API;Realtime;REST;NATS</PackageTags>
+    <IncludeSymbols>true</IncludeSymbols>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-    <Product>RES Service .NET library</Product>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
