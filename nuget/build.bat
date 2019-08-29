@@ -5,25 +5,21 @@ REM This builds the ResgateIO Service NuGet package.
 
 pushd ..\ResgateIO.Service
 
-nuget >nul 2>&1
+dotnet >nul 2>&1
 if errorlevel 9009 if not errorlevel 9010 (
-	echo 'nuget.exe' is not in the path.
+	echo 'dotnet.exe' is not in the path.
 	goto End
 )
 
-if NOT EXIST bin\Release\netstandard2.0 (
-	echo Cannot find .NET core build.
-	goto End
-)
+dotnet pack ResgateIO.Service.csproj --configuration Release --include-symbols
 
-dir bin\Release\netstandard2.0
-
-nuget pack ResgateIO.Service.csproj -Symbols -SymbolPackageFormat snupkg -Properties Configuration=Release
-
-move *.nupkg ..\nuget 1>NUL
-move *.snupkg ..\nuget 1>NUL
-
+move bin\Release\*.nupkg ..\nuget 1>NUL
+move bin\Release\*.snupkg ..\nuget 1>NUL
 
 :End
 
 popd
+
+echo.
+echo Built with .NET Core SDK version:
+dotnet --version
