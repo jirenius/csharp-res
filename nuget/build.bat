@@ -19,3 +19,7 @@ move bin\Release\*.snupkg ..\nuget 1>NUL
 :End
 
 popd
+
+echo.
+echo Built with .NET Core SDK version:
+dotnet --version
