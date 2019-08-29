@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using NATS.Client;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -417,7 +417,7 @@ private void runWith(string workId, Action callback)
             work = new Work(workId, callback);
             rwork.Add(workId, work);
             activeWorkers.AddCount();
-            ThreadPool.QueueUserWorkItem(new WaitCallback(processWork), work);
+            Task.Run(() => processWork(work));
         }
     }
 }
@@ -558,9 +558,8 @@ private void runWith(string workId, Action callback)
             queryEvent.Stop();
         }
 
-        private void processWork(Object obj)
+        private void processWork(Work work)
         {
-            Work work = (Work)obj;
             Action task;
 
             try

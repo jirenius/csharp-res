@@ -99,7 +99,7 @@ namespace ResgateIO.Service
                 }
             }
 
-            MethodInfo[] methods = this.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Public);
+            MethodInfo[] methods = this.GetType().GetTypeInfo().GetMethods(BindingFlags.Instance | BindingFlags.Public);
             if (findCallMethods(methods))
             {
                 enabledHandlers |= HandlerTypes.Call;
@@ -269,7 +269,7 @@ namespace ResgateIO.Service
 
         private bool isMethodOverridden(string methodName, Type[] types)
         {
-            MethodInfo m = this.GetType().GetMethod(methodName, types);
+            MethodInfo m = this.GetType().GetTypeInfo().GetMethod(methodName, types);
             return m.GetBaseDefinition().DeclaringType != m.DeclaringType;
         }
 
