@@ -49,6 +49,7 @@ namespace ResgateIO.Service.UnitTests
                 Assert.Equal(Service, r.Service);
                 Assert.Equal(resourceName, r.ResourceName);
                 Assert.Equal(query == null ? "" : query, r.Query);
+                Assert.Equal(resourceName, r.Group);
                 Assert.Equal(handler, r.Handler);
                 Assert.NotNull(r.PathParams);
                 Test.AssertJsonEqual(JToken.Parse(expectedPathParams), r.PathParams);
@@ -80,6 +81,57 @@ namespace ResgateIO.Service.UnitTests
                 Assert.Equal(handler, r.Handler);
                 Assert.NotNull(r.PathParams);
                 Test.AssertJsonEqual(JToken.Parse(expectedPathParams), r.PathParams);
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+        }
+
+        public static IEnumerable<object[]> GetPropertyGroupTestData()
+        {
+            yield return new object[] { "model", "test.model", "foo", "foo" };
+            yield return new object[] { "model.foo", "test.model.foo", "bar", "bar" };
+            yield return new object[] { "model.$id", "test.model.42", "foo.bar", "foo.bar" };
+            yield return new object[] { "model.$id", "test.model.42", "${id}", "42" };
+            yield return new object[] { "model.$id", "test.model.42", "${id}foo", "42foo" };
+            yield return new object[] { "model.$id", "test.model.42", "foo${id}", "foo42" };
+            yield return new object[] { "model.$id", "test.model.42", "foo${id}bar", "foo42bar" };
+            yield return new object[] { "model.$id.$type", "test.model.42.foo", "foo.bar", "foo.bar" };
+            yield return new object[] { "model.$id.$type", "test.model.42.foo", "${id}", "42" };
+            yield return new object[] { "model.$id.$type", "test.model.42.foo", "${type}", "foo" };
+            yield return new object[] { "model.$id.$type", "test.model.42.foo", "${id}${type}", "42foo" };
+            yield return new object[] { "model.$id.$type", "test.model.42.foo", "${id}.${type}", "42.foo" };
+            yield return new object[] { "model.$id.$type", "test.model.42.foo", "${type}${id}", "foo42" };
+            yield return new object[] { "model.$id.$type", "test.model.42.foo", "bar.${type}.${id}.baz", "bar.foo.42.baz" };
+        }
+
+        [Theory]
+        [MemberData(nameof(GetPropertyGroupTestData))]
+        public void PropertyGroup_WithValidGroup_ReturnsCorrectValue(string pattern, string resourceName, string group, string expectedGroup)
+        {
+            Service.AddHandler(pattern, group, new DynamicHandler().SetCall(r =>
+            {
+                Assert.Equal(expectedGroup, r.Group);
+                r.Ok();
+            }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call." + resourceName + ".method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(null);
+        }
+
+        [Theory]
+        [MemberData(nameof(GetPropertyGroupTestData))]
+        public void PropertyGroup_WithValidGroupUsingWith_ReturnsCorrectValue(string pattern, string resourceName, string group, string expectedGroup)
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler(pattern, group, new DynamicHandler().SetCall(r => r.Ok()));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            Service.With(resourceName, r =>
+            {
+                Assert.Equal(expectedGroup, r.Group);
                 ev.Set();
             });
             Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");

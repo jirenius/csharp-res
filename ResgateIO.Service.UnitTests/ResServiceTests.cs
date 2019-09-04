@@ -127,6 +127,56 @@ namespace ResgateIO.Service.UnitTests
                 Service.With("test.model", r => { });
             });
         }
+        
+        [Fact]
+        public void With_UsingResource_ThrowsException()
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler("model", new DynamicHandler().SetGet(r => r.NotFound()));
+            Service.Serve(Conn);
+            var resource = Service.Resource("test.model");
+            Service.With(resource, () => ev.Set());
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+        }
+
+        [Fact]
+        public void With_UsingResourceWithCallbackResourceParam_ThrowsException()
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler("model", new DynamicHandler().SetGet(r => r.NotFound()));
+            Service.Serve(Conn);
+            var resource = Service.Resource("test.model");
+            Service.With(resource, r =>
+            {
+                Assert.Equal(resource, r);
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+        }
+
+        [Fact]
+        public void WithGroup_WithMatchingResource_ThrowsException()
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler("model", "mygroup", new DynamicHandler().SetGet(r => r.NotFound()));
+            Service.Serve(Conn);
+            Service.WithGroup("mygroup", () => ev.Set());
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+        }
+
+        [Fact]
+        public void WithGroup_WithMatchingResourceWithCallbackServiceParam_ThrowsException()
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler("model", "mygroup", new DynamicHandler().SetGet(r => r.NotFound()));
+            Service.Serve(Conn);
+            Service.WithGroup("mygroup", s =>
+            {
+                Assert.Equal(Service, s);
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+        }
 
         [Fact]
         public void Serving_OnServe_EventHandlerCalled()

@@ -156,10 +156,64 @@ namespace ResgateIO.Service.UnitTests
         [InlineData("", "model.$id.$type", "model.42.foo", "${id}.${type}", "42.foo")]
         [InlineData("", "model.$id.$type", "model.42.foo", "${type}${id}", "foo42")]
         [InlineData("", "model.$id.$type", "model.42.foo", "bar.${type}.${id}.baz", "bar.foo.42.baz")]
+        [InlineData("test", "model", "test.model", "foo", "foo")]
+        [InlineData("test", "model.foo", "test.model.foo", "bar", "bar")]
+        [InlineData("test", "model.$id", "test.model.42", "foo.bar", "foo.bar")]
+        [InlineData("test", "model.$id", "test.model.42", "${id}", "42")]
+        [InlineData("test", "model.$id", "test.model.42", "${id}foo", "42foo")]
+        [InlineData("test", "model.$id", "test.model.42", "foo${id}", "foo42")]
+        [InlineData("test", "model.$id", "test.model.42", "foo${id}bar", "foo42bar")]
+        [InlineData("test", "model.$id.$type", "test.model.42.foo", "foo.bar", "foo.bar")]
+        [InlineData("test", "model.$id.$type", "test.model.42.foo", "${id}", "42")]
+        [InlineData("test", "model.$id.$type", "test.model.42.foo", "${type}", "foo")]
+        [InlineData("test", "model.$id.$type", "test.model.42.foo", "${id}${type}", "42foo")]
+        [InlineData("test", "model.$id.$type", "test.model.42.foo", "${id}.${type}", "42.foo")]
+        [InlineData("test", "model.$id.$type", "test.model.42.foo", "${type}${id}", "foo42")]
+        [InlineData("test", "model.$id.$type", "test.model.42.foo", "bar.${type}.${id}.baz", "bar.foo.42.baz")]
         public void GetHandler_MatchingPathWithGroup_ReturnsHandler(string pattern, string path, string resourceName, string group, string expectedGroup)
         {
             Router r = new Router(pattern);
             r.AddHandler(path, group, new DynamicHandler());
+            Router.Match m = r.GetHandler(resourceName);
+            Assert.NotNull(m);
+            Assert.Equal(expectedGroup, m.Group);
+        }
+
+        [Theory]
+        [InlineData("", "model", "sub.model", "foo", "foo")]
+        [InlineData("", "model.foo", "sub.model.foo", "bar", "bar")]
+        [InlineData("", "model.$id", "sub.model.42", "foo.bar", "foo.bar")]
+        [InlineData("", "model.$id", "sub.model.42", "${id}", "42")]
+        [InlineData("", "model.$id", "sub.model.42", "${id}foo", "42foo")]
+        [InlineData("", "model.$id", "sub.model.42", "foo${id}", "foo42")]
+        [InlineData("", "model.$id", "sub.model.42", "foo${id}bar", "foo42bar")]
+        [InlineData("", "model.$id.$type", "sub.model.42.foo", "foo.bar", "foo.bar")]
+        [InlineData("", "model.$id.$type", "sub.model.42.foo", "${id}", "42")]
+        [InlineData("", "model.$id.$type", "sub.model.42.foo", "${type}", "foo")]
+        [InlineData("", "model.$id.$type", "sub.model.42.foo", "${id}${type}", "42foo")]
+        [InlineData("", "model.$id.$type", "sub.model.42.foo", "${id}.${type}", "42.foo")]
+        [InlineData("", "model.$id.$type", "sub.model.42.foo", "${type}${id}", "foo42")]
+        [InlineData("", "model.$id.$type", "sub.model.42.foo", "bar.${type}.${id}.baz", "bar.foo.42.baz")]
+        [InlineData("test", "model", "test.sub.model", "foo", "foo")]
+        [InlineData("test", "model.foo", "test.sub.model.foo", "bar", "bar")]
+        [InlineData("test", "model.$id", "test.sub.model.42", "foo.bar", "foo.bar")]
+        [InlineData("test", "model.$id", "test.sub.model.42", "${id}", "42")]
+        [InlineData("test", "model.$id", "test.sub.model.42", "${id}foo", "42foo")]
+        [InlineData("test", "model.$id", "test.sub.model.42", "foo${id}", "foo42")]
+        [InlineData("test", "model.$id", "test.sub.model.42", "foo${id}bar", "foo42bar")]
+        [InlineData("test", "model.$id.$type", "test.sub.model.42.foo", "foo.bar", "foo.bar")]
+        [InlineData("test", "model.$id.$type", "test.sub.model.42.foo", "${id}", "42")]
+        [InlineData("test", "model.$id.$type", "test.sub.model.42.foo", "${type}", "foo")]
+        [InlineData("test", "model.$id.$type", "test.sub.model.42.foo", "${id}${type}", "42foo")]
+        [InlineData("test", "model.$id.$type", "test.sub.model.42.foo", "${id}.${type}", "42.foo")]
+        [InlineData("test", "model.$id.$type", "test.sub.model.42.foo", "${type}${id}", "foo42")]
+        [InlineData("test", "model.$id.$type", "test.sub.model.42.foo", "bar.${type}.${id}.baz", "bar.foo.42.baz")]
+        public void GetHandler_MatchingPathWithGroupOnMountedRouter_ReturnsHandler(string pattern, string path, string resourceName, string group, string expectedGroup)
+        {
+            Router r = new Router(pattern);
+            Router sub = new Router();
+            sub.AddHandler(path, group, new DynamicHandler());
+            r.Mount("sub", sub);
             Router.Match m = r.GetHandler(resourceName);
             Assert.NotNull(m);
             Assert.Equal(expectedGroup, m.Group);
