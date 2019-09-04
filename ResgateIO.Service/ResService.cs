@@ -263,7 +263,7 @@ namespace ResgateIO.Service
         /// </summary>
         /// <remarks>
         /// Should only be called from within the resource's group callback.
-        /// Using the returned value from another goroutine may cause race conditions.
+        /// Using the returned value from another thread may cause race conditions.
         /// </remarks>
         /// <param name="rid">Resource ID.</param>
         /// <returns>Resource context matching the resource ID, or null if no match is found.</returns>
@@ -280,7 +280,7 @@ namespace ResgateIO.Service
             Router.Match match = GetHandler(rname);
             return match == null
                 ? null
-                : new ResourceContext(this, rname, match.Handler, match.Params, query);
+                : new ResourceContext(this, rname, match.Handler, match.Params, query, match.Group);
         }
 
         /// <summary>
@@ -299,7 +299,7 @@ namespace ResgateIO.Service
                 throw new ArgumentException("No matching handler found for resource ID: " + rid);
             }
 
-            runWith(resource.ResourceName, () => callback(resource));
+            runWith(resource.Group, () => callback(resource));
         }
 
         /// <summary>
@@ -309,7 +309,37 @@ namespace ResgateIO.Service
         /// <param name="callback">Callback to be called on the resource's worker thread.</param>
         public void With(IResourceContext resource, Action callback)
         {
-            runWith(resource.ResourceName, callback);
+            runWith(resource.Group, () => callback());
+        }
+
+        /// <summary>
+        /// Calls the callback on the resource's worker thread.
+        /// </summary>
+        /// <param name="resource">Resource context.</param>
+        /// <param name="callback">Callback to be called on the resource's worker thread.</param>
+        public void With(IResourceContext resource, Action<IResourceContext> callback)
+        {
+            runWith(resource.Group, () => callback(resource));
+        }
+
+        /// <summary>
+        /// Calls the callback on the specified group's worker thread.
+        /// </summary>
+        /// <param name="group">Group ID.</param>
+        /// <param name="callback">Callback to be called on the group's worker thread.</param>
+        public void WithGroup(string group, Action callback)
+        {
+            runWith(group, callback);
+        }
+
+        /// <summary>
+        /// Calls the callback on the specified group's worker thread.
+        /// </summary>
+        /// <param name="group">Group ID.</param>
+        /// <param name="callback">Callback to be called on the group's worker thread.</param>
+        public void WithGroup(string group, Action<ResService> callback)
+        {
+            runWith(group, () => callback(this));
         }
 
         private void serve(IConnection conn)
@@ -404,23 +434,23 @@ namespace ResgateIO.Service
             runWith(match == null ? rname : match.Group, () => processRequest(msg, rtype, rname, method, match));
         }
 
-private void runWith(string workId, Action callback)
-{
-    lock (stateLock)
-    { 
-        if (rwork.TryGetValue(workId, out Work work))
+        private void runWith(string groupId, Action callback)
         {
-            work.AddTask(callback);
+            lock (stateLock)
+            { 
+                if (rwork.TryGetValue(groupId, out Work work))
+                {
+                    work.AddTask(callback);
+                }
+                else
+                {
+                    work = new Work(groupId, callback);
+                    rwork.Add(groupId, work);
+                    activeWorkers.AddCount();
+                    Task.Run(() => processWork(work));
+                }
+            }
         }
-        else
-        {
-            work = new Work(workId, callback);
-            rwork.Add(workId, work);
-            activeWorkers.AddCount();
-            Task.Run(() => processWork(work));
-        }
-    }
-}
 
         /// <summary>
         /// Sends a connection token event that sets the connection's access token,
@@ -615,6 +645,7 @@ private void runWith(string workId, Action callback)
                     method,
                     match.Handler,
                     match.Params,
+                    match.Group,
                     reqInput.CID,
                     reqInput.RawParams,
                     reqInput.RawToken,

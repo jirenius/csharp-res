@@ -41,26 +41,20 @@ namespace ResgateIO.Service
                 }
             }
 
-            public string ToString(string resourceName)
+            public string ToString(string[] tokens, int offset)
             {
-                if (UseResourceName)
-                {
-                    return resourceName;
-                }
-
                 int len = Parts.Length;
                 if (len == 1 && Parts[0] != String.Empty)
                 {
                     return Parts[0];
                 }
 
-                string[] tokens = resourceName.Split(BTSEP);
                 string[] strs = new string[len];
                 for (int i = 0; i < len; i++)
                 {
                     if (Parts[i] == String.Empty)
                     {
-                        strs[i] = tokens[PartIdx[i]];
+                        strs[i] = tokens[PartIdx[i]+offset];
                     }
                     else
                     {
@@ -187,6 +181,7 @@ namespace ResgateIO.Service
         {
             public Node Node = null;
             public Dictionary<string, string> Params = null;
+            public int MountIdx = 0;
         }
 
         /// <summary>
@@ -487,13 +482,19 @@ namespace ResgateIO.Service
                     return null;
                 }
 
-                return new Match(root.Handler, null, root.Group.ToString(resourceName));
+                return new Match(root.Handler, null, root.Group.UseResourceName ? resourceName : root.Group.ToString(null, 0));
             }
 
             string[] tokens = subrname.Split(BTSEP);
             matchNode(root, tokens, 0, 0, match);
-
-            return match.Node == null ? null : new Match(match.Node.Handler, match.Params, match.Node.Group.ToString(resourceName));            
+            return match.Node == null
+                ? null
+                : new Match(
+                    match.Node.Handler,
+                    match.Params,
+                    match.Node.Group.UseResourceName
+                        ? resourceName
+                        : match.Node.Group.ToString(tokens, match.MountIdx));
         }
 
         /// <summary>
@@ -532,6 +533,7 @@ namespace ResgateIO.Service
                         if (next.Handler != null)
                         {
                             nodeMatch.Node = next;
+                            nodeMatch.MountIdx = mountIdx;
                             // Check if we have path parameters for the handlers
                             if (next.Params != null) {
                                 // Create a map with path parameter values
@@ -565,6 +567,7 @@ namespace ResgateIO.Service
             {
                 next = current.Wild;
                 nodeMatch.Node = next;
+                nodeMatch.MountIdx = mountIdx;
                 if (next.Params != null)
                 {
                     // Create a map with path parameter values

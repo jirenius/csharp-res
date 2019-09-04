@@ -41,6 +41,11 @@ namespace ResgateIO.Service
         public IResourceHandler Handler { get; }
 
         /// <summary>
+        /// Group ID for the context.
+        /// </summary>
+        public string Group { get; }
+
+        /// <summary>
         /// Initializes a new instance of the ResourceContext class.
         /// </summary>
         /// <param name="service">Service to which the resource context belong.</param>
@@ -48,13 +53,14 @@ namespace ResgateIO.Service
         /// <param name="handler">Resource handler.</param>
         /// <param name="pathParams">Path parameters derived from the resource name.</param>
         /// <param name="query">Query part of the resource name.</param>
-        public ResourceContext(ResService service, string resourceName, IResourceHandler handler, IDictionary<string, string> pathParams, string query)
+        public ResourceContext(ResService service, string resourceName, IResourceHandler handler, IDictionary<string, string> pathParams, string query, string group)
         {
             Service = service;
             ResourceName = resourceName;
             Handler = handler;
             PathParams = pathParams;
             Query = query == null ? "" : query;
+            Group = group;
             Items = new Hashtable();
         }
 

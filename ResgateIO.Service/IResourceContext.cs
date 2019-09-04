@@ -38,6 +38,11 @@ namespace ResgateIO.Service
         string Query { get; }
 
         /// <summary>
+        /// Group ID for the context.
+        /// </summary>
+        string Group { get; }
+
+        /// <summary>
         /// Context scoped key/value collection used to store and share data between handlers.
         /// </summary>
         IDictionary Items { get; }
