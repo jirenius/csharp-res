@@ -94,6 +94,7 @@ namespace ResgateIO.Service
             string method,
             IResourceHandler handler,
             Dictionary<string, string> pathParams,
+            string group,
             string cid,
             JToken rawParams,
             JToken rawToken,
@@ -102,7 +103,7 @@ namespace ResgateIO.Service
             string remoteAddr,
             string uri,
             string query)
-            : base(service, rname, handler, pathParams, query)
+            : base(service, rname, handler, pathParams, query, group)
         {
             this.msg = msg;
             Type = RequestTypeHelper.FromString(rtype);

@@ -23,6 +23,7 @@ namespace ResgateIO.Service
         public IDictionary<string, string> PathParams { get { return resource.PathParams; } }
         public string PathParam(string key) { return resource.PathParam(key); }
         public virtual string Query { get { return resource.Query; } }
+        public string Group { get { return resource.Group; } }
         public IDictionary Items { get { return resource.Items; } }
         public IResourceHandler Handler { get { return resource.Handler; } }
         public virtual T Value<T>() where T : class { return resource.Value<T>(); }

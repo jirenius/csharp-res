@@ -32,6 +32,8 @@ namespace ResgateIO.Service
 
         public string Query { get; set; }
 
+        public string Group { get; set; }
+
         public IDictionary Items { get; set; }
 
         public IResourceHandler Handler { get; set; }

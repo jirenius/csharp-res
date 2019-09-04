@@ -78,7 +78,7 @@ namespace ResgateIO.Service.UnitTests
         [InlineData("${}", "test.$foo")]
         [InlineData("${$foo}", "test.$foo")]
         [InlineData("${bar}", "test.$foo")]
-        public void AddHandler_InvalidValidGrouph_ThrowsException(string group, string pattern)
+        public void AddHandler_InvalidValidGroup_ThrowsException(string group, string pattern)
         {
             Router r = new Router();
             Assert.Throws<ArgumentNullException>(() => r.AddHandler(pattern, group, null));
