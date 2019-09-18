@@ -41,8 +41,12 @@ namespace ResgateIO.Service
                 }
             }
 
-            public string ToString(string[] tokens, int offset)
+            public string ToString(string rname, string[] tokens, int offset)
             {
+                if (UseResourceName)
+                {
+                    return rname;
+                }
                 int len = Parts.Length;
                 if (len == 1 && Parts[0] != String.Empty)
                 {
@@ -185,7 +189,7 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
-        /// Gets the subpattern that prefix all resources, not including the pattern of any parent Router.
+        /// Gets the pattern that prefix all resources, not including the pattern of any parent Router.
         /// </summary>
         public string Pattern { get; private set; }
 
@@ -455,23 +459,25 @@ namespace ResgateIO.Service
         {
             InternalMatch match = new InternalMatch();
             string subrname = resourceName;
-            if (Pattern.Length > 0)
+            int pl = Pattern.Length;
+            if (pl > 0)
             {
-                if (!resourceName.StartsWith(Pattern))
+                int rl = resourceName.Length;
+                if (pl == rl)
                 {
-                    return null;
-                }
-                if (resourceName.Length > Pattern.Length)
-                {
-                    if (resourceName[Pattern.Length] != '.')
+                    if (Pattern != resourceName)
                     {
                         return null;
                     }
-                    subrname = resourceName.Substring(Pattern.Length + 1);
+                    subrname = "";
                 }
                 else
                 {
-                    subrname = "";
+                    if (pl > rl || !resourceName.StartsWith(Pattern) || resourceName[pl] != '.')
+                    {
+                        return null;
+                    }
+                    subrname = resourceName.Substring(pl + 1);
                 }
             }
 
@@ -482,7 +488,7 @@ namespace ResgateIO.Service
                     return null;
                 }
 
-                return new Match(root.Handler, null, root.Group.UseResourceName ? resourceName : root.Group.ToString(null, 0));
+                return new Match(root.Handler, null, root.Group.ToString(resourceName, null, 0));
             }
 
             string[] tokens = subrname.Split(BTSEP);
@@ -492,9 +498,7 @@ namespace ResgateIO.Service
                 : new Match(
                     match.Node.Handler,
                     match.Params,
-                    match.Node.Group.UseResourceName
-                        ? resourceName
-                        : match.Node.Group.ToString(tokens, match.MountIdx));
+                    match.Node.Group.ToString(resourceName, tokens, match.MountIdx));
         }
 
         /// <summary>

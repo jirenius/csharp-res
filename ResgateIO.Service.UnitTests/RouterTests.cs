@@ -358,6 +358,7 @@ namespace ResgateIO.Service.UnitTests
 
         [Theory]
         [InlineData("model")]
+        [InlineData("model.foo")]
         [InlineData("model.$id")]
         [InlineData("model.>")]
         public void Mount_ToExistingPattern_ThrowsInvalidOperationException(string pattern)

@@ -150,7 +150,7 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
-        /// Sets the resource patterns matching the resources owned by the service.
+        /// Sets the resource patterns matching the resources owned and handled by the service.
         /// If set to null, the service will default to set ownership of all resources
         /// starting with its own name if one was provided (eg. "serviceName.>") to the
         /// constructor, or to all resources if no name was provided.
@@ -220,6 +220,7 @@ namespace ResgateIO.Service
                 opts.Name = Pattern;
             }
 
+            Log.Info("Connecting to NATS server");
             IConnection conn = new ConnectionFactory().CreateConnection(opts);
             serve(conn);
         }
@@ -309,7 +310,7 @@ namespace ResgateIO.Service
         /// <param name="callback">Callback to be called on the resource's worker thread.</param>
         public void With(IResourceContext resource, Action callback)
         {
-            runWith(resource.Group, () => callback());
+            runWith(resource.Group, callback);
         }
 
         /// <summary>
@@ -344,6 +345,8 @@ namespace ResgateIO.Service
 
         private void serve(IConnection conn)
         {
+            Log.Info("Starting service");
+
             Connection = conn;
             rwork = new Dictionary<string, Work>();
             queryTimerQueue = new TimerQueue<QueryEvent>(onQueryEventExpire, queryDuration);
