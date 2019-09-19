@@ -335,7 +335,7 @@ namespace ResgateIO.Service
 
         /// <summary>
         /// Adds a listener to events for the resource with the registered subpattern.
-        /// The subpattern must match that of the registered resource, including any placeholder tags.
+        /// The subpattern must be an exact match of the registered resource, including any placeholder tags.
         /// 
         /// The sender will always implement the IResourceContext, and the EventArgs may be any
         /// of the following, based on type of event:
