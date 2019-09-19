@@ -12,7 +12,6 @@ namespace ResgateIO.Service
     public class ResService: Router
     {
         // Public read-only values
-        public static readonly JRaw DeleteAction = new JRaw("{\"action\":\"delete\"}");
         public static readonly TimeSpan DefaultQueryDuration = new TimeSpan(0, 0, 3);
 
         // Properties
@@ -281,7 +280,7 @@ namespace ResgateIO.Service
             Router.Match match = GetHandler(rname);
             return match == null
                 ? null
-                : new ResourceContext(this, rname, match.Handler, match.Params, query, match.Group);
+                : new ResourceContext(this, rname, match.Handler, match.EventHandler, match.Params, query, match.Group);
         }
 
         /// <summary>
@@ -647,6 +646,7 @@ namespace ResgateIO.Service
                     rname,
                     method,
                     match.Handler,
+                    match.EventHandler,
                     match.Params,
                     match.Group,
                     reqInput.CID,
