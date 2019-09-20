@@ -12,7 +12,7 @@ namespace ResgateIO.Service
         /// Properties being changed, and their new values.
         /// The value will be ResAction.Delete for deleted properties.
         /// </summary>
-        public Dictionary<string, object> Changes { get; }
+        public Dictionary<string, object> Changed { get; }
 
         /// <summary>
         /// Properties being changed, and their old values.
@@ -25,7 +25,7 @@ namespace ResgateIO.Service
         /// </summary>
         public ChangeEventArgs(Dictionary<string, object> changes, Dictionary<string, object> revert)
         {
-            Changes = changes;
+            Changed = changes;
             Revert = revert;
         }
     }

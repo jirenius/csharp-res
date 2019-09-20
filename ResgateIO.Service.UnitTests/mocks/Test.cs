@@ -48,6 +48,7 @@ namespace ResgateIO.Service.UnitTests
         public static readonly object Collection = new object[] { 42, "foo", null };
         public static readonly object Result = new { foo = "bar" };
         public static readonly Ref NewRef = new Ref("test.model.new");
+        public static readonly int IntValue = 42;
 
         /// <summary>
         /// Asserts that two objects will be serialized into deep equal JSON structures.

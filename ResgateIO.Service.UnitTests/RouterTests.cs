@@ -455,14 +455,14 @@ namespace ResgateIO.Service.UnitTests
         public void GetHandler_EventListenerWhenFromMountedSubRouter_ReturnsHandler(string rootPattern, string handlerPattern, string resourceName, string expectedParams)
         {
             var called = 0;
-            var handler = new DynamicHandler();
             Router r = rootPattern == null ? new Router() : new Router(rootPattern);
             Router sub = new Router();
-            sub.AddHandler(handlerPattern, handler);
+            sub.AddHandler(handlerPattern, new DynamicHandler());
             r.Mount("sub", sub);
             r.AddEventListener("sub." + handlerPattern, (sender, ev) => called++);
             Router.Match m = r.GetHandler(resourceName);
             m.EventHandler.Invoke(null, null);
+            Test.AssertJsonEqual(JObject.Parse(expectedParams), m.Params);
             Assert.Equal(1, called);
         }
 
@@ -471,14 +471,14 @@ namespace ResgateIO.Service.UnitTests
         public void GetHandler_EventListenerWhenHandlerAddedAfterToMountedSubRouter_ReturnsHandler(string rootPattern, string handlerPattern, string resourceName, string expectedParams)
         {
             var called = 0;
-            var handler = new DynamicHandler();
             Router r = rootPattern == null ? new Router() : new Router(rootPattern);
             Router sub = new Router();
             sub.AddEventListener(handlerPattern, (sender, ev) => called++);
             r.Mount("sub", sub);
-            r.AddHandler("sub." + handlerPattern, handler);
+            r.AddHandler("sub." + handlerPattern, new DynamicHandler());
             Router.Match m = r.GetHandler(resourceName);
             m.EventHandler.Invoke(null, null);
+            Test.AssertJsonEqual(JObject.Parse(expectedParams), m.Params);
             Assert.Equal(1, called);
         }
         #endregion
