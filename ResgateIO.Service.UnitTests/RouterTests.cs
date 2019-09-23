@@ -256,7 +256,70 @@ namespace ResgateIO.Service.UnitTests
         public void AddHandler_InvalidValidGroup_ThrowsException(string group, string pattern)
         {
             Router r = new Router();
-            Assert.Throws<ArgumentNullException>(() => r.AddHandler(pattern, group, null));
+            Assert.Throws<ArgumentException>(() => r.AddHandler(pattern, group, new DynamicHandler()));
+        }
+
+        [Fact]
+        public void AddHandler_WithPathWithoutSubpattern_NoException()
+        {
+            Router r = new Router("test");
+            r.AddHandler(new DynamicHandler());
+        }
+
+        [ResourcePattern("model.$foo")]
+        class AddHandler_ResourcePatternAttributeValidPath_NoException_Class : BaseHandler { }
+        [Fact]
+        public void AddHandler_ResourcePatternAttributeValidPath_NoException()
+        {
+            Router r = new Router("test");
+            r.AddHandler(new AddHandler_ResourcePatternAttributeValidPath_NoException_Class());
+        }
+
+        [ResourcePattern("model..foo")]
+        class AddHandler_ResourcePatternAttributeInvalidPath_ThrowsException_Class : BaseHandler { }
+        [Fact]
+        public void AddHandler_ResourcePatternAttributeInvalidPath_ThrowsException()
+        {
+            Router r = new Router("test");
+            Assert.Throws<ArgumentException>(() => r.AddHandler(new AddHandler_ResourcePatternAttributeInvalidPath_ThrowsException_Class()));
+        }
+        
+        [ResourcePattern("test.model")]
+        class AddHandler_ResourcePatternAttributeDuplicatePattern_ThrowsException_Class : BaseHandler { }
+        [Fact]
+        public void AddHandler_ResourcePatternAttributeDuplicatePattern_ThrowsException()
+        {
+            Router r = new Router();
+            r.AddHandler("test.model", new DynamicHandler());
+            Assert.Throws<ArgumentException>(() => r.AddHandler(new AddHandler_ResourcePatternAttributeDuplicatePattern_ThrowsException_Class()));
+        }
+
+        [ResourceGroup("foo")]
+        class AddHandler_ResourceGroupAttributeValidGroup_NoException_Class : BaseHandler { }
+        [Fact]
+        public void AddHandler_ResourceGroupAttributeValidGroup_NoException()
+        {
+            Router r = new Router("test");
+            r.AddHandler("model", new AddHandler_ResourceGroupAttributeValidGroup_NoException_Class());
+        }
+
+        [ResourceGroup("$")]
+        class AddHandler_ResourceGroupAttributeInvalidGroup_NoException_Class : BaseHandler { }
+        [Fact]
+        public void AddHandler_ResourceGroupAttributeInvalidGroup_NoException()
+        {
+            Router r = new Router();
+            Assert.Throws<ArgumentException>(() => r.AddHandler("model", new AddHandler_ResourceGroupAttributeInvalidGroup_NoException_Class()));
+        }
+
+        [ResourcePattern("model.$foo")]
+        [ResourceGroup("${foo}.bar")]
+        class AddHandler_ResourcePatternAndResourceGroupAttributeValidGroup_NoException_Class : BaseHandler { }
+        [Fact]
+        public void AddHandler_ResourcePatternAndResourceGroupAttributeValidGroup_NoException()
+        {
+            Router r = new Router("test");
+            r.AddHandler(new AddHandler_ResourceGroupAttributeValidGroup_NoException_Class());
         }
         #endregion
 
@@ -480,6 +543,61 @@ namespace ResgateIO.Service.UnitTests
             m.EventHandler.Invoke(null, null);
             Test.AssertJsonEqual(JObject.Parse(expectedParams), m.Params);
             Assert.Equal(1, called);
+        }
+
+        [Fact]
+        public void GetHandler_WithPathWithoutPatternMatchingPath_ExpectedMatch()
+        {
+            Router r = new Router("test");
+            var handler = new DynamicHandler();
+            r.AddHandler(handler);
+            Router.Match m = r.GetHandler("test");
+            Assert.NotNull(m);
+            Assert.Equal(handler, m.Handler);
+        }
+
+        [ResourcePattern("model.$foo")]
+        class GetHandler_ResourcePatternAttributeMatchingPath_ExpectedMatch_Class : BaseHandler { }
+        [Fact]
+        public void GetHandler_ResourcePatternAttributeMatchingPath_ExpectedMatch()
+        {
+            Router r = new Router("test");
+            var handler = new GetHandler_ResourcePatternAttributeMatchingPath_ExpectedMatch_Class();
+            r.AddHandler(handler);
+            Router.Match m = r.GetHandler("test.model.bar");
+            Assert.NotNull(m);
+            Assert.Equal(handler, m.Handler);
+            Test.AssertJsonEqual(new { foo = "bar" }, m.Params);
+        }
+
+        [ResourceGroup("foo")]
+        class GetHandler_ResourceGroupAttributeMatchingPath_ExpectedMatch_Class : BaseHandler { }
+        [Fact]
+        public void GetHandler_ResourceGroupAttributeMatchingPath_ExpectedMatch()
+        {
+            Router r = new Router("test");
+            var handler = new GetHandler_ResourceGroupAttributeMatchingPath_ExpectedMatch_Class();
+            r.AddHandler("model", handler);
+            Router.Match m = r.GetHandler("test.model");
+            Assert.NotNull(m);
+            Assert.Equal(handler, m.Handler);
+            Assert.Equal("foo", m.Group);
+        }
+
+        [ResourcePattern("model.$foo")]
+        [ResourceGroup("${foo}.bar")]
+        class GetHandler_ResourcePatternAndResourceGroupAttributeMatchingPath_ExpectedMatch_Class : BaseHandler { }
+        [Fact]
+        public void GetHandler_ResourcePatternAndResourceGroupAttributeValidGroup_NoException()
+        {
+            Router r = new Router("test");
+            var handler = new GetHandler_ResourcePatternAndResourceGroupAttributeMatchingPath_ExpectedMatch_Class();
+            r.AddHandler(handler);
+            Router.Match m = r.GetHandler("test.model.42");
+            Assert.NotNull(m);
+            Assert.Equal(handler, m.Handler);
+            Test.AssertJsonEqual(new { foo = "42" }, m.Params);
+            Assert.Equal("42.bar", m.Group);
         }
         #endregion
 

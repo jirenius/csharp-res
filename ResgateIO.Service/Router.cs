@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace ResgateIO.Service
 {
@@ -84,7 +85,7 @@ namespace ResgateIO.Service
                 List<string> parts = new List<string>();
                 List<int> partIdx = new List<int>();
 
-                string[] tokens = p.Split(BTSEP);
+                string[] tokens = String.IsNullOrEmpty(p) ? new string[] { } : p.Split(BTSEP);
                 int len = g.Length;
                 int offset = 0;
                 while (offset < len)
@@ -271,6 +272,23 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
+        /// Registers a handler.
+        /// If a <see cref="ResourcePatternAttribute"/> is defined, the method will register
+        /// the handler on that subpattern, otherwise it will be set as root handler.
+        /// If a <see cref="ResourceGroupAttribute"/> is defined, the method will register
+        /// the handler to that group.
+        /// </summary>
+        /// <remarks>The resource uses its own pattern as group pattern.</remarks>
+        /// <param name="handler">Resource handler.</param>
+        public void AddHandler(IResourceHandler handler)
+        {
+            AddHandler(
+                GetHandlerAttribute<ResourcePatternAttribute>(handler)?.Pattern,
+                GetHandlerAttribute<ResourceGroupAttribute>(handler)?.Group,
+                handler);
+        }
+
+        /// <summary>
         /// Registers a handler for the given resource pattern.
         ///
         /// A pattern may contain placeholders that acts as wildcards, and will be
@@ -285,14 +303,18 @@ namespace ResgateIO.Service
         /// If the pattern is already registered, or if there are conflicts among
         /// the handlers, an exception will be thrown.
         /// 
-        /// All handling of the resource will be done in order on a single worker thread.
+        /// If a <see cref="ResourceGroupAttribute"/> is defined, the method will register
+        /// the handler to that group.
         /// </summary>
         /// <remarks>The resource uses its own pattern as group pattern.</remarks>
         /// <param name="subpattern">Resource pattern.</param>
         /// <param name="handler">Resource handler.</param>
         public void AddHandler(string subpattern, IResourceHandler handler)
         {
-            AddHandler(subpattern, null, handler);
+            AddHandler(
+                subpattern,
+                GetHandlerAttribute<ResourceGroupAttribute>(handler)?.Group,
+                handler);
         }
 
         /// <summary>
@@ -310,7 +332,7 @@ namespace ResgateIO.Service
         /// If the pattern is already registered, or if there are conflicts among
         /// the handlers, an exception will be thrown.
         /// 
-        /// All resources of the same group will be handled in order on a single worker thread.
+        /// All resources of the same group will be handled in order on a single worker task.
         /// The group may contain tags, ${tagName}, where the tag name matches a parameter
         /// placeholder name in the resource pattern.
         /// </summary>
@@ -331,6 +353,8 @@ namespace ResgateIO.Service
             n.Group = new Group(group, subpattern);
             n.SetAndValidateParams(tuple.Item2);
             n.Handler = handler;
+
+            registerEventHandlers(handler);
         }
 
         /// <summary>
@@ -415,10 +439,14 @@ namespace ResgateIO.Service
 
         private Tuple<Node, List<PathParam>> fetch(string subpattern, Node mount)
         {
+            List<PathParam> pathParams = new List<PathParam>();
+            if (String.IsNullOrEmpty(subpattern))
+            {
+                return new Tuple<Node, List<PathParam>>(root, pathParams);
+            }
             string[] tokens = subpattern.Split(BTSEP);
             Node current = root;
             Node next;
-            List<PathParam> pathParams = new List<PathParam>();
             bool doMount = false;
             int tokenCount = tokens.Length;
             int mountIdx = 0;
@@ -728,6 +756,32 @@ namespace ResgateIO.Service
             }
 
             return false;
+        }
+
+        private static TAttribute GetHandlerAttribute<TAttribute>(IResourceHandler h) where TAttribute : Attribute
+        {
+            if (h != null)
+            {
+                var attr = h.GetType().GetTypeInfo().GetCustomAttribute<TAttribute>();
+                if (attr is TAttribute)
+                {
+                    return attr;
+                }
+            }
+            return null;
+        }
+
+        private void registerEventHandlers(IResourceHandler h)
+        {
+            MethodInfo[] methods = h.GetType().GetTypeInfo().GetMethods(BindingFlags.Instance);
+            foreach (MethodInfo method in methods)
+            {
+                var attrs = method.GetCustomAttributes<EventListenerAttribute>();
+                foreach (var attr in attrs)
+                {
+                    AddEventListener(attr.Pattern, (EventHandler)method.CreateDelegate(typeof(EventHandler), h));
+                }
+            }
         }
     }
 }
