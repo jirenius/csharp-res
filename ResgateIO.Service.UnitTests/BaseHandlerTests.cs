@@ -251,7 +251,7 @@ namespace ResgateIO.Service.UnitTests
         class CallMethod_MethodWithEmptyAttribute_IsCalled_Class : BaseHandler
         {
             public int Called = 0;
-            [CallMethodAttribute]
+            [CallMethod]
             public void Foo(ICallRequest r) { Called++; }
         }
         [Fact]
@@ -324,7 +324,7 @@ namespace ResgateIO.Service.UnitTests
 
         class CallMethod_MethodWithMismatchingSignature_ThrowsInvalidOperationException_Class : BaseHandler
         {
-            [CallMethodAttribute]
+            [CallMethod]
             public void Foo(IGetRequest r) { }
         }
         [Fact]
@@ -335,7 +335,7 @@ namespace ResgateIO.Service.UnitTests
 
         class CallMethod_AttributeOnCallHandler_ThrowsInvalidOperationException_Class : BaseHandler
         {
-            [CallMethodAttribute]
+            [CallMethod]
             public override void Call(ICallRequest r) { }
         }
         [Fact]
@@ -388,7 +388,7 @@ namespace ResgateIO.Service.UnitTests
         class AuthMethod_MethodWithEmptyAttribute_IsCalled_Class : BaseHandler
         {
             public int Called = 0;
-            [AuthMethodAttribute]
+            [AuthMethod]
             public void Foo(IAuthRequest r) { Called++; }
         }
         [Fact]
@@ -461,7 +461,7 @@ namespace ResgateIO.Service.UnitTests
 
         class AuthMethod_MethodWithMismatchingSignature_ThrowsInvalidOperationException_Class : BaseHandler
         {
-            [AuthMethodAttribute]
+            [AuthMethod]
             public void Foo(IGetRequest r) { }
         }
         [Fact]
@@ -472,7 +472,7 @@ namespace ResgateIO.Service.UnitTests
 
         class AuthMethod_AttributeOnAuthHandler_ThrowsInvalidOperationException_Class : BaseHandler
         {
-            [AuthMethodAttribute]
+            [AuthMethod]
             public override void Auth(IAuthRequest r) { }
         }
         [Fact]
