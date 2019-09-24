@@ -3,7 +3,7 @@
 namespace ResgateIO.Service
 {
     [AttributeUsage(AttributeTargets.Method)]
-    public class CallMethod : Attribute
+    public class CallMethodAttribute : Attribute
     {
         /// <summary>
         /// Name of the resource call method.
@@ -18,7 +18,7 @@ namespace ResgateIO.Service
         /// <summary>
         /// Initializes a new instance of the CallMethod class, deriving the method name from the class method with first-letter-lowercase.
         /// </summary>
-        public CallMethod()
+        public CallMethodAttribute()
         {
             MethodName = null;
             Ignore = false;
@@ -28,7 +28,7 @@ namespace ResgateIO.Service
         /// Initializes a new instance of the CallMethod class.
         /// </summary>
         /// <param name="name">Name of the resource call method.</param>
-        public CallMethod(string name)
+        public CallMethodAttribute(string name)
         {
             MethodName = name;
             Ignore = false;
@@ -36,7 +36,7 @@ namespace ResgateIO.Service
     }
 
     [AttributeUsage(AttributeTargets.Method)]
-    public class AuthMethod : Attribute
+    public class AuthMethodAttribute : Attribute
     {
         /// <summary>
         /// Name of the resource auth method.
@@ -51,7 +51,7 @@ namespace ResgateIO.Service
         /// <summary>
         /// Initializes a new instance of the AuthMethod class, deriving the method name from the class method with first-letter-lowercase.
         /// </summary>
-        public AuthMethod()
+        public AuthMethodAttribute()
         {
             MethodName = null;
             Ignore = false;
@@ -61,7 +61,7 @@ namespace ResgateIO.Service
         /// Initializes a new instance of the AuthMethod class.
         /// </summary>
         /// <param name="name">Name of the resource auth method.</param>
-        public AuthMethod(string name)
+        public AuthMethodAttribute(string name)
         {
             MethodName = name;
             Ignore = false;

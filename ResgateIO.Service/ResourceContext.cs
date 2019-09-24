@@ -45,6 +45,8 @@ namespace ResgateIO.Service
         /// </summary>
         public string Group { get; }
 
+        private EventHandler eventHandler;
+
         /// <summary>
         /// Initializes a new instance of the ResourceContext class.
         /// </summary>
@@ -53,11 +55,12 @@ namespace ResgateIO.Service
         /// <param name="handler">Resource handler.</param>
         /// <param name="pathParams">Path parameters derived from the resource name.</param>
         /// <param name="query">Query part of the resource name.</param>
-        public ResourceContext(ResService service, string resourceName, IResourceHandler handler, IDictionary<string, string> pathParams, string query, string group)
+        public ResourceContext(ResService service, string resourceName, IResourceHandler handler, EventHandler eventHandler, IDictionary<string, string> pathParams, string query, string group)
         {
             Service = service;
             ResourceName = resourceName;
             Handler = handler;
+            this.eventHandler = eventHandler;
             PathParams = pathParams;
             Query = query == null ? "" : query;
             Group = group;
@@ -187,6 +190,8 @@ namespace ResgateIO.Service
             }
 
             sendEvent(eventName, payload);
+
+            eventHandler?.Invoke(this, new CustomEventArgs(eventName, payload));
         }
 
         /// <summary>
@@ -203,6 +208,7 @@ namespace ResgateIO.Service
         /// <param name="properties">Properties that has been changed with their new values.</param>
         public void ChangeEvent(Dictionary<string, object> properties)
         {
+            Dictionary<string, object> rev = null;
             if (Handler.Type == ResourceType.Collection)
             {
                 throw new InvalidOperationException("Change event not allowed on resource of ResourceType.Collection.");
@@ -213,7 +219,7 @@ namespace ResgateIO.Service
             }
             if (Handler.EnabledHandlers.HasFlag(HandlerTypes.ApplyChange))
             {
-                Dictionary<string, object> rev = Handler.ApplyChange(this, properties);
+                rev = Handler.ApplyChange(this, properties);
                 if (rev == null || rev.Count == 0)
                 {
                     return;
@@ -226,6 +232,8 @@ namespace ResgateIO.Service
                 }
             }
             sendEvent("change", new ChangeEventDto(properties));
+
+            eventHandler?.Invoke(this, new ChangeEventArgs(properties, rev));
         }
 
         /// <summary>
@@ -253,6 +261,8 @@ namespace ResgateIO.Service
                 Handler.ApplyAdd(this, value, idx);
             }
             sendEvent("add", new AddEventDto(value, idx));
+
+            eventHandler?.Invoke(this, new AddEventArgs(value, idx));
         }
 
         /// <summary>
@@ -266,6 +276,7 @@ namespace ResgateIO.Service
         /// <param name="idx">Index position where the value has been removed.</param>
         public void RemoveEvent(int idx)
         {
+            object removed = null;
             if (Handler.Type == ResourceType.Model)
             {
                 throw new InvalidOperationException("Remove event not allowed on resource of ResourceType.Model.");
@@ -276,9 +287,11 @@ namespace ResgateIO.Service
             }
             if (Handler.EnabledHandlers.HasFlag(HandlerTypes.ApplyRemove))
             {
-                Handler.ApplyRemove(this, idx);
+                removed = Handler.ApplyRemove(this, idx);
             }
             sendEvent("remove", new RemoveEventDto(idx));
+
+            eventHandler?.Invoke(this, new RemoveEventArgs(removed, idx));
         }
 
         /// <summary>
@@ -318,6 +331,8 @@ namespace ResgateIO.Service
                 Handler.ApplyCreate(this, data);
             }
             sendEvent("create", null);
+
+            eventHandler?.Invoke(this, new CreateEventArgs(data));
         }
 
         /// <summary>
@@ -325,11 +340,14 @@ namespace ResgateIO.Service
         /// </summary>
         public void DeleteEvent()
         {
+            object data = null;
             if (Handler.EnabledHandlers.HasFlag(HandlerTypes.ApplyDelete))
             {
-                Handler.ApplyDelete(this);
+                data = Handler.ApplyDelete(this);
             }
             sendEvent("delete", null);
+
+            eventHandler?.Invoke(this, new DeleteEventArgs(data));
         }
 
         private void sendEvent(string eventName, object payload)

@@ -131,7 +131,7 @@ namespace ResgateIO.Service.UnitTests
 
         public void Unsubscribe()
         {
-            throw new NotImplementedException();
+            Dispose();
         }
     }
 }

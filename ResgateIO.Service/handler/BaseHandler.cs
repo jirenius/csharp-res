@@ -235,7 +235,7 @@ namespace ResgateIO.Service
         {
             foreach (MethodInfo method in methods)
             {
-                CallMethod attr = method.GetCustomAttribute<CallMethod>();
+                CallMethodAttribute attr = method.GetCustomAttribute<CallMethodAttribute>();
                 if (isResourceMethod(method, typeof(ICallRequest), attr != null, callMethodName)
                     && method.Name != callMethodName
                     && (attr == null || !attr.Ignore))
@@ -253,7 +253,7 @@ namespace ResgateIO.Service
         {
             foreach (MethodInfo method in methods)
             {
-                AuthMethod attr = method.GetCustomAttribute<AuthMethod>();
+                AuthMethodAttribute attr = method.GetCustomAttribute<AuthMethodAttribute>();
                 if (isResourceMethod(method, typeof(IAuthRequest), attr != null, authMethodName)
                     && method.Name != authMethodName
                     && (attr == null || !attr.Ignore))

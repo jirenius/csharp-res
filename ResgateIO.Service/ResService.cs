@@ -5,14 +5,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using NATS.Client;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace ResgateIO.Service
 {
     public class ResService: Router
     {
         // Public read-only values
-        public static readonly JRaw DeleteAction = new JRaw("{\"action\":\"delete\"}");
         public static readonly TimeSpan DefaultQueryDuration = new TimeSpan(0, 0, 3);
 
         // Properties
@@ -60,6 +58,7 @@ namespace ResgateIO.Service
         private string[] resetResources = null;
         private string[] resetAccess = null;
         private CountdownEvent activeWorkers = null;
+        private Stack<Action> cleanupActions = new Stack<Action>();
 
         // Internal logger
         internal ILogger Log { get; private set; }
@@ -150,7 +149,7 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
-        /// Sets the resource patterns matching the resources owned by the service.
+        /// Sets the resource patterns matching the resources owned and handled by the service.
         /// If set to null, the service will default to set ownership of all resources
         /// starting with its own name if one was provided (eg. "serviceName.>") to the
         /// constructor, or to all resources if no name was provided.
@@ -181,14 +180,15 @@ namespace ResgateIO.Service
         public void Serve(IConnection conn) {
             lock (stateLock)
             {
-                if (state != State.Stopped)
-                {
-                    throw new Exception("Service is not stopped.");
-                }
+                assertStopped();
                 state = State.Starting;
             }
+            cleanupActions.Push(() => state = State.Stopped);
 
-            serve(conn);
+            Connection = conn;
+            cleanupActions.Push(() => Connection = null);
+
+            serve();
         }
 
         /// <summary>
@@ -207,21 +207,35 @@ namespace ResgateIO.Service
                 assertStopped();
                 state = State.Starting;
             }
+            cleanupActions.Push(() => state = State.Stopped);
 
-            Options opts = ConnectionFactory.GetDefaultOptions();
-            opts.Url = url;
-            opts.AllowReconnect = true;
-            opts.MaxReconnect = Options.ReconnectForever;
-            opts.ReconnectedEventHandler += onReconnect;
-            opts.DisconnectedEventHandler += onDisconnect;
-            opts.ClosedEventHandler += onClosed;
-            if (Pattern != "")
+            try
             {
-                opts.Name = Pattern;
+                Options opts = ConnectionFactory.GetDefaultOptions();
+                opts.Url = url;
+                opts.AllowReconnect = true;
+                opts.MaxReconnect = Options.ReconnectForever;
+                if (Pattern != "")
+                {
+                    opts.Name = Pattern;
+                }
+
+                Log.Info("Connecting to NATS server");
+                Connection = new ConnectionFactory().CreateConnection(opts);
+                cleanupActions.Push(() =>
+                {
+                    Connection.Dispose();
+                    Connection = null;
+                });
+            }
+            catch (Exception ex)
+            {
+                OnError("Failed to connect to NATS ({0}): {1}", url, ex.Message);
+                cleanup();
+                throw ex;
             }
 
-            IConnection conn = new ConnectionFactory().CreateConnection(opts);
-            serve(conn);
+            serve();
         }
 
         /// <summary>
@@ -240,18 +254,8 @@ namespace ResgateIO.Service
             }
             Log.Info("Stopping service...");
 
-            close();
-            activeWorkers.Signal();
-            if (!activeWorkers.Wait(shutdownTimeout))
-            {
-                OnError("Timed out waiting for {0} worker thread(s) to finish.", activeWorkers.CurrentCount);
-            }
-
-            activeWorkers.Dispose();
-            queryTimerQueue.Dispose();
-            Connection.Dispose();
-
-            state = State.Stopped;
+            cleanup();
+            
             Log.Info("Stopped");
             Stopped?.Invoke(this, EmptyServeEventArgs);
         }
@@ -280,7 +284,7 @@ namespace ResgateIO.Service
             Router.Match match = GetHandler(rname);
             return match == null
                 ? null
-                : new ResourceContext(this, rname, match.Handler, match.Params, query, match.Group);
+                : new ResourceContext(this, rname, match.Handler, match.EventHandler, match.Params, query, match.Group);
         }
 
         /// <summary>
@@ -309,7 +313,7 @@ namespace ResgateIO.Service
         /// <param name="callback">Callback to be called on the resource's worker thread.</param>
         public void With(IResourceContext resource, Action callback)
         {
-            runWith(resource.Group, () => callback());
+            runWith(resource.Group, callback);
         }
 
         /// <summary>
@@ -342,12 +346,45 @@ namespace ResgateIO.Service
             runWith(group, () => callback(this));
         }
 
-        private void serve(IConnection conn)
+        private void serve()
         {
-            Connection = conn;
+            Log.Info("Starting service");
+
+            Connection.Opts.ReconnectedEventHandler += onReconnect;
+            Connection.Opts.DisconnectedEventHandler += onDisconnect;
+            Connection.Opts.ClosedEventHandler += onClosed;
+            cleanupActions.Push(() =>
+            {
+                Connection.Opts.ReconnectedEventHandler -= onReconnect;
+                Connection.Opts.DisconnectedEventHandler -= onDisconnect;
+                Connection.Opts.ClosedEventHandler -= onClosed;
+            });
+
+            try
+            {
+                ValidateEventListeners();
+            }
+            catch (Exception ex)
+            {
+                OnError("Failed event listener validation: {0}", ex.Message);
+                cleanup();
+                throw ex;
+            }
+
             rwork = new Dictionary<string, Work>();
             queryTimerQueue = new TimerQueue<QueryEvent>(onQueryEventExpire, queryDuration);
             activeWorkers = new CountdownEvent(1);
+            cleanupActions.Push(() =>
+            {
+                activeWorkers.Signal();
+                if (!activeWorkers.Wait(shutdownTimeout))
+                {
+                    OnError("Timed out waiting for {0} worker thread(s) to finish.", activeWorkers.CurrentCount);
+                }
+                activeWorkers.Dispose();
+                queryTimerQueue.Dispose();
+                rwork = null;
+            });
 
             lock (stateLock)
             {
@@ -365,13 +402,9 @@ namespace ResgateIO.Service
             catch (Exception ex)
             {
                 OnError("Failed to subscribe: {0}", ex.Message);
-                close();
+                cleanup();
+                throw ex;
             }
-        }
-
-        private void close()
-        {
-            Connection.Close();
         }
 
         private void subscribe()
@@ -382,12 +415,14 @@ namespace ResgateIO.Service
             {
                 foreach (string p in resetResources)
                 {
-                    Connection.SubscribeAsync(type + "." + p, handleMessage);
+                    var sub = Connection.SubscribeAsync(type + "." + p, handleMessage);
+                    cleanupActions.Push(() => sub.Unsubscribe());
                 }
             }
             foreach (string p in resetAccess)
             {
-                Connection.SubscribeAsync("access." + p, handleMessage);
+                var sub = Connection.SubscribeAsync("access." + p, handleMessage);
+                cleanupActions.Push(() => sub.Unsubscribe());
             }
         }
 
@@ -644,6 +679,7 @@ namespace ResgateIO.Service
                     rname,
                     method,
                     match.Handler,
+                    match.EventHandler,
                     match.Params,
                     match.Group,
                     reqInput.CID,
@@ -705,6 +741,22 @@ namespace ResgateIO.Service
                 resetAccess = Contains(h => h.EnabledHandlers.HasFlag(HandlerTypes.Access))
                     ? new string[] { MergePattern(Pattern, ">") }
                     : new string[] { };
+            }
+        }
+
+        private void cleanup()
+        {
+            while (cleanupActions.Count > 0)
+            {
+                try
+                {
+                    cleanupActions.Pop()();
+                }
+                catch (Exception ex)
+                {
+                    OnError("Error cleaning up: {0}", ex.Message);
+                }
+                
             }
         }
 

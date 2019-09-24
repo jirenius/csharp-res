@@ -110,7 +110,7 @@ namespace ResgateIO.Service
         /// See the protocol specification for more information:
         ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#model-change-event
         /// </remarks>
-        /// <param name="properties">Properties that has been changed with their new values.</param>
+        /// <param name="properties">Properties to change with their new values.</param>
         void ChangeEvent(Dictionary<string, object> properties);
 
         /// <summary>
@@ -122,8 +122,8 @@ namespace ResgateIO.Service
         /// See the protocol specification for more information:
         ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#collection-add-event
         /// </remarks>
-        /// <param name="value">Value that has been added.</param>
-        /// <param name="idx">Index position where the value has been added.</param>
+        /// <param name="value">Value to add.</param>
+        /// <param name="idx">Index position of the value to add.</param>
         void AddEvent(object value, int idx);
 
         /// <summary>
@@ -134,7 +134,7 @@ namespace ResgateIO.Service
         /// See the protocol specification for more information:
         ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#collection-remove-event
         /// </remarks>
-        /// <param name="idx">Index position where the value has been added.</param>
+        /// <param name="idx">Index position of the value to remove.</param>
         void RemoveEvent(int idx);
 
         /// <summary>

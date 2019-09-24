@@ -552,7 +552,7 @@ namespace ResgateIO.Service.UnitTests
             yield return new object[] { new Dictionary<string, object> { { "foo", "bar" } } };
             yield return new object[] { new Dictionary<string, object> { { "foo", null } } };
             yield return new object[] { new Dictionary<string, object> { { "foo", 12 }, { "bar", true } } };
-            yield return new object[] { new Dictionary<string, object> { { "foo", "bar" }, { "deleted", ResService.DeleteAction } } };
+            yield return new object[] { new Dictionary<string, object> { { "foo", "bar" }, { "deleted", ResAction.Delete } } };
             yield return new object[] { new Dictionary<string, object> { { "foo", new Ref("test.model.bar") } } };
         }
 
