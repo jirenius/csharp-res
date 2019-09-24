@@ -67,11 +67,38 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Fact]
-        public void Shutdown_ClosesConnection()
+        public void Shutdown_GetHandler_RemovesSubscriptions()
         {
+            Service.AddHandler("model", new DynamicHandler().SetGet(r => r.Model(Test.Model)));
+            Assert.Equal(0, Conn.SubscriptionCount);
             Service.Serve(Conn);
+            Assert.Equal(3, Conn.SubscriptionCount);
             Service.Shutdown();
-            Assert.True(Conn.Closed, "connection should be closed");
+            Assert.Equal(0, Conn.SubscriptionCount);
+        }
+
+        [Fact]
+        public void Shutdown_AccessHandler_RemovesSubscriptions()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetAccess(r => r.AccessGranted()));
+            Assert.Equal(0, Conn.SubscriptionCount);
+            Service.Serve(Conn);
+            Assert.Equal(1, Conn.SubscriptionCount);
+            Service.Shutdown();
+            Assert.Equal(0, Conn.SubscriptionCount);
+        }
+
+        [Fact]
+        public void Shutdown_GetAndAccessHandler_RemovesSubscriptions()
+        {
+            Service.AddHandler("model", new DynamicHandler()
+                .SetAccess(r => r.AccessGranted())
+                .SetGet(r => r.Model(Test.Model)));
+            Assert.Equal(0, Conn.SubscriptionCount);
+            Service.Serve(Conn);
+            Assert.Equal(4, Conn.SubscriptionCount);
+            Service.Shutdown();
+            Assert.Equal(0, Conn.SubscriptionCount);
         }
 
         [Fact]
@@ -206,7 +233,7 @@ namespace ResgateIO.Service.UnitTests
             Service.AddHandler("model", new DynamicHandler().SetModelGet(r => r.Model(Test.Model)));
             Conn.FailNextSubscription();
             Assert.Equal(0, called);
-            Service.Serve(Conn);
+            Assert.Throws<Exception>(() => Service.Serve(Conn));
             Assert.Equal(1, called);
         }
     }

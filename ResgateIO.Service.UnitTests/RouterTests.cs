@@ -695,5 +695,47 @@ namespace ResgateIO.Service.UnitTests
             Assert.Throws<InvalidOperationException>(() => r.Mount(pattern, sub));
         }
         #endregion
+
+        #region ValidateEventListeners
+        [Theory]
+        [MemberData(nameof(GetValidPathTestSets))]
+        public void ValidateEventListeners_AddEventListenerBeforeAddHandler_NoException(string pattern, string path)
+        {
+            Router r = new Router(pattern);
+            r.AddEventListener(path, (sender, ev) => { });
+            r.AddHandler(path, new DynamicHandler());
+            r.ValidateEventListeners();
+        }
+
+        [Theory]
+        [MemberData(nameof(GetValidPathTestSets))]
+        public void ValidateEventListeners_AddEventListenerAfterAddHandler_NoException(string pattern, string path)
+        {
+            Router r = new Router(pattern);
+            r.AddHandler(path, new DynamicHandler());
+            r.AddEventListener(path, (sender, ev) => { });
+            r.ValidateEventListeners();
+        }
+
+        [Theory]
+        [MemberData(nameof(GetValidPathTestSets))]
+        public void ValidateEventListeners_AddEventListenerWithoutAddHandler_ThrowsInvalidOperationException(string pattern, string path)
+        {
+            Router r = new Router(pattern);
+            r.AddEventListener(path, (sender, ev) => { });
+            Assert.Throws<InvalidOperationException>(() => r.ValidateEventListeners());
+        }
+
+        [Theory]
+        [MemberData(nameof(GetValidPathTestSets))]
+        public void ValidateEventListeners_AddEventListenerWithFewerAddHandler_ThrowsInvalidOperationException(string pattern, string path)
+        {
+            Router r = new Router(pattern);
+            r.AddEventListener(path, (sender, ev) => { });
+            r.AddHandler("completely.different", new DynamicHandler());
+            r.AddEventListener("completely.different", (sender, ev) => { });
+            Assert.Throws<InvalidOperationException>(() => r.ValidateEventListeners());
+        }
+        #endregion
     }
 }

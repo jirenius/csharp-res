@@ -437,6 +437,24 @@ namespace ResgateIO.Service
             child.parent = this;
         }
 
+        /// <summary>
+        /// Validates that all patterns with event listeners, added explicitly with <see cref="AddEventListener(string, EventHandler)"/>,
+        /// or implicitly through the <see cref="EventListenerAttribute"/> has registered handlers.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown if an event listener is registered for a handler that does not exist.</exception>
+        public void ValidateEventListeners()
+        {
+            var path = new List<string>(32);
+            if (!String.IsNullOrEmpty(Pattern))
+            {
+                path.Add(Pattern);
+            }
+            if (contains(root, path, n => n.Handler == null && n.EventHandler != null))
+            {
+                throw new InvalidOperationException("No handler registered for pattern " + String.Join(".", path));
+            }
+        }
+
         private Tuple<Node, List<PathParam>> fetch(string subpattern, Node mount)
         {
             List<PathParam> pathParams = new List<PathParam>();
@@ -624,7 +642,7 @@ namespace ResgateIO.Service
         /// <returns>True if a handler matching the predicate is found, otherwise false.</returns>
         public bool Contains(Predicate<IResourceHandler> predicate)
         {
-            return contains(root, predicate);
+            return contains(root, null, n => n.Handler != null && predicate(n.Handler));
         }
 
         private bool matchNode(Node current, string[] tokens, int tokenIdx, int mountIdx, InternalMatch nodeMatch)
@@ -723,35 +741,44 @@ namespace ResgateIO.Service
             return a + "." + b;
         }
 
-        private bool contains(Node n, Predicate<IResourceHandler> predicate)
+        private bool contains(Node n, List<string> path, Predicate<Node> predicate)
         {
-            if (n.Wild != null && n.Wild.Handler != null && predicate(n.Wild.Handler))
+            // Full wildcard path
+            if (n.Wild != null && predicate(n.Wild))
             {
+                path?.Add(">");
                 return true;
             }
+
+            // Wildcard path
+            path?.Add("*");
             if (
                 n.Param != null &&
                 (
-                    (n.Param.Handler != null && predicate(n.Param.Handler)) ||
-                    contains(n.Param, predicate)
+                    predicate(n.Param) ||
+                    contains(n.Param, path, predicate)
                 )
             )
             {
                 return true;
             }
+            path?.RemoveAt(path.Count - 1);
+
+            // Named path
             if (n.Nodes != null)
             {
                 foreach (KeyValuePair<string, Node> pair in n.Nodes)
                 {
                     Node nn = pair.Value;
+                    path?.Add(pair.Key);
                     if (
-
-                        (nn.Handler != null && predicate(nn.Handler)) ||
-                        contains(nn, predicate)
+                        predicate(nn) ||
+                        contains(nn, path, predicate)
                     )
                     {
                         return true;
                     }
+                    path?.RemoveAt(path.Count - 1);
                 }
             }
 

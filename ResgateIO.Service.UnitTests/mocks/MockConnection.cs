@@ -25,6 +25,18 @@ namespace ResgateIO.Service.UnitTests
         private bool failNextSubscription = false;
         private Random r = null;
 
+        private Options opts = ConnectionFactory.GetDefaultOptions();
+
+        public int SubscriptionCount {
+            get
+            {
+                lock (locker)
+                {
+                    return subs.Count;
+                }
+            }
+        }
+
         // Constructor
 
         public MockConnection()
@@ -186,9 +198,11 @@ namespace ResgateIO.Service.UnitTests
             }
         }
 
-        // Unused methods and properties
+        // Required properties
 
-        public Options Opts => throw new NotImplementedException();
+        public Options Opts { get { return opts; } }
+
+        // Unused methods and properties
 
         public string ConnectedUrl => throw new NotImplementedException();
 
@@ -205,8 +219,6 @@ namespace ResgateIO.Service.UnitTests
         public IStatistics Stats => throw new NotImplementedException();
 
         public long MaxPayload => throw new NotImplementedException();
-
-        public int SubscriptionCount => throw new NotImplementedException();
 
         public void Drain()
         {
