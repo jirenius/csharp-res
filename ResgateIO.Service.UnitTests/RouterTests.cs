@@ -737,5 +737,122 @@ namespace ResgateIO.Service.UnitTests
             Assert.Throws<InvalidOperationException>(() => r.ValidateEventListeners());
         }
         #endregion
+
+        #region EventListenerAttribute
+        class EventListenerAttribute_PublicMethod_IsAdded_Class : BaseHandler {
+            public int Called = 0;
+            [EventListener("model")]
+            public void OnModelEvent(object sender, EventArgs ev)
+            {
+                Called++;
+            }
+        }
+        [Fact]
+        public void EventListenerAttribute_PublicMethod_IsAdded()
+        {
+            var r = new Router("test");
+            var h = new EventListenerAttribute_PublicMethod_IsAdded_Class();
+            r.AddHandler("model", new DynamicHandler());
+            r.AddHandler("foo", h);
+            Router.Match m = r.GetHandler("test.model");
+            m.EventHandler?.Invoke(null, null);
+            Assert.Equal(1, h.Called);
+        }
+
+        [Fact]
+        public void EventListenerAttribute_PublicMethodForOwnClass_IsAdded()
+        {
+            var r = new Router("test");
+            var h = new EventListenerAttribute_PublicMethod_IsAdded_Class();
+            r.AddHandler("model", h);
+            Router.Match m = r.GetHandler("test.model");
+            m.EventHandler?.Invoke(null, null);
+            Assert.Equal(1, h.Called);
+        }
+
+        class EventListenerAttribute_PrivateMethod_IsAdded_Class : BaseHandler
+        {
+            public int Called = 0;
+            [EventListener("model")]
+            private void onModelEvent(object sender, EventArgs ev)
+            {
+                Called++;
+            }
+        }
+        [Fact]
+        public void EventListenerAttribute_PrivateMethod_IsAdded_IsAdded()
+        {
+            var r = new Router("test");
+            var h = new EventListenerAttribute_PrivateMethod_IsAdded_Class();
+            r.AddHandler("model", new DynamicHandler());
+            r.AddHandler("foo", h);
+            Router.Match m = r.GetHandler("test.model");
+            m.EventHandler?.Invoke(null, null);
+            Assert.Equal(1, h.Called);
+        }
+
+        class EventListenerAttribute_InheritedMethod_IsAdded_BaseClass : BaseHandler
+        {
+            public int Called = 0;
+            [EventListener("model")]
+            public void OnModelEvent(object sender, EventArgs ev)
+            {
+                Called++;
+            }
+        }
+        class EventListenerAttribute_InheritedMethod_IsAdded_Class : EventListenerAttribute_InheritedMethod_IsAdded_BaseClass { }
+        [Fact]
+        public void EventListenerAttribute_InheritedMethod_IsAdded()
+        {
+            var r = new Router("test");
+            var h = new EventListenerAttribute_InheritedMethod_IsAdded_Class();
+            r.AddHandler("model", new DynamicHandler());
+            r.AddHandler("foo", h);
+            Router.Match m = r.GetHandler("test.model");
+            m.EventHandler?.Invoke(null, null);
+            Assert.Equal(1, h.Called);
+        }
+
+        class EventListenerAttribute_InvalidMethodSignature_ThrowsArgumentException_Class : BaseHandler
+        {
+            [EventListener("model")]
+            public void OnModelEvent(EventArgs ev) { }
+        }
+        [Fact]
+        public void EventListenerAttribute_InvalidMethodSignature_ThrowsArgumentException()
+        {
+            var r = new Router("test");
+            var h = new EventListenerAttribute_InvalidMethodSignature_ThrowsArgumentException_Class();
+            Assert.Throws<ArgumentException>(() => r.AddHandler("model", h));
+        }
+
+        class EventListenerAttribute_MultiplePublicMethods_AreAdded_Class : BaseHandler
+        {
+            public int Called1 = 0;
+            public int Called2 = 0;
+            [EventListener("model")]
+            public void OnModelEvent1(object sender, EventArgs ev)
+            {
+                Called1++;
+            }
+            [EventListener("model")]
+            public void OnModelEvent2(object sender, EventArgs ev)
+            {
+                Called2++;
+            }
+        }
+        [Fact]
+        public void EventListenerAttribute_MultiplePublicMethods_AreAdded()
+        {
+            var r = new Router("test");
+            var h = new EventListenerAttribute_MultiplePublicMethods_AreAdded_Class();
+            r.AddHandler("model", new DynamicHandler());
+            r.AddHandler("foo", h);
+            Router.Match m = r.GetHandler("test.model");
+            m.EventHandler?.Invoke(null, null);
+            Assert.Equal(1, h.Called1);
+            Assert.Equal(1, h.Called2);
+        }
+        #endregion
     }
 }

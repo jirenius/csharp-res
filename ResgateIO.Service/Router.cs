@@ -800,7 +800,7 @@ namespace ResgateIO.Service
 
         private void registerEventHandlers(IResourceHandler h)
         {
-            MethodInfo[] methods = h.GetType().GetTypeInfo().GetMethods(BindingFlags.Instance);
+            MethodInfo[] methods = h.GetType().GetTypeInfo().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             foreach (MethodInfo method in methods)
             {
                 var attrs = method.GetCustomAttributes<EventListenerAttribute>();
