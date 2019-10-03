@@ -39,6 +39,21 @@ namespace ResgateIO.Service
         void NotFound();
 
         /// <summary>
+        /// Sends a system.invalidQuery response with a default error message.
+        /// </summary>
+        void InvalidQuery();
+
+        /// <summary>
+        /// Sends a system.invalidQuery response with a custom error message.
+        /// </summary>
+        void InvalidQuery(string message);
+
+        /// <summary>
+        /// Sends a system.invalidQuery response with a custom error message and data.
+        /// </summary>
+        void InvalidQuery(string message, object data);
+
+        /// <summary>
         /// Attempts to set the timeout duration of the request.
         /// The call has no effect if the requester has already timed out the request,
         /// or if a reply has already been sent.

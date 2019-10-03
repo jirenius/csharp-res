@@ -147,9 +147,15 @@ namespace ResgateIO.Service
         /// </remarks>
         void ReaccessEvent();
 
-        // QueryEvent sends a query event to signal that the query resource's underlying data has been modified.
-        // See the protocol specification for more information:
-        //    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#query-event
+        /// <summary>
+        /// Sends a reset event for the resource.
+        /// </summary>
+        /// <remarks>
+        /// Reset should be sent whenever the resource might have been modified,
+        /// but where the service will not send any other event (including query events)
+        /// to describe these modifications.
+        /// </remarks>
+        void ResetEvent();
 
         /// <summary>
         /// Sends a query event to signal that the query resource's underlying data has been modified.

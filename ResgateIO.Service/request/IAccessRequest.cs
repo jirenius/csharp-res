@@ -51,6 +51,21 @@ namespace ResgateIO.Service
         void NotFound();
 
         /// <summary>
+        /// Sends a system.invalidQuery response with a default error message.
+        /// </summary>
+        void InvalidQuery();
+
+        /// <summary>
+        /// Sends a system.invalidQuery response with a custom error message.
+        /// </summary>
+        void InvalidQuery(string message);
+
+        /// <summary>
+        /// Sends a system.invalidQuery response with a custom error message and data.
+        /// </summary>
+        void InvalidQuery(string message, object data);
+
+        /// <summary>
         /// Deserializes the token into an object of type T.
         /// </summary>
         /// <typeparam name="T">Type to parse the token into.</typeparam>

@@ -308,6 +308,20 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
+        /// Sends a reset event for the resource.
+        /// </summary>
+        /// <remarks>
+        /// Reset should be sent whenever the resource might have been modified,
+        /// but where the service will not send any other event (including query events)
+        /// to describe these modifications.
+        /// </remarks>
+        public void ResetEvent()
+        {
+            // [TODO] Change to use resource reset event after it is added to RES Service protocol
+            Service.Reset(new[] { ResourceName }, null);
+        }
+
+        /// <summary>
         /// Sends a query event to signal that the query resource's underlying data has been modified.
         /// </summary>
         /// <remarks>

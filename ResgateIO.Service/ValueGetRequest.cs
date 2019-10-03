@@ -39,7 +39,34 @@ namespace ResgateIO.Service
 
         public void NotFound()
         {
-            Error(new ResError(ResError.CodeNotFound, "Not found"));
+            Error(ResError.NotFound);
+        }
+
+        /// <summary>
+        /// Sends a system.invalidQuery response with a default error message.
+        /// </summary>
+        public void InvalidQuery()
+        {
+            Error(ResError.InvalidQuery);
+        }
+
+        /// <summary>
+        /// Sends a system.invalidQuery response with a custom error message.
+        /// </summary>
+        /// <param name="message">Error message.</param>
+        public void InvalidQuery(string message)
+        {
+            Error(new ResError(ResError.CodeInvalidQuery, message));
+        }
+
+        /// <summary>
+        /// Sends a system.invalidQuery response with a custom error message and data.
+        /// </summary>
+        /// <param name="message">Error message.</param>
+        /// <param name="data">Additional data. Must be JSON serializable.</param>
+        public void InvalidQuery(string message, object data)
+        {
+            Error(new ResError(ResError.CodeInvalidQuery, message, data));
         }
 
         public void Model(object model)
@@ -49,10 +76,6 @@ namespace ResgateIO.Service
 
         public void Model(object model, string query)
         {
-            if (!String.IsNullOrEmpty(query) && String.IsNullOrEmpty(Query))
-            {
-                throw new ArgumentException("Query model response on non-query request");
-            }
             reply();
             ValueResult = model;
         }
@@ -64,10 +87,6 @@ namespace ResgateIO.Service
 
         public void Collection(object collection, string query)
         {
-            if (!String.IsNullOrEmpty(query) && String.IsNullOrEmpty(Query))
-            {
-                throw new ArgumentException("Query collection response on non-query request");
-            }
             reply();
             ValueResult = collection;
         }
@@ -106,12 +125,9 @@ namespace ResgateIO.Service
             }
             catch (Exception ex)
             {
-                if (!replied)
-                {
-                    ErrorResult = new ResError(ex);
-                }
-                // Log error as only ResExceptions are considered valid behaviour
+                // Log error and rethrow as only ResExceptions are considered valid behaviour
                 Service.OnError("Error in value get request for {0}: {1}", ResourceName, ex.Message);
+                throw ex;
             }
         }
 

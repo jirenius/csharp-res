@@ -131,6 +131,21 @@ namespace ResgateIO.Service
             Calls.Add(new Call("InvalidParams", new object[] { message, data }));
         }
 
+        public void InvalidQuery()
+        {
+            Calls.Add(new Call("InvalidQuery"));
+        }
+
+        public void InvalidQuery(string message)
+        {
+            Calls.Add(new Call("InvalidQuery", new object[] { message }));
+        }
+
+        public void InvalidQuery(string message, object data)
+        {
+            Calls.Add(new Call("InvalidQuery", new object[] { message, data }));
+        }
+
         public void MethodNotFound()
         {
             Calls.Add(new Call("MethodNotFound"));
@@ -186,6 +201,11 @@ namespace ResgateIO.Service
         }
 
         public void ReaccessEvent()
+        {
+            Calls.Add(new Call("ReaccessEvent"));
+        }
+
+        public void ResetEvent()
         {
             Calls.Add(new Call("ReaccessEvent"));
         }

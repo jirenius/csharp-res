@@ -34,6 +34,7 @@ namespace ResgateIO.Service
         public virtual void AddEvent(object value, int idx) { resource.AddEvent(value, idx); }
         public virtual void RemoveEvent(int idx) { resource.RemoveEvent(idx); }
         public void ReaccessEvent() { resource.ReaccessEvent(); }
+        public void ResetEvent() { resource.ResetEvent(); }
         public void QueryEvent(QueryCallback callback) { resource.QueryEvent(callback); }
         public void CreateEvent(object data) { resource.CreateEvent(data); }
         public void DeleteEvent() { resource.DeleteEvent(); }

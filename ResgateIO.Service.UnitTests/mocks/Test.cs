@@ -32,9 +32,12 @@ namespace ResgateIO.Service.UnitTests
         public const string TokenRole = "foo";
         public const int ParamNumber = 42;
         public const string ParamText = "bar";
+        public const string Query = "zoo=baz&foo=bar";
+        public const string NormalizedQuery = "foo=bar&zoo=baz&limit=10";
         public static readonly TokenDto Token = new TokenDto { Id = TokenId, Role = TokenRole };
         public static readonly ParamsDto Params = new ParamsDto { Number = ParamNumber, Text = ParamText };
         public static readonly byte[] EmptyRequest = Encoding.UTF8.GetBytes("{}");
+        public static readonly RequestDto QueryRequest = new RequestDto { Query = Query };
         public static readonly RequestDto Request = new RequestDto { CID = CID, Token = Token };
         public static readonly RequestDto RequestWithoutToken = new RequestDto { CID = CID };
         public static readonly RequestDto RequestWithParams = new RequestDto { CID = CID, Token = Token, Params = Params };

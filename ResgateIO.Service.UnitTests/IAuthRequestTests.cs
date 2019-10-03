@@ -163,6 +163,42 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Fact]
+        public void InvalidQuery_WithoutMessage_SendsInvalidQueryErrorResponse()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetAuth(r => r.InvalidQuery()));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("auth.test.model.method", Test.RequestWithParams);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertError(ResError.InvalidQuery);
+        }
+
+        [Fact]
+        public void InvalidQuery_WithMessage_SendsInvalidQueryErrorWithMessageResponse()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetAuth(r => r.InvalidQuery(Test.ErrorMessage)));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("auth.test.model.method", Test.RequestWithParams);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertError(ResError.CodeInvalidQuery, Test.ErrorMessage);
+        }
+
+        [Fact]
+        public void InvalidQuery_WithMessageAndData_SendsInvalidQueryErrorWithMessageAndDataResponse()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetAuth(r => r.InvalidQuery(Test.ErrorMessage, Test.ErrorData)));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("auth.test.model.method", Test.RequestWithParams);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertError(ResError.CodeInvalidQuery, Test.ErrorMessage, Test.ErrorData);
+        }
+
+        [Fact]
         public void ParseParams_WithParams_ReturnsParsedParams()
         {
             Service.AddHandler("model", new DynamicHandler().SetAuth(r =>
