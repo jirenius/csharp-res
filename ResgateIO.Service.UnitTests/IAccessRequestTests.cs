@@ -99,6 +99,42 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Fact]
+        public void InvalidQuery_WithoutMessage_SendsInvalidQueryErrorResponse()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetAccess(r => r.InvalidQuery()));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("access.test.model", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertError(ResError.InvalidQuery);
+        }
+
+        [Fact]
+        public void InvalidQuery_WithMessage_SendsInvalidQueryErrorWithMessageResponse()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetAccess(r => r.InvalidQuery(Test.ErrorMessage)));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("access.test.model", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertError(ResError.CodeInvalidQuery, Test.ErrorMessage);
+        }
+
+        [Fact]
+        public void InvalidQuery_WithMessageAndData_SendsInvalidQueryErrorWithMessageAndDataResponse()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetAccess(r => r.InvalidQuery(Test.ErrorMessage, Test.ErrorData)));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("access.test.model", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertError(ResError.CodeInvalidQuery, Test.ErrorMessage, Test.ErrorData);
+        }
+
+        [Fact]
         public void Timeout_WithMilliseconds_SendsPreresponse()
         {
             Service.AddHandler("model", new DynamicHandler().SetAccess(r =>

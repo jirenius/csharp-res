@@ -64,6 +64,42 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Fact]
+        public void InvalidQuery_WithoutMessage_SendsInvalidQueryErrorResponse()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetGet(r => r.InvalidQuery()));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("get.test.model", Test.EmptyRequest);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertError(ResError.InvalidQuery);
+        }
+
+        [Fact]
+        public void InvalidQuery_WithMessage_SendsInvalidQueryErrorWithMessageResponse()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetGet(r => r.InvalidQuery(Test.ErrorMessage)));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("get.test.model", Test.EmptyRequest);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertError(ResError.CodeInvalidQuery, Test.ErrorMessage);
+        }
+
+        [Fact]
+        public void InvalidQuery_WithMessageAndData_SendsInvalidQueryErrorWithMessageAndDataResponse()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetGet(r => r.InvalidQuery(Test.ErrorMessage, Test.ErrorData)));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("get.test.model", Test.EmptyRequest);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertError(ResError.CodeInvalidQuery, Test.ErrorMessage, Test.ErrorData);
+        }
+
+        [Fact]
         public void Timeout_WithMilliseconds_SendsPreresponse()
         {
             Service.AddHandler("model", new DynamicHandler().SetGet(r =>
@@ -239,6 +275,54 @@ namespace ResgateIO.Service.UnitTests
             Conn.GetMsg().AssertSubject(inbox);
             string inbox2 = Conn.NATSRequest("get.test.model", null);
             Conn.GetMsg().AssertSubject(inbox2);
+        }
+
+        [Fact]
+        public void ModelQuery_WithQueryModel_SendsQueryModelResponse()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetGet(r => r.Model(Test.Model, Test.NormalizedQuery)));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("get.test.model", Test.QueryRequest);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(new { model = Test.Model, query = Test.NormalizedQuery });
+        }
+
+        [Fact]
+        public void CollectionQuery_WithQueryCollection_SendsQueryCollectionResponse()
+        {
+            Service.AddHandler("collection", new DynamicHandler().SetGet(r => r.Collection(Test.Collection, Test.NormalizedQuery)));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("get.test.collection", Test.QueryRequest);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(new { collection = Test.Collection, query = Test.NormalizedQuery });
+        }
+
+        [Fact]
+        public void ModelQuery_WithoutQueryModel_SendsQueryModelResponse()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetGet(r => r.Model(Test.Model, Test.NormalizedQuery)));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("get.test.model", Test.EmptyRequest);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(new { model = Test.Model, query = Test.NormalizedQuery });
+        }
+
+        [Fact]
+        public void CollectionQuery_WithoutQueryCollection_SendsQueryCollectionResponse()
+        {
+            Service.AddHandler("collection", new DynamicHandler().SetGet(r => r.Collection(Test.Collection, Test.NormalizedQuery)));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("get.test.collection", Test.EmptyRequest);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(new { collection = Test.Collection, query = Test.NormalizedQuery });
         }
     }
 }

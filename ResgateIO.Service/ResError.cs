@@ -13,6 +13,7 @@ namespace ResgateIO.Service
         public const string CodeAccessDenied = "system.accessDenied";
         public const string CodeInternalError = "system.internalError";
         public const string CodeInvalidParams = "system.invalidParams";
+        public const string CodeInvalidQuery = "system.invalidQuery";
         public const string CodeMethodNotFound = "system.methodNotFound";
         public const string CodeNotFound = "system.notFound";
         public const string CodeTimeout = "system.timeout";
@@ -21,6 +22,7 @@ namespace ResgateIO.Service
         public static readonly ResError AccessDenied = new ResError(CodeAccessDenied, "Not found");
         public static readonly ResError InternalError = new ResError(CodeInternalError, "Internal error");
         public static readonly ResError InvalidParams = new ResError(CodeInvalidParams, "Invalid parameters");
+        public static readonly ResError InvalidQuery = new ResError(CodeInvalidQuery, "Invalid query");
         public static readonly ResError MethodNotFound = new ResError(CodeMethodNotFound, "Method not found");
         public static readonly ResError NotFound = new ResError(CodeNotFound, "Not found");
         public static readonly ResError Timeout = new ResError(CodeTimeout, "Request timeout");

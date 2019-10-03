@@ -232,7 +232,7 @@ namespace ResgateIO.Service
         {
             RawResponse(ResService.ResponseInvalidParams);
         }
-        
+
         /// <summary>
         /// Sends a system.invalidParams response with a custom error message.
         /// </summary>
@@ -256,6 +256,33 @@ namespace ResgateIO.Service
         public void InvalidParams(string message, object data)
         {
             Error(new ResError(ResError.CodeInvalidParams, message, data));
+        }
+
+        /// <summary>
+        /// Sends a system.invalidQuery response with a default error message.
+        /// </summary>
+        public void InvalidQuery()
+        {
+            RawResponse(ResService.ResponseInvalidQuery);
+        }
+
+        /// <summary>
+        /// Sends a system.invalidQuery response with a custom error message.
+        /// </summary>
+        /// <param name="message">Error message.</param>
+        public void InvalidQuery(string message)
+        {
+            Error(new ResError(ResError.CodeInvalidQuery, message));
+        }
+
+        /// <summary>
+        /// Sends a system.invalidQuery response with a custom error message and data.
+        /// </summary>
+        /// <param name="message">Error message.</param>
+        /// <param name="data">Additional data. Must be JSON serializable.</param>
+        public void InvalidQuery(string message, object data)
+        {
+            Error(new ResError(ResError.CodeInvalidQuery, message, data));
         }
 
         /// <summary>
@@ -297,7 +324,6 @@ namespace ResgateIO.Service
                 }
             }
         }
-                    
 
         /// <summary>
         /// Sends a system.accessDenied response.
@@ -333,16 +359,11 @@ namespace ResgateIO.Service
         /// Sends a successful query model response for the get request.
         /// The model must be serializable into a JSON object.
         /// </summary>
-        /// <remarks>Only valid for RequestType.Get requests for a query model resource.</remarks>
+        /// <remarks>Only valid for RequestType.Get requests for a model resource.</remarks>
         /// <param name="model">Model data</param>
         /// <param name="query">Normalized query</param>
         public void Model(object model, string query)
         {
-            if (!String.IsNullOrEmpty(query) && String.IsNullOrEmpty(Query))
-            {
-                throw new ArgumentException("Query model response on non-query request");
-            }
-
             Ok(new ModelDto(model, query));
         }
 
@@ -361,16 +382,11 @@ namespace ResgateIO.Service
         /// Sends a successful query collection response for the get request.
         /// The collection must be serializable into a JSON array.
         /// </summary>
-        /// <remarks>Only valid for RequestType.Get requests for a query collection resource.</remarks>
+        /// <remarks>Only valid for RequestType.Get requests for a collection resource.</remarks>
         /// <param name="collection">Collection data</param>
         /// <param name="query">Normalized query</param>
         public void Collection(object collection, string query)
         {
-            if (!String.IsNullOrEmpty(query) && String.IsNullOrEmpty(Query))
-            {
-                throw new ArgumentException("Query collection response on non-query request");
-            }
-
             Ok(new CollectionDto(collection, query));
         }
 

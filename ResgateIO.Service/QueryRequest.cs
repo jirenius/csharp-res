@@ -61,6 +61,33 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
+        /// Sends a system.invalidQuery response with a default error message.
+        /// </summary>
+        public void InvalidQuery()
+        {
+            RawResponse(ResService.ResponseInvalidQuery);
+        }
+
+        /// <summary>
+        /// Sends a system.invalidQuery response with a custom error message.
+        /// </summary>
+        /// <param name="message">Error message.</param>
+        public void InvalidQuery(string message)
+        {
+            Error(new ResError(ResError.CodeInvalidQuery, message));
+        }
+
+        /// <summary>
+        /// Sends a system.invalidQuery response with a custom error message and data.
+        /// </summary>
+        /// <param name="message">Error message.</param>
+        /// <param name="data">Additional data. Must be JSON serializable.</param>
+        public void InvalidQuery(string message, object data)
+        {
+            Error(new ResError(ResError.CodeInvalidQuery, message, data));
+        }
+
+        /// <summary>
         /// Adds a change event to the query response.
         /// If properties is null or empty, no event is added.
         /// </summary>

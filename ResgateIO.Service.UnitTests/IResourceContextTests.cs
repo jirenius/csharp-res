@@ -231,103 +231,138 @@ namespace ResgateIO.Service.UnitTests
         #endregion
 
         #region Value
-        [Fact]
-        public void Value_WithSameResourceType_ReturnsModel()
+        public static IEnumerable<object[]> GetValueTestData()
         {
-            Service.AddHandler("model", new DynamicHandler()
+            // With Model returns model
+            yield return new object[] {
+                "Model",
+                (Action<IGetRequest>)(r => r.Model(Test.Model)),
+                (Action<IResourceContext>)(r => Assert.Equal(Test.Model, r.Value<ModelDto>()))
+            };
+
+            // With Model with query returns model
+            yield return new object[] {
+                "ModelWithQuery",
+                (Action<IGetRequest>)(r => r.Model(Test.Model, Test.NormalizedQuery)),
+                (Action<IResourceContext>)(r => Assert.Equal(Test.Model, r.Value<ModelDto>()))
+            };
+
+            // With Collection returns collection
+            yield return new object[] {
+                "Collection",
+                (Action<IGetRequest>)(r => r.Collection(Test.Collection)),
+                (Action<IResourceContext>)(r => Assert.Equal(Test.Collection, r.Value<object[]>()))
+            };
+
+            // With Collection with query returns collection
+            yield return new object[] {
+                "CollectionWithQuery",
+                (Action<IGetRequest>)(r => r.Collection(Test.Collection, Test.NormalizedQuery)),
+                (Action<IResourceContext>)(r => Assert.Equal(Test.Collection, r.Value<object[]>()))
+            };
+
+            // With Error returns null
+            yield return new object[] {
+                "Error",
+                (Action<IGetRequest>)(r => r.Error(Test.CustomError)),
+                (Action<IResourceContext>)(r => Assert.Null(r.Value<ModelDto>()))
+            };
+
+            // With NotFound returns null
+            yield return new object[] {
+                "NotFound",
+                (Action<IGetRequest>)(r => r.NotFound()),
+                (Action<IResourceContext>)(r => Assert.Null(r.Value<ModelDto>()))
+            };
+
+            // With InvalidQuery returns null
+            yield return new object[] {
+                "InvalidQuery",
+                (Action<IGetRequest>)(r => r.InvalidQuery()),
+                (Action<IResourceContext>)(r => Assert.Null(r.Value<ModelDto>()))
+            };
+
+            // With InvalidQuery with message returns null
+            yield return new object[] {
+                "InvalidQuery_WithMessage",
+                (Action<IGetRequest>)(r => r.InvalidQuery(Test.ErrorMessage)),
+                (Action<IResourceContext>)(r => Assert.Null(r.Value<ModelDto>()))
+            };
+
+            // With InvalidQuery with message and data returns null
+            yield return new object[] {
+                "InvalidQuery_WithMessageAndData",
+                (Action<IGetRequest>)(r => r.InvalidQuery(Test.ErrorMessage, Test.ErrorData)),
+                (Action<IResourceContext>)(r => Assert.Null(r.Value<ModelDto>()))
+            };
+
+            // With different resource type throws InvalidCastException
+            yield return new object[] {
+                "Model_WithDifferentResourceType",
+                (Action<IGetRequest>)(r => r.Model(new { id = 42, foo = "bar" })),
+                (Action<IResourceContext>)(r => Assert.Throws<InvalidCastException>(() => r.Value<ModelDto>()))
+            };
+
+            // Calling Value throws InvalidOperationException
+            yield return new object[] {
+                "Value",
+                (Action<IGetRequest>)(r => r.Value<ModelDto>()),
+                (Action<IResourceContext>)(r => Assert.Throws<InvalidOperationException>(() => r.Value<ModelDto>()))
+            };
+
+            // Calling RequireValue throws InvalidOperationException
+            yield return new object[] {
+                "RequireValue",
+                (Action<IGetRequest>)(r => r.RequireValue<ModelDto>()),
+                (Action<IResourceContext>)(r => Assert.Throws<InvalidOperationException>(() => r.Value<ModelDto>()))
+            };
+
+            // With Timeout_Int and Model returns model
+            yield return new object[] {
+                "Model_WithTimeout_Int",
+                (Action<IGetRequest>)(r => { r.Timeout(5000); r.Model(Test.Model); }),
+                (Action<IResourceContext>)(r => Assert.Equal(Test.Model, r.Value<ModelDto>()))
+            };
+
+            // With Timeout_Timespan and Model returns model
+            yield return new object[] {
+                "Model_WithTimeout_TimeSpan",
+                (Action<IGetRequest>)(r => { r.Timeout(TimeSpan.FromSeconds(5)); r.Model(Test.Model); }),
+                (Action<IResourceContext>)(r => Assert.Equal(Test.Model, r.Value<ModelDto>()))
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(GetValueTestData))]
+        public void Value_UsingCall_ReturnsCorrectValue(string resourceName, Action<IGetRequest> getHandler, Action<IResourceContext> assertion)
+        {
+            Service.AddHandler(resourceName, new DynamicHandler()
                 .SetCall(r =>
                 {
-                    Assert.Equal(Test.Model, r.Value<ModelDto>());
+                    assertion(r);
                     r.Ok();
                 })
-                .SetGet(r => r.Model(Test.Model))
+                .SetGet(getHandler)
            );
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
-            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            string inbox = Conn.NATSRequest("call.test."+resourceName+".method", Test.Request);
             Conn.GetMsg()
                 .AssertSubject(inbox)
                 .AssertResult(null);
         }
 
-        [Fact]
-        public void Value_WithSameResourceTypeUsingWith_ReturnsModel()
+        [Theory]
+        [MemberData(nameof(GetValueTestData))]
+        public void Value_UsingWith_ReturnsCorrectValue(string resourceName, Action<IGetRequest> getHandler, Action<IResourceContext> assertion)
         {
             AutoResetEvent ev = new AutoResetEvent(false);
-            Service.AddHandler("model", new DynamicHandler().SetGet(r => r.Model(Test.Model)));
+            Service.AddHandler(resourceName, new DynamicHandler().SetGet(getHandler));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
-            Service.With("test.model", r =>
+            Service.With("test."+resourceName, r =>
             {
-                Assert.Equal(Test.Model, r.Value<ModelDto>());
-                ev.Set();
-            });
-            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
-        }
-
-        [Fact]
-        public void Value_WithNotFound_ReturnsNull()
-        {
-            Service.AddHandler("model", new DynamicHandler()
-                .SetCall(r =>
-                {
-                    Assert.Null(r.Value<ModelDto>());
-                    r.Ok();
-                })
-                .SetGet(r => r.NotFound())
-           );
-            Service.Serve(Conn);
-            Conn.GetMsg().AssertSubject("system.reset");
-            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
-            Conn.GetMsg()
-                .AssertSubject(inbox)
-                .AssertResult(null);
-        }
-
-        [Fact]
-        public void Value_WithNotFoundUsingWith_ReturnsModel()
-        {
-            AutoResetEvent ev = new AutoResetEvent(false);
-            Service.AddHandler("model", new DynamicHandler().SetGet(r => r.NotFound()));
-            Service.Serve(Conn);
-            Conn.GetMsg().AssertSubject("system.reset");
-            Service.With("test.model", r =>
-            {
-                Assert.Null(r.Value<ModelDto>());
-                ev.Set();
-            });
-            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
-        }
-
-        [Fact]
-        public void Value_WithDifferentResourceType_ThrowsInvalidCastException()
-        {
-            Service.AddHandler("model", new DynamicHandler()
-                .SetCall(r =>
-                {
-                    Assert.Throws<InvalidCastException>(() => r.Value<ModelDto>());
-                    r.Ok();
-                })
-                .SetGet(r => r.Model(new { id = 42, foo = "bar" }))
-           );
-            Service.Serve(Conn);
-            Conn.GetMsg().AssertSubject("system.reset");
-            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
-            Conn.GetMsg()
-                .AssertSubject(inbox)
-                .AssertResult(null);
-        }
-
-        [Fact]
-        public void Value_WithDifferentResourceTypeUsingWith_ThrowsInvalidCastException()
-        {
-            AutoResetEvent ev = new AutoResetEvent(false);
-            Service.AddHandler("model", new DynamicHandler().SetGet(r => r.Model(new { id = 42, foo = "bar" })));
-            Service.Serve(Conn);
-            Conn.GetMsg().AssertSubject("system.reset");
-            Service.With("test.model", r =>
-            {
-                Assert.Throws<InvalidCastException>(() => r.Value<ModelDto>());
+                assertion(r);
                 ev.Set();
             });
             Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
@@ -335,103 +370,138 @@ namespace ResgateIO.Service.UnitTests
         #endregion
 
         #region RequireValue
-        [Fact]
-        public void RequireValue_WithSameResourceType_ReturnsModel()
+        public static IEnumerable<object[]> GetRequireValueTestData()
         {
-            Service.AddHandler("model", new DynamicHandler()
+            // With Model returns model
+            yield return new object[] {
+                "Model",
+                (Action<IGetRequest>)(r => r.Model(Test.Model)),
+                (Action<IResourceContext>)(r => Assert.Equal(Test.Model, r.RequireValue<ModelDto>()))
+            };
+
+            // With Model with query returns model
+            yield return new object[] {
+                "ModelWithQuery",
+                (Action<IGetRequest>)(r => r.Model(Test.Model, Test.NormalizedQuery)),
+                (Action<IResourceContext>)(r => Assert.Equal(Test.Model, r.RequireValue<ModelDto>()))
+            };
+
+            // With Collection returns collection
+            yield return new object[] {
+                "Collection",
+                (Action<IGetRequest>)(r => r.Collection(Test.Collection)),
+                (Action<IResourceContext>)(r => Assert.Equal(Test.Collection, r.RequireValue<object[]>()))
+            };
+
+            // With Collection with query returns collection
+            yield return new object[] {
+                "CollectionWithQuery",
+                (Action<IGetRequest>)(r => r.Collection(Test.Collection, Test.NormalizedQuery)),
+                (Action<IResourceContext>)(r => Assert.Equal(Test.Collection, r.RequireValue<object[]>()))
+            };
+
+            // With Error returns throws ResException
+            yield return new object[] {
+                "Error",
+                (Action<IGetRequest>)(r => r.Error(Test.CustomError)),
+                (Action<IResourceContext>)(r => Assert.Throws<ResException>(() => r.RequireValue<ModelDto>()))
+            };
+
+            // With NotFound throws ResException
+            yield return new object[] {
+                "NotFound",
+                (Action<IGetRequest>)(r => r.NotFound()),
+                (Action<IResourceContext>)(r => Assert.Throws<ResException>(() => r.RequireValue<ModelDto>()))
+            };
+
+            // With InvalidQuery returns null
+            yield return new object[] {
+                "InvalidQuery",
+                (Action<IGetRequest>)(r => r.InvalidQuery()),
+                (Action<IResourceContext>)(r => Assert.Throws<ResException>(() => r.RequireValue<ModelDto>()))
+            };
+
+            // With InvalidQuery with message returns null
+            yield return new object[] {
+                "InvalidQuery_WithMessage",
+                (Action<IGetRequest>)(r => r.InvalidQuery(Test.ErrorMessage)),
+                (Action<IResourceContext>)(r => Assert.Throws<ResException>(() => r.RequireValue<ModelDto>()))
+            };
+
+            // With InvalidQuery with message and data returns null
+            yield return new object[] {
+                "InvalidQuery_WithMessageAndData",
+                (Action<IGetRequest>)(r => r.InvalidQuery(Test.ErrorMessage, Test.ErrorData)),
+                (Action<IResourceContext>)(r => Assert.Throws<ResException>(() => r.RequireValue<ModelDto>()))
+            };
+
+            // With different resource type throws InvalidCastException
+            yield return new object[] {
+                "Model_WithDifferentResourceType",
+                (Action<IGetRequest>)(r => r.Model(new { id = 42, foo = "bar" })),
+                (Action<IResourceContext>)(r => Assert.Throws<InvalidCastException>(() => r.RequireValue<ModelDto>()))
+            };
+
+            // Calling Value throws InvalidOperationException
+            yield return new object[] {
+                "Value",
+                (Action<IGetRequest>)(r => r.Value<ModelDto>()),
+                (Action<IResourceContext>)(r => Assert.Throws<InvalidOperationException>(() => r.RequireValue<ModelDto>()))
+            };
+
+            // Calling RequireValue throws InvalidOperationException
+            yield return new object[] {
+                "RequireValue",
+                (Action<IGetRequest>)(r => r.RequireValue<ModelDto>()),
+                (Action<IResourceContext>)(r => Assert.Throws<InvalidOperationException>(() => r.RequireValue<ModelDto>()))
+            };
+
+            // With Timeout_Int and Model returns model
+            yield return new object[] {
+                "Model_WithTimeout_Int",
+                (Action<IGetRequest>)(r => { r.Timeout(5000); r.Model(Test.Model); }),
+                (Action<IResourceContext>)(r => Assert.Equal(Test.Model, r.RequireValue<ModelDto>()))
+            };
+
+            // With Timeout_Timespan and Model returns model
+            yield return new object[] {
+                "Model_WithTimeout_TimeSpan",
+                (Action<IGetRequest>)(r => { r.Timeout(TimeSpan.FromSeconds(5)); r.Model(Test.Model); }),
+                (Action<IResourceContext>)(r => Assert.Equal(Test.Model, r.RequireValue<ModelDto>()))
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(GetRequireValueTestData))]
+        public void RequireValue_UsingCall_ReturnsCorrectValue(string resourceName, Action<IGetRequest> getHandler, Action<IResourceContext> assertion)
+        {
+            Service.AddHandler(resourceName, new DynamicHandler()
                 .SetCall(r =>
                 {
-                    Assert.Equal(Test.Model, r.RequireValue<ModelDto>());
+                    assertion(r);
                     r.Ok();
                 })
-                .SetGet(r => r.Model(Test.Model))
+                .SetGet(getHandler)
            );
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
-            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            string inbox = Conn.NATSRequest("call.test."+resourceName+".method", Test.Request);
             Conn.GetMsg()
                 .AssertSubject(inbox)
                 .AssertResult(null);
         }
 
-        [Fact]
-        public void RequireValue_WithSameResourceTypeUsingWith_ReturnsModel()
+        [Theory]
+        [MemberData(nameof(GetRequireValueTestData))]
+        public void RequireValue_UsingWith_ReturnsCorrectValue(string resourceName, Action<IGetRequest> getHandler, Action<IResourceContext> assertion)
         {
             AutoResetEvent ev = new AutoResetEvent(false);
-            Service.AddHandler("model", new DynamicHandler().SetGet(r => r.Model(Test.Model)));
+            Service.AddHandler(resourceName, new DynamicHandler().SetGet(getHandler));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
-            Service.With("test.model", r =>
+            Service.With("test."+ resourceName, r =>
             {
-                Assert.Equal(Test.Model, r.RequireValue<ModelDto>());
-                ev.Set();
-            });
-            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
-        }
-
-        [Fact]
-        public void RequireValue_WithNotFound_ThrowsResException()
-        {
-            Service.AddHandler("model", new DynamicHandler()
-                .SetCall(r =>
-                {
-                    Assert.Throws<ResException>(() => r.RequireValue<ModelDto>());
-                    r.Ok();
-                })
-                .SetGet(r => r.NotFound())
-           );
-            Service.Serve(Conn);
-            Conn.GetMsg().AssertSubject("system.reset");
-            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
-            Conn.GetMsg()
-                .AssertSubject(inbox)
-                .AssertResult(null);
-        }
-
-        [Fact]
-        public void RequireValue_WithNotFoundUsingWith_ThrowsResException()
-        {
-            AutoResetEvent ev = new AutoResetEvent(false);
-            Service.AddHandler("model", new DynamicHandler().SetGet(r => r.NotFound()));
-            Service.Serve(Conn);
-            Conn.GetMsg().AssertSubject("system.reset");
-            Service.With("test.model", r =>
-            {
-                Assert.Throws<ResException>(() => r.RequireValue<ModelDto>());
-                ev.Set();
-            });
-            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
-        }
-
-        [Fact]
-        public void RequireValue_WithDifferentResourceType_ThrowsInvalidCastException()
-        {
-            Service.AddHandler("model", new DynamicHandler()
-                .SetCall(r =>
-                {
-                    Assert.Throws<InvalidCastException>(() => r.RequireValue<ModelDto>());
-                    r.Ok();
-                })
-                .SetGet(r => r.Model(new { id = 42, foo = "bar" }))
-           );
-            Service.Serve(Conn);
-            Conn.GetMsg().AssertSubject("system.reset");
-            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
-            Conn.GetMsg()
-                .AssertSubject(inbox)
-                .AssertResult(null);
-        }
-
-        [Fact]
-        public void RequireValue_WithDifferentResourceTypeUsingWith_ThrowsInvalidCastException()
-        {
-            AutoResetEvent ev = new AutoResetEvent(false);
-            Service.AddHandler("model", new DynamicHandler().SetGet(r => r.Model(new { id = 42, foo = "bar" })));
-            Service.Serve(Conn);
-            Conn.GetMsg().AssertSubject("system.reset");
-            Service.With("test.model", r =>
-            {
-                Assert.Throws<InvalidCastException>(() => r.RequireValue<ModelDto>());
+                assertion(r);
                 ev.Set();
             });
             Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
@@ -926,6 +996,44 @@ namespace ResgateIO.Service.UnitTests
             Conn.GetMsg()
                 .AssertSubject("event.test.model.reaccess")
                 .AssertNoPayload();
+        }
+        #endregion
+
+        #region ResetEvent
+        [Fact]
+        public void ResetEvent_UsingRequest_SendsSystemResetEvent()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            {
+                r.ResetEvent();
+                r.Ok();
+            }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject("system.reset")
+                .AssertPayload(new { resources = new[] { "test.model" } });
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(null);
+        }
+
+        [Fact]
+        public void ResetEvent_UsingWith_SendsSystemResetEvent()
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler("model", new DynamicHandler());
+            Service.Serve(Conn);
+            Service.With("test.model", r =>
+            {
+                r.ResetEvent();
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+            Conn.GetMsg()
+                .AssertSubject("system.reset")
+                .AssertPayload(new { resources = new[] { "test.model" } });
         }
         #endregion
 

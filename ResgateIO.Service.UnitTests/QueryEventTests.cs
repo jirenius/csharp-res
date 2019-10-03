@@ -143,6 +143,21 @@ namespace ResgateIO.Service.UnitTests
                 ResError.NotFound
             };
             yield return new object[] {
+                "foo=invalidQuery",
+                (QueryCallback)(r => r?.InvalidQuery()),
+                ResError.InvalidQuery
+            };
+            yield return new object[] {
+                "foo=invalidQuery_with_message",
+                (QueryCallback)(r => r?.InvalidQuery(Test.ErrorMessage)),
+                new ResError(ResError.CodeInvalidQuery, Test.ErrorMessage)
+            };
+            yield return new object[] {
+                "foo=invalidQuery_with_message_and_data",
+                (QueryCallback)(r => r?.InvalidQuery(Test.ErrorMessage, Test.ErrorData)),
+                new ResError(ResError.CodeInvalidQuery, Test.ErrorMessage, Test.ErrorData)
+            };
+            yield return new object[] {
                 "foo=error",
                 (QueryCallback)(r => r?.Error(Test.CustomError)),
                 Test.CustomError
