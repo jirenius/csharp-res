@@ -71,7 +71,7 @@ namespace ResgateIO.Service
             Msg msg = e.Message;
             String subj = msg.Subject;
 
-            Service.Log.Trace(String.Format("Q=> {0}: {1}", subj, Encoding.UTF8.GetString(msg.Data)));
+            Service.Log.Trace("Q=> {0}: {1}", subj, Encoding.UTF8.GetString(msg.Data));
 
             Resource.Service.With(Resource, () =>
             {

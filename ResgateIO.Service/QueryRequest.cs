@@ -142,7 +142,7 @@ namespace ResgateIO.Service
             }
 
             var str = "timeout:\"" + milliseconds.ToString() + "\"";
-            Log.Trace(String.Format("<-- {0}: {1}", msg.Subject, str));
+            Log.Trace("<-- {0}: {1}", msg.Subject, str);
             Service.RawSend(msg.Reply, Encoding.UTF8.GetBytes(str));
         }
 
@@ -173,7 +173,7 @@ namespace ResgateIO.Service
                 throw new InvalidOperationException("Response already sent on query request");
             }
             Replied = true;
-            Log.Trace(String.Format("<=Q {0}: {1}", ResourceName, Encoding.UTF8.GetString(data)));
+            Log.Trace("<=Q {0}: {1}", ResourceName, Encoding.UTF8.GetString(data));
             try
             {
                 Service.RawSend(msg.Reply, data);

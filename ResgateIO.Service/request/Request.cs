@@ -134,7 +134,7 @@ namespace ResgateIO.Service
                 throw new InvalidOperationException("Response already sent on request");
             }
             replied = true;
-            Log.Trace(String.Format("<== {0}: {1}", msg.Subject, Encoding.UTF8.GetString(data)));
+            Log.Trace("<== {0}: {1}", msg.Subject, Encoding.UTF8.GetString(data));
             Service.RawSend(msg.Reply, data);
         }
 
@@ -535,7 +535,7 @@ namespace ResgateIO.Service
             }
 
             var str = "timeout:\"" + milliseconds.ToString() + "\"";
-            Log.Trace(String.Format("<-- {0}: {1}", msg.Subject, str));
+            Log.Trace("<-- {0}: {1}", msg.Subject, str);
             Service.RawSend(msg.Reply, Encoding.UTF8.GetBytes(str));
         }
 
