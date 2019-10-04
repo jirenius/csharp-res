@@ -221,10 +221,11 @@ namespace ResgateIO.Service
                     opts.Name = Pattern;
                 }
 
-                Log.Info("Connecting to NATS server");
+                Log.Info("Connecting to NATS server at {0}", url);
                 Connection = new ConnectionFactory().CreateConnection(opts);
                 cleanupActions.Push(() =>
                 {
+                    Log.Debug("Disposing NATS connection");
                     Connection.Dispose();
                     Connection = null;
                 });
@@ -351,11 +352,13 @@ namespace ResgateIO.Service
         {
             Log.Info("Starting service");
 
+            Log.Debug("Registering NATS event handlers");
             Connection.Opts.ReconnectedEventHandler += onReconnect;
             Connection.Opts.DisconnectedEventHandler += onDisconnect;
             Connection.Opts.ClosedEventHandler += onClosed;
             cleanupActions.Push(() =>
             {
+                Log.Debug("Unregistering NATS event handlers");
                 Connection.Opts.ReconnectedEventHandler -= onReconnect;
                 Connection.Opts.DisconnectedEventHandler -= onDisconnect;
                 Connection.Opts.ClosedEventHandler -= onClosed;
@@ -377,11 +380,11 @@ namespace ResgateIO.Service
             activeWorkers = new CountdownEvent(1);
             cleanupActions.Push(() =>
             {
+                Log.Debug("Waiting for {0} task worker(s)", activeWorkers.CurrentCount - 1);
                 activeWorkers.Signal();
                 if (!activeWorkers.Wait(shutdownTimeout))
-                {
-                    OnError("Timed out waiting for {0} worker thread(s) to finish.", activeWorkers.CurrentCount);
-                }
+                    OnError("Timed out waiting for {0} task worker(s) to finish", activeWorkers.CurrentCount);
+                
                 activeWorkers.Dispose();
                 queryTimerQueue.Dispose();
                 rwork = null;
@@ -416,14 +419,26 @@ namespace ResgateIO.Service
             {
                 foreach (string p in resetResources)
                 {
-                    var sub = Connection.SubscribeAsync(type + "." + p, handleMessage);
-                    cleanupActions.Push(() => sub.Unsubscribe());
+                    var subject = type + "." + p;
+                    Log.Debug("Subscribing to {0}", subject);
+                    var sub = Connection.SubscribeAsync(subject, handleMessage);
+                    cleanupActions.Push(() =>
+                    {
+                        Log.Debug("Unsubscribing to {0}", sub.Subject);
+                        sub.Unsubscribe();
+                    });
                 }
             }
             foreach (string p in resetAccess)
             {
-                var sub = Connection.SubscribeAsync("access." + p, handleMessage);
-                cleanupActions.Push(() => sub.Unsubscribe());
+                var subject = "access." + p;
+                Log.Debug("Subscribing to {0}", subject);
+                var sub = Connection.SubscribeAsync(subject, handleMessage);
+                cleanupActions.Push(() =>
+                {
+                    Log.Debug("Unsubscribing to {0}", sub.Subject);
+                    sub.Unsubscribe();
+                });
             }
         }
 
@@ -432,7 +447,7 @@ namespace ResgateIO.Service
             Msg msg = e.Message;
             String subj = msg.Subject;
 
-            Log.Trace(String.Format("==> {0}: {1}", subj, msg.Data == null ? "<null>" : Encoding.UTF8.GetString(msg.Data)));
+            Log.Trace("==> {0}: {1}", subj, msg.Data == null ? "<null>" : Encoding.UTF8.GetString(msg.Data));
 
             // Assert there is a reply subject
             if (String.IsNullOrEmpty(msg.Reply))
@@ -569,12 +584,12 @@ namespace ResgateIO.Service
                 {
                     string json = JsonConvert.SerializeObject(payload);
                     byte[] data = Encoding.UTF8.GetBytes(json);
-                    Log.Trace(String.Format("<-- {0}: {1}", subject, json));
+                    Log.Trace("<-- {0}: {1}", subject, json);
                     RawSend(subject, data);
                 }
                 else
                 {
-                    Log.Trace(String.Format("<-- {0}", subject));
+                    Log.Trace("<-- {0}", subject);
                     RawSend(subject, EmptyData);
                 }
             }
@@ -614,9 +629,11 @@ namespace ResgateIO.Service
 
         internal void OnError(string format, params object[] args)
         {
-            var msg = String.Format(format, args);
-            Log.Error(msg);
-            Error?.Invoke(this, new ErrorEventArgs(msg));
+            Log.Error(format, args);
+            if (Error != null)
+            {
+                Error.Invoke(this, new ErrorEventArgs(String.Format(format, args)));
+            }
         }
 
         private void onQueryEventExpire(QueryEvent queryEvent)
