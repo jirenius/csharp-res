@@ -149,7 +149,7 @@ namespace Search
 
         private void populateDBWithDefaultData()
         {
-            List<Customer> list = JsonConvert.DeserializeObject<List<Customer>>(File.ReadAllText(@"mock_customers.json"));
+            List<Customer> list = JsonConvert.DeserializeObject<List<Customer>>(File.ReadAllText(@"mock_customers.json", System.Text.Encoding.UTF8));
             customers.InsertBulk(list);
         }
     }

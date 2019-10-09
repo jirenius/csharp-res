@@ -1,6 +1,9 @@
 ﻿using LiteDB;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using ResgateIO.Service;
 using System;
+using System.IO;
 
 namespace Search
 {
@@ -8,6 +11,10 @@ namespace Search
     {
         static void Main(string[] args)
         {
+            // Start a simple webserver to serve the client.
+            // This is only for the purpose of making the example easier to run.
+            StartWebserver();
+
             var service = new ResService("search");
             
             // Open or create the database
@@ -26,6 +33,17 @@ namespace Search
                 Console.WriteLine("Trying to shut down");
                 service.Shutdown();
             }
+        }
+
+        static void StartWebserver()
+        {
+            var host = new WebHostBuilder()
+                .UseKestrel()
+                .UseWebRoot(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"))
+                .Configure(x => x.UseFileServer())
+                .UseUrls("http://localhost:8083")
+                .Build();
+            host.RunAsync();
         }
     }
 }
