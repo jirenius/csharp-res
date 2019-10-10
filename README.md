@@ -31,8 +31,9 @@ service.Serve("nats://127.0.0.1:4222");
 
 | Example | Description
 | --- | ---
-| [Hello World](examples/HelloWorld/) | Single text field that is updated in real time.
+| [Edit Text](examples/HelloWorld/) | Single text field that is updated in real time.
 | [Book Collection](examples/BookCollection/) | List of book titles & authors that can be edited by many.
+| [Search](examples/Search/) | Make live queries against a large customer database.
 
 > **Note**
 >

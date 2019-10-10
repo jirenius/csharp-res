@@ -2,7 +2,7 @@
 using ResgateIO.Service;
 using System.Collections.Generic;
 
-namespace HelloWorld
+namespace TextService
 {
     class MyModelHandler : ModelHandler
     {
@@ -12,7 +12,7 @@ namespace HelloWorld
             public string Message;
         }
 
-        // The model we will serve as "example.mymodel" or GET /api/example/mymodel
+        // The model we will serve as "text.mymodel" or GET /api/text/mymodel
         private readonly MyModel myModel = new MyModel { Message = "Hello, C# World!" };
         
         public override void Get(IModelRequest request)

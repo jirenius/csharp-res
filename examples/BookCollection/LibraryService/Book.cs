@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 
-namespace BookCollection
+namespace LibraryService
 {
     class Book
     {

@@ -1,7 +1,7 @@
 ﻿using ResgateIO.Service;
 using System;
 
-namespace BookCollection
+namespace LibraryService
 {
     internal class BookCollectionHandler : CollectionHandler
     {

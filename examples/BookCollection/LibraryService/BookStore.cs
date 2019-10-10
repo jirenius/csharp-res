@@ -1,7 +1,7 @@
 ﻿using ResgateIO.Service;
 using System.Collections.Generic;
 
-namespace BookCollection
+namespace LibraryService
 {
     static class BookStore
     {
