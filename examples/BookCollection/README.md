@@ -1,33 +1,31 @@
 # Book Collection Example
 
-This is an example RES service that shows a lists of books, where book titles can be added,
-edited and deleted by multiple users simultaneously.
-* It exposes a collection, `library.books`, containing book model references.
-* It exposes book models, `library.book.<BOOK_ID>`, of each book.
-* It allows setting the books' *title* and *author* property through the `set` method.
-* It allows creating new books that are added to the collection with the `new` method.
-* It allows deleting existing books from the collection with the `delete` method.
-* It verifies that a *title* and *author* is always set.
-* It resets the collection and models on server restart.
+**Tags:** *Models*, *Collections*, *Linked resources*, *Call methods*, *Resource parameters*
+
+## Description
+A simple library management system, listing books by title and author. Books can be edited, added, or deleted by multiple users simultaneously.
 
 ## Prerequisite
 
-* Have [NATS Server](https://nats.io/download/nats-io/gnatsd/) and [Resgate](https://github.com/resgateio/resgate) running
+* [Install](https://resgate.io/docs/get-started/installation/) *NATS Server* and *Resgate* (done with 3 docker commands).
 
 ## Install and run
 
-Clone csharp-res repository:
 ```text
 git clone https://github.com/jirenius/csharp-res
 ```
-Open the solution, `ResgateIO.Service.sln`, in Visual Studio 2017.
+Open the solution, `examples\BookCollection\BookCollection.sln`, in Visual Studio 2017.
 
-In the *Solution Explorer*, right click *BookCollection* and choose *Set as StartUp Project*. Press F5 to build and run.
+Set *multiple startup projects* with the projects below ([how to](https://docs.microsoft.com/en-us/visualstudio/ide/how-to-set-multiple-startup-projects?view=vs-2019)). Press F5 to build and run.
+
+  * *LibraryService*
+  * *WebClient*
 
 Open the client
 ```text
-http://localhost:8082
+http://localhost:8081
 ```
+
 
 ## Things to try out
 
@@ -35,13 +33,24 @@ http://localhost:8082
 Run the client in two separate tabs to observe realtime updates.
 
 **System reset**  
-Run the client and make some changes. Restart the node.js server to observe resetting of resources in clients.
+Run the client and make some changes. Restart the service to observe resetting of resources in clients.
 
 **Resynchronization**  
 Run the client on two separate devices. Disconnect one device, then make changes with the other. Reconnect the first device to observe resynchronization.
 
+## API
 
-## Web resources
+Request | Resource | Description
+--- | --- | ---
+*get* | `library.books` | Collection of book model references.
+*call* | `library.books.new` | Creates a new book.
+*get* | `library.book.<BOOK_ID>` | Models representing books.
+*call* | `library.book.<BOOK_ID>.set` | Sets the books' *title* and *author* properties.
+*call* | `library.book.<BOOK_ID>.delete` | Deletes a book.
+
+## REST API
+
+Resources can be retrieved using ordinary HTTP GET requests, and methods can be called using HTTP POST requests.
 
 ### Get book collection
 ```
