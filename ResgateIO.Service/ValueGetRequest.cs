@@ -8,8 +8,10 @@ using Newtonsoft.Json.Linq;
 
 namespace ResgateIO.Service
 {
-    internal class ValueGetRequest: ResourceDecorator, IGetRequest, IModelRequest, ICollectionRequest
+    internal class ValueGetRequest: ResourceDecorator, IRequest
     {
+        private const string invalidError = "Method call invalid within get request handler";
+
         public object ValueResult { get; private set; }
         public ResError ErrorResult { get; private set; }
 
@@ -103,13 +105,31 @@ namespace ResgateIO.Service
 
         public bool ForValue { get { return true; } }
 
+        public RequestType Type => throw new InvalidOperationException(invalidError);
+
+        public string Method => throw new InvalidOperationException(invalidError);
+
+        public string CID => throw new InvalidOperationException(invalidError);
+
+        public JToken Token => throw new InvalidOperationException(invalidError);
+
+        public JToken Params => throw new InvalidOperationException(invalidError);
+
+        public Dictionary<string, string[]> Header => throw new InvalidOperationException(invalidError);
+
+        public string Host => throw new InvalidOperationException(invalidError);
+
+        public string RemoteAddr => throw new InvalidOperationException(invalidError);
+
+        public string URI => throw new InvalidOperationException(invalidError);
+
         internal void ExecuteHandler()
         {
             try
             {
                 if (Handler.EnabledHandlers.HasFlag(HandlerTypes.Get))
                 {
-                    Handler.Get(this);
+                    Handler.Handle(this);
                 }
             }
             catch (ResException ex)
@@ -138,6 +158,76 @@ namespace ResgateIO.Service
                 throw new InvalidOperationException("Response already sent on request");
             }
             replied = true;
+        }
+
+        public void RawResponse(byte[] data)
+        {
+            throw new InvalidOperationException(invalidError);
+        }
+
+        public void Access(bool get, string call)
+        {
+            throw new InvalidOperationException(invalidError);
+        }
+
+        public void AccessDenied()
+        {
+            throw new InvalidOperationException(invalidError);
+        }
+
+        public void AccessGranted()
+        {
+            throw new InvalidOperationException(invalidError);
+        }
+
+        public T ParseToken<T>()
+        {
+            throw new InvalidOperationException(invalidError);
+        }
+
+        public void Ok()
+        {
+            throw new InvalidOperationException(invalidError);
+        }
+
+        public void Ok(object result)
+        {
+            throw new InvalidOperationException(invalidError);
+        }
+
+        public void MethodNotFound()
+        {
+            throw new InvalidOperationException(invalidError);
+        }
+
+        public void InvalidParams()
+        {
+            throw new InvalidOperationException(invalidError);
+        }
+
+        public void InvalidParams(string message)
+        {
+            throw new InvalidOperationException(invalidError);
+        }
+
+        public void InvalidParams(string message, object data)
+        {
+            throw new InvalidOperationException(invalidError);
+        }
+
+        public T ParseParams<T>()
+        {
+            throw new InvalidOperationException(invalidError);
+        }
+
+        public void TokenEvent(object token)
+        {
+            throw new InvalidOperationException(invalidError);
+        }
+
+        public void New(Ref rid)
+        {
+            throw new InvalidOperationException(invalidError);
         }
     }
 }

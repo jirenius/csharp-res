@@ -2,18 +2,19 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace ResgateIO.Service
 {
     internal class QueryEvent
     {
         public IResourceContext Resource { get; }
-        private QueryCallback callback;
+        private Func<IQueryRequest, Task> callback;
         private IAsyncSubscription subscription;
 
         private ResService Service { get { return Resource.Service; } }
 
-        public QueryEvent(IResourceContext resource, QueryCallback callback)
+        public QueryEvent(IResourceContext resource, Func<IQueryRequest, Task> callback)
         {
             Resource = resource;
             this.callback = callback;
@@ -49,7 +50,7 @@ namespace ResgateIO.Service
             Resource.Service.With(Resource, closeCallback);
         }
 
-        private void closeCallback()
+        private async Task closeCallback()
         {
             if (callback == null)
             {
@@ -57,7 +58,7 @@ namespace ResgateIO.Service
             }
             try
             {
-                callback(null);
+                await callback(null);
             }
             catch (Exception ex)
             {

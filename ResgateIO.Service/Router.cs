@@ -155,7 +155,7 @@ namespace ResgateIO.Service
         /// </summary>
         internal class Node
         {
-            public IResourceHandler Handler;
+            public IAsyncHandler Handler;
             public Group Group;
             public List<PathParam> Params;
             public Dictionary<string, Node> Nodes;
@@ -197,7 +197,7 @@ namespace ResgateIO.Service
             /// <summary>
             /// Registered handler.
             /// </summary>
-            public IResourceHandler Handler { get; }
+            public IAsyncHandler Handler { get; }
 
             /// <summary>
             /// Multicast delegate handler for registered event listeners.
@@ -216,7 +216,7 @@ namespace ResgateIO.Service
 
             private Node node;
 
-            internal Match(IResourceHandler handler, EventHandler eventHandler, Dictionary<string, string> pathParams, string group)
+            internal Match(IAsyncHandler handler, EventHandler eventHandler, Dictionary<string, string> pathParams, string group)
             {
                 Handler = handler;
                 EventHandler = eventHandler;
@@ -280,7 +280,7 @@ namespace ResgateIO.Service
         /// </summary>
         /// <remarks>The resource uses its own pattern as group pattern.</remarks>
         /// <param name="handler">Resource handler.</param>
-        public void AddHandler(IResourceHandler handler)
+        public void AddHandler(IAsyncHandler handler)
         {
             AddHandler(
                 GetHandlerAttribute<ResourcePatternAttribute>(handler)?.Pattern,
@@ -309,7 +309,7 @@ namespace ResgateIO.Service
         /// <remarks>The resource uses its own pattern as group pattern.</remarks>
         /// <param name="subpattern">Resource pattern.</param>
         /// <param name="handler">Resource handler.</param>
-        public void AddHandler(string subpattern, IResourceHandler handler)
+        public void AddHandler(string subpattern, IAsyncHandler handler)
         {
             AddHandler(
                 subpattern,
@@ -339,7 +339,7 @@ namespace ResgateIO.Service
         /// <param name="subpattern">Resource subpattern.</param>
         /// <param name="group">Group pattern. Null or empty means using the resource name as group.</param>
         /// <param name="handler">Resource handler.</param>
-        public void AddHandler(string subpattern, string group, IResourceHandler handler)
+        public void AddHandler(string subpattern, string group, IAsyncHandler handler)
         {
             handler = handler ?? throw new ArgumentNullException("handler must not be null.");            
 
@@ -640,7 +640,7 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="predicate">Predicate to match.</param>
         /// <returns>True if a handler matching the predicate is found, otherwise false.</returns>
-        public bool Contains(Predicate<IResourceHandler> predicate)
+        public bool Contains(Predicate<IAsyncHandler> predicate)
         {
             return contains(root, null, n => n.Handler != null && predicate(n.Handler));
         }
@@ -785,7 +785,7 @@ namespace ResgateIO.Service
             return false;
         }
 
-        private static TAttribute GetHandlerAttribute<TAttribute>(IResourceHandler h) where TAttribute : Attribute
+        private static TAttribute GetHandlerAttribute<TAttribute>(IAsyncHandler h) where TAttribute : Attribute
         {
             if (h != null)
             {
@@ -798,7 +798,7 @@ namespace ResgateIO.Service
             return null;
         }
 
-        private void registerEventHandlers(IResourceHandler h)
+        private void registerEventHandlers(IAsyncHandler h)
         {
             MethodInfo[] methods = h.GetType().GetTypeInfo().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             foreach (MethodInfo method in methods)

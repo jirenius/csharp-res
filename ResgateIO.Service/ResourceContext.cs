@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace ResgateIO.Service
 {
@@ -38,7 +39,7 @@ namespace ResgateIO.Service
         /// <summary>
         /// Resource handler.
         /// </summary>
-        public IResourceHandler Handler { get; }
+        public IAsyncHandler Handler { get; }
 
         /// <summary>
         /// Group ID for the context.
@@ -46,6 +47,7 @@ namespace ResgateIO.Service
         public string Group { get; }
 
         private EventHandler eventHandler;
+        private static readonly Task completedTask = Task.FromResult(false);
 
         /// <summary>
         /// Initializes a new instance of the ResourceContext class.
@@ -55,7 +57,7 @@ namespace ResgateIO.Service
         /// <param name="handler">Resource handler.</param>
         /// <param name="pathParams">Path parameters derived from the resource name.</param>
         /// <param name="query">Query part of the resource name.</param>
-        public ResourceContext(ResService service, string resourceName, IResourceHandler handler, EventHandler eventHandler, IDictionary<string, string> pathParams, string query, string group)
+        public ResourceContext(ResService service, string resourceName, IAsyncHandler handler, EventHandler eventHandler, IDictionary<string, string> pathParams, string query, string group)
         {
             Service = service;
             ResourceName = resourceName;
@@ -208,7 +210,6 @@ namespace ResgateIO.Service
         /// <param name="properties">Properties that has been changed with their new values.</param>
         public void ChangeEvent(Dictionary<string, object> properties)
         {
-            Dictionary<string, object> rev = null;
             if (Handler.Type == ResourceType.Collection)
             {
                 throw new InvalidOperationException("Change event not allowed on resource of ResourceType.Collection.");
@@ -217,10 +218,15 @@ namespace ResgateIO.Service
             {
                 return;
             }
-            if (Handler.EnabledHandlers.HasFlag(HandlerTypes.ApplyChange))
+            var ev = new ChangeEventArgs(properties);
+            Handler.Apply(this, ev);
+            // If we have a revert dictionary set
+            // we can do some additional checks.
+            var rev = ev.Revert;
+            if (rev != null)
             {
-                rev = Handler.ApplyChange(this, properties);
-                if (rev == null || rev.Count == 0)
+                    
+                if (rev.Count == 0)
                 {
                     return;
                 }
@@ -230,10 +236,17 @@ namespace ResgateIO.Service
                 {
                     return;
                 }
+                if (properties.Count != ev.Changed.Count)
+                {
+                    ev = new ChangeEventArgs(properties)
+                    {
+                        Revert = rev
+                    };
+                }
             }
             sendEvent("change", new ChangeEventDto(properties));
 
-            eventHandler?.Invoke(this, new ChangeEventArgs(properties, rev));
+            eventHandler?.Invoke(this, ev);
         }
 
         /// <summary>
@@ -256,13 +269,11 @@ namespace ResgateIO.Service
             {
                 throw new ArgumentException("Add event idx less than zero.");
             }
-            if (Handler.EnabledHandlers.HasFlag(HandlerTypes.ApplyAdd))
-            {
-                Handler.ApplyAdd(this, value, idx);
-            }
+            var ev = new AddEventArgs(value, idx);
+            Handler.Apply(this, ev);
             sendEvent("add", new AddEventDto(value, idx));
 
-            eventHandler?.Invoke(this, new AddEventArgs(value, idx));
+            eventHandler?.Invoke(this, ev);
         }
 
         /// <summary>
@@ -276,7 +287,6 @@ namespace ResgateIO.Service
         /// <param name="idx">Index position where the value has been removed.</param>
         public void RemoveEvent(int idx)
         {
-            object removed = null;
             if (Handler.Type == ResourceType.Model)
             {
                 throw new InvalidOperationException("Remove event not allowed on resource of ResourceType.Model.");
@@ -285,13 +295,11 @@ namespace ResgateIO.Service
             {
                 throw new ArgumentException("Remove event idx less than zero.");
             }
-            if (Handler.EnabledHandlers.HasFlag(HandlerTypes.ApplyRemove))
-            {
-                removed = Handler.ApplyRemove(this, idx);
-            }
+            var ev = new RemoveEventArgs(idx);
+            Handler.Apply(this, ev);
             sendEvent("remove", new RemoveEventDto(idx));
 
-            eventHandler?.Invoke(this, new RemoveEventArgs(removed, idx));
+            eventHandler?.Invoke(this, ev);
         }
 
         /// <summary>
@@ -329,9 +337,26 @@ namespace ResgateIO.Service
         ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#query-event
         /// </remarks>
         /// <param name="callback">Query request callback delegate.</param>
-        public void QueryEvent(QueryCallback callback)
+        public void QueryEvent(Func<IQueryRequest, Task> callback)
         {
             Service.AddQueryEvent(new QueryEvent(this, callback));
+        }
+
+        /// <summary>
+        /// Sends a query event to signal that the query resource's underlying data has been modified.
+        /// </summary>
+        /// <remarks>
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#query-event
+        /// </remarks>
+        /// <param name="callback">Query request callback delegate.</param>
+        public void QueryEvent(Action<IQueryRequest> callback)
+        {
+            Service.AddQueryEvent(new QueryEvent(this, r =>
+            {
+                callback(r);
+                return completedTask;
+            }));
         }
 
         /// <summary>
@@ -340,13 +365,11 @@ namespace ResgateIO.Service
         /// <param name="data">Resource data object.</param>
         public void CreateEvent(object data)
         {
-            if (Handler.EnabledHandlers.HasFlag(HandlerTypes.ApplyCreate))
-            {
-                Handler.ApplyCreate(this, data);
-            }
+            var ev = new CreateEventArgs(data);
+            Handler.Apply(this, ev);
             sendEvent("create", null);
 
-            eventHandler?.Invoke(this, new CreateEventArgs(data));
+            eventHandler?.Invoke(this, ev);
         }
 
         /// <summary>
@@ -354,14 +377,11 @@ namespace ResgateIO.Service
         /// </summary>
         public void DeleteEvent()
         {
-            object data = null;
-            if (Handler.EnabledHandlers.HasFlag(HandlerTypes.ApplyDelete))
-            {
-                data = Handler.ApplyDelete(this);
-            }
+            var ev = new DeleteEventArgs();
+            Handler.Apply(this, ev);
             sendEvent("delete", null);
 
-            eventHandler?.Invoke(this, new DeleteEventArgs(data));
+            eventHandler?.Invoke(this, ev);
         }
 
         private void sendEvent(string eventName, object payload)

@@ -18,15 +18,15 @@ namespace ResgateIO.Service
         /// Properties being changed, and their old values.
         /// The value will be ResAction.Delete for new properties.
         /// </summary>
-        public Dictionary<string, object> Revert { get; }
+        public Dictionary<string, object> Revert { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the ChangeEvent class.
         /// </summary>
-        public ChangeEventArgs(Dictionary<string, object> changes, Dictionary<string, object> revert)
+        public ChangeEventArgs(Dictionary<string, object> changes)
         {
             Changed = changes;
-            Revert = revert;
+            Revert = null;
         }
     }
 }

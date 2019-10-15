@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 using NATS.Client;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -25,7 +26,7 @@ namespace ResgateIO.Service
         public virtual string Query { get { return resource.Query; } }
         public string Group { get { return resource.Group; } }
         public IDictionary Items { get { return resource.Items; } }
-        public IResourceHandler Handler { get { return resource.Handler; } }
+        public IAsyncHandler Handler { get { return resource.Handler; } }
         public virtual T Value<T>() where T : class { return resource.Value<T>(); }
         public virtual T RequireValue<T>() where T : class { return resource.RequireValue<T>(); }
         public void Event(string eventName) { resource.Event(eventName); }
@@ -35,7 +36,8 @@ namespace ResgateIO.Service
         public virtual void RemoveEvent(int idx) { resource.RemoveEvent(idx); }
         public void ReaccessEvent() { resource.ReaccessEvent(); }
         public void ResetEvent() { resource.ResetEvent(); }
-        public void QueryEvent(QueryCallback callback) { resource.QueryEvent(callback); }
+        public void QueryEvent(Func<IQueryRequest, Task> callback) { resource.QueryEvent(callback); }
+        public void QueryEvent(Action<IQueryRequest> callback) { resource.QueryEvent(callback); }
         public void CreateEvent(object data) { resource.CreateEvent(data); }
         public void DeleteEvent() { resource.DeleteEvent(); }
     }

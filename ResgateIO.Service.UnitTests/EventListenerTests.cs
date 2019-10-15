@@ -35,7 +35,7 @@ namespace ResgateIO.Service.UnitTests
                     Assert.Equal(1, called);
                     r.Ok();
                 })
-                .SetApplyChange((rc, changes) => revert));
+                .SetApplyChange((rc, ev) => ev.Revert = revert));
             Service.AddEventListener("model", (sender, ev) =>
             {
                 called++;
@@ -157,7 +157,7 @@ namespace ResgateIO.Service.UnitTests
                     Assert.Equal(1, called);
                     r.Ok();
                 })
-                .SetApplyAdd((rc, v, i) => { }));
+                .SetApplyAdd((rc, ev) => { }));
             Service.AddEventListener("collection", (sender, ev) =>
             {
                 called++;
@@ -231,7 +231,7 @@ namespace ResgateIO.Service.UnitTests
                     Assert.Equal(1, called);
                     r.Ok();
                 })
-                .SetApplyRemove((rc, i) => Test.IntValue));
+                .SetApplyRemove((rc, ev) => ev.Value = Test.IntValue));
             Service.AddEventListener("collection", (sender, ev) =>
             {
                 called++;
@@ -297,7 +297,7 @@ namespace ResgateIO.Service.UnitTests
                     Assert.Equal(1, called);
                     r.Ok();
                 })
-                .SetApplyCreate((rc, v) => { }));
+                .SetApplyCreate((rc, ev) => { }));
             Service.AddEventListener("model", (sender, ev) =>
             {
                 called++;
@@ -360,7 +360,7 @@ namespace ResgateIO.Service.UnitTests
                     Assert.Equal(1, called);
                     r.Ok();
                 })
-                .SetApplyDelete(rc => Test.Model));
+                .SetApplyDelete((rc, ev) => ev.Data = Test.Model));
             Service.AddEventListener("model", (sender, ev) =>
             {
                 called++;

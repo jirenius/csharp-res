@@ -1,10 +1,10 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace ResgateIO.Service
 {
-    public delegate void QueryCallback(IQueryRequest request);
-
     /// <summary>
     /// Provides context information and methods for emitting events for a resource.
     /// </summary>
@@ -50,7 +50,7 @@ namespace ResgateIO.Service
         /// <summary>
         /// Resource handler.
         /// </summary>
-        IResourceHandler Handler { get; }
+        IAsyncHandler Handler { get; }
 
         /// <summary>
         /// Gets the resource data object as provided from the Get resource handler.
@@ -165,7 +165,17 @@ namespace ResgateIO.Service
         ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#query-event
         /// </remarks>
         /// <param name="callback">Query request callback delegate.</param>
-        void QueryEvent(QueryCallback callback);
+        void QueryEvent(Func<IQueryRequest, Task> callback);
+
+        /// <summary>
+        /// Sends a query event to signal that the query resource's underlying data has been modified.
+        /// </summary>
+        /// <remarks>
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#query-event
+        /// </remarks>
+        /// <param name="callback">Query request callback delegate.</param>
+        void QueryEvent(Action<IQueryRequest> callback);
 
         /// <summary>
         /// Sends a create event to signal the resource has been created.

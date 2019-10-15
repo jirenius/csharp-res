@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 using NATS.Client;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -10,7 +11,7 @@ namespace ResgateIO.Service
     /// <summary>
     /// Provides context information and methods for responding to a request.
     /// </summary>
-    public class Request: ResourceContext, IAccessRequest, IGetRequest, ICallRequest, IAuthRequest, IModelRequest, ICollectionRequest, INewRequest
+    public class Request: ResourceContext, IRequest
     {
         private readonly Msg msg;
 
@@ -92,7 +93,7 @@ namespace ResgateIO.Service
             string rtype,
             string rname,
             string method,
-            IResourceHandler handler,
+            IAsyncHandler handler,
             EventHandler eventHandler,
             Dictionary<string, string> pathParams,
             string group,
@@ -390,68 +391,11 @@ namespace ResgateIO.Service
             Ok(new CollectionDto(collection, query));
         }
 
-        internal void ExecuteHandler()
+        internal async Task ExecuteHandler()
         {
             try
             {
-                switch (Type)
-                {
-                    case RequestType.Access:
-                        if (Handler.EnabledHandlers.HasFlag(HandlerTypes.Access))
-                        {
-                            Handler.Access(this);
-                        }
-                        // No additional handling. Assume the access request is handled by another service.
-                        break;
-
-                    case RequestType.Get:
-                        if (Handler.EnabledHandlers.HasFlag(HandlerTypes.Get))
-                        {
-                            Handler.Get(this);
-                        }
-                        else
-                        {
-                            NotFound();
-                        }
-                        break;
-
-                    case RequestType.Call:
-                        if (Method == "new")
-                        {
-                            if (Handler.EnabledHandlers.HasFlag(HandlerTypes.New))
-                            {
-                                Handler.New(this);
-                            }
-                            else
-                            {
-                                MethodNotFound();
-                            }
-                        }
-                        else if (Handler.EnabledHandlers.HasFlag(HandlerTypes.Call))
-                        {
-                            Handler.Call(this);
-                        }
-                        else
-                        {
-                            MethodNotFound();
-                        }
-                        break;
-
-                    case RequestType.Auth:
-                        if (Handler.EnabledHandlers.HasFlag(HandlerTypes.Auth))
-                        {
-                            Handler.Auth(this);
-                        }
-                        else
-                        {
-                            MethodNotFound();
-                        }
-                        break;
-
-                    default:
-                        Service.OnError("Unknown request type: {0}", msg.Subject);
-                        return;
-                }
+                await Handler.Handle(this);
             }
             catch(ResException ex)
             {
@@ -475,7 +419,10 @@ namespace ResgateIO.Service
 
                 // Write to log as only ResExceptions are considered valid behaviour.
                 Service.OnError("Error handling request {0}: {1}", msg.Subject, ex.Message);
+                return;
             }
+            
+            // [TODO] Try next matching handler
         }
 
         /// <summary>

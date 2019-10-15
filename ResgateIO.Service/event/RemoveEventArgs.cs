@@ -10,7 +10,7 @@ namespace ResgateIO.Service
         /// <summary>
         /// Value that was removed.
         /// </summary>
-        public object Value { get; }
+        public object Value { get; set; }
 
         /// <summary>
         /// Index position where the value was removed from.
@@ -20,10 +20,10 @@ namespace ResgateIO.Service
         /// <summary>
         /// Initializes a new instance of the RemoveEvent class.
         /// </summary>
-        public RemoveEventArgs(object value, int idx)
+        public RemoveEventArgs(int idx)
         {
-            Value = value;
             Idx = idx;
+            Value = null;
         }
     }
 }
