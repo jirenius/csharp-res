@@ -111,6 +111,20 @@ namespace ResgateIO.Service
         void Event(string eventName);
 
         /// <summary>
+        /// Sends a custom event on the resource without payload.
+        /// Throws an exception if the event is one of the pre-defined or reserved events,
+        /// "change", "delete", "add", "remove", "patch", "reaccess", "unsubscribe", or "query".
+        /// For pre-defined events, the matching method, ChangeEvent, AddEvent,
+        /// RemoveEvent, or ReaccessEvent should be used instead.
+        /// </summary>
+        /// <remarks>
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#custom-event
+        /// </remarks>
+        /// <param name="eventName">Name of the event.</param>
+        Task EventAsync(string eventName);
+
+        /// <summary>
         /// Sends a custom event on the resource with payload.
         /// Throws an exception if the event is one of the pre-defined or reserved events,
         /// "change", "delete", "add", "remove", "patch", "reaccess", "unsubscribe", or "query".
@@ -124,6 +138,21 @@ namespace ResgateIO.Service
         /// <param name="eventName">Name of the event.</param>
         /// <param name="payload">JSON serializable payload. May be null.</param>
         void Event(string eventName, object payload);
+
+        /// <summary>
+        /// Sends a custom event on the resource with payload.
+        /// Throws an exception if the event is one of the pre-defined or reserved events,
+        /// "change", "delete", "add", "remove", "patch", "reaccess", "unsubscribe", or "query".
+        /// For pre-defined events, the matching method, ChangeEvent, AddEvent,
+        /// RemoveEvent, or ReaccessEvent should be used instead.
+        /// </summary>
+        /// <remarks>
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#custom-event
+        /// </remarks>
+        /// <param name="eventName">Name of the event.</param>
+        /// <param name="payload">JSON serializable payload. May be null.</param>
+        Task EventAsync(string eventName, object payload);
 
         /// <summary>
         /// Sends a change event.
@@ -140,6 +169,20 @@ namespace ResgateIO.Service
         void ChangeEvent(Dictionary<string, object> properties);
 
         /// <summary>
+        /// Sends a change event.
+        /// If properties is null or empty, no event is sent.
+        /// Throws an exception if the resource is not of ResourceType.Model.
+        /// </summary>
+        /// <remarks>
+        /// The values must be serializable into JSON primitives, resource references,
+        /// or a delete action objects.
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#model-change-event
+        /// </remarks>
+        /// <param name="properties">Properties to change with their new values.</param>
+        Task ChangeEventAsync(Dictionary<string, object> properties);
+
+        /// <summary>
         /// Sends an add event, adding the value at index idx.
         /// Throws an exception if the resource is not of ResourceType.Collection.
         /// </summary>
@@ -153,6 +196,19 @@ namespace ResgateIO.Service
         void AddEvent(object value, int idx);
 
         /// <summary>
+        /// Sends an add event, adding the value at index idx.
+        /// Throws an exception if the resource is not of ResourceType.Collection.
+        /// </summary>
+        /// <remarks>
+        /// The value must be serializable into a JSON primitive or resource reference.
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#collection-add-event
+        /// </remarks>
+        /// <param name="value">Value to add.</param>
+        /// <param name="idx">Index position of the value to add.</param>
+        Task AddEventAsync(object value, int idx);
+
+        /// <summary>
         /// Sends a remove event, removing the value at index idx.
         /// Throws an exception if the resource is not of ResourceType.Collection.
         /// </summary>
@@ -162,6 +218,39 @@ namespace ResgateIO.Service
         /// </remarks>
         /// <param name="idx">Index position of the value to remove.</param>
         void RemoveEvent(int idx);
+
+        /// <summary>
+        /// Sends a remove event, removing the value at index idx.
+        /// Throws an exception if the resource is not of ResourceType.Collection.
+        /// </summary>
+        /// <remarks>
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#collection-remove-event
+        /// </remarks>
+        /// <param name="idx">Index position of the value to remove.</param>
+        Task RemoveEventAsync(int idx);
+
+        /// <summary>
+        /// Sends a create event to signal the resource has been created.
+        /// </summary>
+        /// <param name="data">Resource data object.</param>
+        void CreateEvent(object data);
+
+        /// <summary>
+        /// Sends a create event to signal the resource has been created.
+        /// </summary>
+        /// <param name="data">Resource data object.</param>
+        Task CreateEventAsync(object data);
+
+        /// <summary>
+        /// Sends a delete event to signal the resource has been deleted.
+        /// </summary>
+        void DeleteEvent();
+
+        /// <summary>
+        /// Sends a delete event to signal the resource has been deleted.
+        /// </summary>
+        Task DeleteEventAsync();
 
         /// <summary>
         /// Sends a reaccess event to signal that the resource's access permissions has changed.
@@ -202,16 +291,5 @@ namespace ResgateIO.Service
         /// </remarks>
         /// <param name="callback">Query request callback delegate.</param>
         void QueryEvent(Action<IQueryRequest> callback);
-
-        /// <summary>
-        /// Sends a create event to signal the resource has been created.
-        /// </summary>
-        /// <param name="data">Resource data object.</param>
-        void CreateEvent(object data);
-
-        /// <summary>
-        /// Sends a delete event to signal the resource has been deleted.
-        /// </summary>
-        void DeleteEvent();
     }
 }

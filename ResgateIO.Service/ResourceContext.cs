@@ -198,6 +198,23 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
+        /// Sends a custom event on the resource without payload.
+        /// Throws an exception if the event is one of the pre-defined or reserved events,
+        /// "change", "delete", "add", "remove", "patch", "reaccess", "unsubscribe", or "query".
+        /// For pre-defined events, the matching method, ChangeEvent, AddEvent,
+        /// RemoveEvent, or ReaccessEvent should be used instead.
+        /// </summary>
+        /// <remarks>
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#custom-event
+        /// </remarks>
+        /// <param name="eventName">Name of the event.</param>
+        public async Task EventAsync(string eventName)
+        {
+            await EventAsync(eventName, null);
+        }
+
+        /// <summary>
         /// Sends a custom event on the resource with payload.
         /// Throws an exception if the event is one of the pre-defined or reserved events,
         /// "change", "delete", "add", "remove", "patch", "reaccess", "unsubscribe", or "query".
@@ -211,6 +228,24 @@ namespace ResgateIO.Service
         /// <param name="eventName">Name of the event.</param>
         /// <param name="payload">JSON serializable payload. May be null.</param>
         public void Event(string eventName, object payload)
+        {
+            EventAsync(eventName, payload).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Sends a custom event on the resource with payload.
+        /// Throws an exception if the event is one of the pre-defined or reserved events,
+        /// "change", "delete", "add", "remove", "patch", "reaccess", "unsubscribe", or "query".
+        /// For pre-defined events, the matching method, ChangeEvent, AddEvent,
+        /// RemoveEvent, or ReaccessEvent should be used instead.
+        /// </summary>
+        /// <remarks>
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#custom-event
+        /// </remarks>
+        /// <param name="eventName">Name of the event.</param>
+        /// <param name="payload">JSON serializable payload. May be null.</param>
+        public async Task EventAsync(string eventName, object payload)
         {
             switch (eventName)
             {
@@ -237,9 +272,12 @@ namespace ResgateIO.Service
                 throw new ArgumentException("Invalid event name: " + eventName);
             }
 
+            var ev = new CustomEventArgs(eventName, payload);
+            await Handler.Apply(this, ev);
+
             sendEvent(eventName, payload);
 
-            eventHandler?.Invoke(this, new CustomEventArgs(eventName, payload));
+            eventHandler?.Invoke(this, ev);
         }
 
         /// <summary>
@@ -256,6 +294,23 @@ namespace ResgateIO.Service
         /// <param name="properties">Properties that has been changed with their new values.</param>
         public void ChangeEvent(Dictionary<string, object> properties)
         {
+            ChangeEventAsync(properties).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Sends a change event.
+        /// If properties is null or empty, no event is sent.
+        /// Throws an exception if the resource is not of ResourceType.Model.
+        /// </summary>
+        /// <remarks>
+        /// The values must be serializable into JSON primitives, resource references,
+        /// or a delete action objects.
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#model-change-event
+        /// </remarks>
+        /// <param name="properties">Properties that has been changed with their new values.</param>
+        public async Task ChangeEventAsync(Dictionary<string, object> properties)
+        {
             if (Handler.Type == ResourceType.Collection)
             {
                 throw new InvalidOperationException("Change event not allowed on resource of ResourceType.Collection.");
@@ -265,7 +320,7 @@ namespace ResgateIO.Service
                 return;
             }
             var ev = new ChangeEventArgs(properties);
-            Handler.Apply(this, ev);
+            await Handler.Apply(this, ev);
             // If we have a revert dictionary set
             // we can do some additional checks.
             var rev = ev.Revert;
@@ -306,6 +361,21 @@ namespace ResgateIO.Service
         /// <param name="idx">Index position where the value has been added.</param>
         public void AddEvent(object value, int idx)
         {
+            AddEventAsync(value, idx).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Sends an add event, adding the value at index idx.
+        /// Throws an exception if the resource is not of ResourceType.Collection.
+        /// </summary>
+        /// <remarks>
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#collection-add-event
+        /// </remarks>
+        /// <param name="value">Value that has been added.</param>
+        /// <param name="idx">Index position where the value has been added.</param>
+        public async Task AddEventAsync(object value, int idx)
+        {
             if (Handler.Type == ResourceType.Model)
             {
                 throw new InvalidOperationException("Add event not allowed on resource of ResourceType.Model.");
@@ -315,7 +385,7 @@ namespace ResgateIO.Service
                 throw new ArgumentException("Add event idx less than zero.");
             }
             var ev = new AddEventArgs(value, idx);
-            Handler.Apply(this, ev);
+            await Handler.Apply(this, ev);
             sendEvent("add", new AddEventDto(value, idx));
 
             eventHandler?.Invoke(this, ev);
@@ -332,6 +402,20 @@ namespace ResgateIO.Service
         /// <param name="idx">Index position where the value has been removed.</param>
         public void RemoveEvent(int idx)
         {
+            RemoveEventAsync(idx).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Sends an remove event, removing the value at index idx.
+        /// Throws an exception if the resource is not of ResourceType.Collection.
+        /// </summary>
+        /// <remarks>
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#collection-remove-event
+        /// </remarks>
+        /// <param name="idx">Index position where the value has been removed.</param>
+        public async Task RemoveEventAsync(int idx)
+        {
             if (Handler.Type == ResourceType.Model)
             {
                 throw new InvalidOperationException("Remove event not allowed on resource of ResourceType.Model.");
@@ -341,7 +425,7 @@ namespace ResgateIO.Service
                 throw new ArgumentException("Remove event idx less than zero.");
             }
             var ev = new RemoveEventArgs(idx);
-            Handler.Apply(this, ev);
+            await Handler.Apply(this, ev);
             sendEvent("remove", new RemoveEventDto(idx));
 
             eventHandler?.Invoke(this, ev);
@@ -410,8 +494,17 @@ namespace ResgateIO.Service
         /// <param name="data">Resource data object.</param>
         public void CreateEvent(object data)
         {
+            CreateEventAsync(data).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Sends a create event to signal the resource has been created.
+        /// </summary>
+        /// <param name="data">Resource data object.</param>
+        public async Task CreateEventAsync(object data)
+        {
             var ev = new CreateEventArgs(data);
-            Handler.Apply(this, ev);
+            await Handler.Apply(this, ev);
             sendEvent("create", null);
 
             eventHandler?.Invoke(this, ev);
@@ -422,8 +515,16 @@ namespace ResgateIO.Service
         /// </summary>
         public void DeleteEvent()
         {
+            DeleteEventAsync().GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Sends a delete event to signal the resource has been deleted.
+        /// </summary>
+        public async Task DeleteEventAsync()
+        {
             var ev = new DeleteEventArgs();
-            Handler.Apply(this, ev);
+            await Handler.Apply(this, ev);
             sendEvent("delete", null);
 
             eventHandler?.Invoke(this, ev);

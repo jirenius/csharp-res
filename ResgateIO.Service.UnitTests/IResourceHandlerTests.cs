@@ -293,11 +293,11 @@ namespace ResgateIO.Service.UnitTests
                     Assert.True(called, "apply callback was not called");
                     r.Ok();
                 })
-                .SetApplyCreate((rc, v) =>
+                .SetApplyCreate((rc, ev) =>
                 {
                     called = true;
                     Assert.Equal("test.model", rc.ResourceName);
-                    Assert.Equal(Test.Model, v);
+                    Assert.Equal(Test.Model, ev.Data);
                 }));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
@@ -313,23 +313,23 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void ApplyCreate_UsingWith_CallsApplyCreateAndSendsCreateEvent()
         {
-            AutoResetEvent ev = new AutoResetEvent(false);
+            AutoResetEvent re = new AutoResetEvent(false);
             bool called = false;
             Service.AddHandler("model", new DynamicHandler()
-                .SetApplyCreate((rc, v) =>
+                .SetApplyCreate((rc, ev) =>
                 {
                     called = true;
                     Assert.Equal("test.model", rc.ResourceName);
-                    Assert.Equal(Test.Model, v);
+                    Assert.Equal(Test.Model, ev.Data);
                 }));
             Service.Serve(Conn);
             Service.With("test.model", r =>
             {
                 r.CreateEvent(Test.Model);
                 Assert.True(called, "apply callback was not called");
-                ev.Set();
+                re.Set();
             });
-            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+            Assert.True(re.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
             Conn.GetMsg()
                 .AssertSubject("event.test.model.create")
                 .AssertNoPayload();

@@ -24,6 +24,8 @@ namespace ResgateIO.Service
             public Call(string method) : this(method, new object[0]) { }
         }
 
+        private static readonly Task completedTask = Task.FromResult(false);
+
         public List<Call> Calls = new List<Call>();
         
         public ResService Service { get; set; }
@@ -80,9 +82,21 @@ namespace ResgateIO.Service
             Calls.Add(new Call("AddEvent", new object[] { value, idx }));
         }
 
+        public Task AddEventAsync(object value, int idx)
+        {
+            Calls.Add(new Call("AddEventAsync", new object[] { value, idx }));
+            return completedTask;
+        }
+
         public void ChangeEvent(Dictionary<string, object> properties)
         {
             Calls.Add(new Call("ChangeEvent", new object[] { properties }));
+        }
+
+        public Task ChangeEventAsync(Dictionary<string, object> properties)
+        {
+            Calls.Add(new Call("ChangeEvent", new object[] { properties }));
+            return completedTask;
         }
 
         public void Collection(object collection)
@@ -100,9 +114,21 @@ namespace ResgateIO.Service
             Calls.Add(new Call("CreateEvent", new object[] { data }));
         }
 
+        public Task CreateEventAsync(object data)
+        {
+            Calls.Add(new Call("CreateEvent", new object[] { data }));
+            return completedTask;
+        }
+
         public void DeleteEvent()
         {
             Calls.Add(new Call("DeleteEvent"));
+        }
+
+        public Task DeleteEventAsync()
+        {
+            Calls.Add(new Call("DeleteEvent"));
+            return completedTask;
         }
 
         public void Error(ResError error)
@@ -115,9 +141,21 @@ namespace ResgateIO.Service
             Calls.Add(new Call("Event", new object[] { eventName }));
         }
 
+        public Task EventAsync(string eventName)
+        {
+            Calls.Add(new Call("EventAsync", new object[] { eventName }));
+            return completedTask;
+        }
+
         public void Event(string eventName, object payload)
         {
             Calls.Add(new Call("Event", new object[] { eventName, payload }));
+        }
+
+        public Task EventAsync(string eventName, object payload)
+        {
+            Calls.Add(new Call("Event", new object[] { eventName, payload }));
+            return completedTask;
         }
 
         public void InvalidParams()
@@ -228,6 +266,12 @@ namespace ResgateIO.Service
         public void RemoveEvent(int idx)
         {
             Calls.Add(new Call("RemoveEvent", new object[] { idx }));
+        }
+
+        public Task RemoveEventAsync(int idx)
+        {
+            Calls.Add(new Call("RemoveEvent", new object[] { idx }));
+            return completedTask;
         }
 
         public T RequireValue<T>() where T : class
