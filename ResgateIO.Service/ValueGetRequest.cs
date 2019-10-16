@@ -29,9 +29,19 @@ namespace ResgateIO.Service
             throw new InvalidOperationException("Value called within get request handler");
         }
 
+        public override Task<T> ValueAsync<T>()
+        {
+            throw new InvalidOperationException("ValueAsync called within get request handler");
+        }
+
         public override T RequireValue<T>()
         {
             throw new InvalidOperationException("RequireValue called within get request handler");
+        }
+
+        public override Task<T> RequireValueAsync<T>()
+        {
+            throw new InvalidOperationException("RequireValueAsync called within get request handler");
         }
 
         public void Error(ResError error)

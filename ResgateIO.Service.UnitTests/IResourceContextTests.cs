@@ -2,6 +2,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -368,6 +369,152 @@ namespace ResgateIO.Service.UnitTests
             Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
         }
         #endregion
+        
+        #region ValueAsync
+        public static IEnumerable<object[]> GetValueAsyncTestData()
+        {
+            // With Model returns model
+            yield return new object[] {
+                "Model",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Model(Test.Model))),
+                (Func<IResourceContext, Task>)(async r => Assert.Equal(Test.Model, await r.ValueAsync<ModelDto>()))
+            };
+
+            // With Model with query returns model
+            yield return new object[] {
+                "ModelWithQuery",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Model(Test.Model, Test.NormalizedQuery))),
+                (Func<IResourceContext, Task>)(async r => Assert.Equal(Test.Model, await r.ValueAsync<ModelDto>()))
+            };
+
+            // With Collection returns collection
+            yield return new object[] {
+                "Collection",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Collection(Test.Collection))),
+                (Func<IResourceContext, Task>)(async r => Assert.Equal(Test.Collection, await r.ValueAsync<object[]>()))
+            };
+
+            // With Collection with query returns collection
+            yield return new object[] {
+                "CollectionWithQuery",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Collection(Test.Collection, Test.NormalizedQuery))),
+                (Func<IResourceContext, Task>)(async r => Assert.Equal(Test.Collection, await r.ValueAsync<object[]>()))
+            };
+
+            // With Error returns null
+            yield return new object[] {
+                "Error",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Error(Test.CustomError))),
+                (Func<IResourceContext, Task>)(async r => Assert.Null(await r.ValueAsync<ModelDto>()))
+            };
+
+            // With NotFound returns null
+            yield return new object[] {
+                "NotFound",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.NotFound())),
+                (Func<IResourceContext, Task>)(async r => Assert.Null(await r.ValueAsync<ModelDto>()))
+            };
+
+            // With InvalidQuery returns null
+            yield return new object[] {
+                "InvalidQuery",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.InvalidQuery())),
+                (Func<IResourceContext, Task>)(async r => Assert.Null(await r.ValueAsync<ModelDto>()))
+            };
+
+            // With InvalidQuery with message returns null
+            yield return new object[] {
+                "InvalidQuery_WithMessage",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.InvalidQuery(Test.ErrorMessage))),
+                (Func<IResourceContext, Task>)(async r => Assert.Null(await r.ValueAsync<ModelDto>()))
+            };
+
+            // With InvalidQuery with message and data returns null
+            yield return new object[] {
+                "InvalidQuery_WithMessageAndData",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.InvalidQuery(Test.ErrorMessage, Test.ErrorData))),
+                (Func<IResourceContext, Task>)(async r => Assert.Null(await r.ValueAsync<ModelDto>()))
+            };
+
+            // With different resource type throws InvalidCastException
+            yield return new object[] {
+                "Model_WithDifferentResourceType",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Model(new { id = 42, foo = "bar" }))),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<InvalidCastException>(async () => await r.ValueAsync<ModelDto>()))
+            };
+
+            // Calling Value throws InvalidOperationException
+            yield return new object[] {
+                "Value",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Value<ModelDto>())),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<InvalidOperationException>(async () => await r.ValueAsync<ModelDto>()))
+            };
+
+            // Calling ValueAsync throws InvalidOperationException
+            yield return new object[] {
+                "Value",
+                (Func<IGetRequest, Task>)(async r => await r.ValueAsync<ModelDto>()),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<InvalidOperationException>(async () => await r.ValueAsync<ModelDto>()))
+            };
+
+            // Calling RequireValue throws InvalidOperationException
+            yield return new object[] {
+                "RequireValue",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.RequireValue<ModelDto>())),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<InvalidOperationException>(async () => await r.ValueAsync<ModelDto>()))
+            };
+
+            // With Timeout_Int and Model returns model
+            yield return new object[] {
+                "Model_WithTimeout_Int",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => { r.Timeout(5000); r.Model(Test.Model); })),
+                (Func<IResourceContext, Task>)(async r => Assert.Equal(Test.Model, await r.ValueAsync<ModelDto>()))
+            };
+
+            // With Timeout_Timespan and Model returns model
+            yield return new object[] {
+                "Model_WithTimeout_TimeSpan",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => { r.Timeout(TimeSpan.FromSeconds(5)); r.Model(Test.Model); })),
+                (Func<IResourceContext, Task>)(async r => Assert.Equal(Test.Model, await r.ValueAsync<ModelDto>()))
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(GetValueAsyncTestData))]
+        public void ValueAsync_UsingCall_ReturnsCorrectValue(string resourceName, Func<IGetRequest, Task> getHandler, Func<IResourceContext, Task> assertion)
+        {
+            Service.AddHandler(resourceName, new DynamicHandler()
+                .SetCall(async r =>
+                {
+                    await assertion(r);
+                    r.Ok();
+                })
+                .SetGet(getHandler)
+           );
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test." + resourceName + ".method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(null);
+        }
+
+        [Theory]
+        [MemberData(nameof(GetValueAsyncTestData))]
+        public void ValueAsync_UsingWith_ReturnsCorrectValue(string resourceName, Func<IGetRequest, Task> getHandler, Func<IResourceContext, Task> assertion)
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler(resourceName, new DynamicHandler().SetGet(getHandler));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            Service.With("test." + resourceName, async r =>
+            {
+                await assertion(r);
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+        }
+        #endregion
 
         #region RequireValue
         public static IEnumerable<object[]> GetRequireValueTestData()
@@ -500,6 +647,152 @@ namespace ResgateIO.Service.UnitTests
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
             Service.With("test."+ resourceName, r =>
+            {
+                assertion(r);
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+        }
+        #endregion
+
+        #region RequireValueAsync
+        public static IEnumerable<object[]> GetRequireValueAsyncTestData()
+        {
+            // With Model returns model
+            yield return new object[] {
+                "Model",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Model(Test.Model))),
+                (Func<IResourceContext, Task>)(async r => Assert.Equal(Test.Model, await r.RequireValueAsync<ModelDto>()))
+            };
+
+            // With Model with query returns model
+            yield return new object[] {
+                "ModelWithQuery",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Model(Test.Model, Test.NormalizedQuery))),
+                (Func<IResourceContext, Task>)(async r => Assert.Equal(Test.Model, await r.RequireValueAsync<ModelDto>()))
+            };
+
+            // With Collection returns collection
+            yield return new object[] {
+                "Collection",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Collection(Test.Collection))),
+                (Func<IResourceContext, Task>)(async r => Assert.Equal(Test.Collection, await r.RequireValueAsync<object[]>()))
+            };
+
+            // With Collection with query returns collection
+            yield return new object[] {
+                "CollectionWithQuery",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Collection(Test.Collection, Test.NormalizedQuery))),
+                (Func<IResourceContext, Task>)(async r => Assert.Equal(Test.Collection, await r.RequireValueAsync<object[]>()))
+            };
+
+            // With Error returns throws ResException
+            yield return new object[] {
+                "Error",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Error(Test.CustomError))),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<ResException>(async () => await r.RequireValueAsync<ModelDto>()))
+            };
+
+            // With NotFound throws ResException
+            yield return new object[] {
+                "NotFound",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.NotFound())),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<ResException>(async () => await r.RequireValueAsync<ModelDto>()))
+            };
+
+            // With InvalidQuery returns null
+            yield return new object[] {
+                "InvalidQuery",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.InvalidQuery())),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<ResException>(async () => await r.RequireValueAsync<ModelDto>()))
+            };
+
+            // With InvalidQuery with message returns null
+            yield return new object[] {
+                "InvalidQuery_WithMessage",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.InvalidQuery(Test.ErrorMessage))),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<ResException>(async () => await r.RequireValueAsync<ModelDto>()))
+            };
+
+            // With InvalidQuery with message and data returns null
+            yield return new object[] {
+                "InvalidQuery_WithMessageAndData",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.InvalidQuery(Test.ErrorMessage, Test.ErrorData))),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<ResException>(async () => await r.RequireValueAsync<ModelDto>()))
+            };
+
+            // With different resource type throws InvalidCastException
+            yield return new object[] {
+                "Model_WithDifferentResourceType",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Model(new { id = 42, foo = "bar" }))),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<InvalidCastException>(async () => await r.RequireValueAsync<ModelDto>()))
+            };
+
+            // Calling Value throws InvalidOperationException
+            yield return new object[] {
+                "Value",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Value<ModelDto>())),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<InvalidOperationException>(async () => await r.RequireValueAsync<ModelDto>()))
+            };
+
+            // Calling RequireValue throws InvalidOperationException
+            yield return new object[] {
+                "RequireValue",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.RequireValue<ModelDto>())),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<InvalidOperationException>(async () => await r.RequireValueAsync<ModelDto>()))
+            };
+
+            // Calling RequireValueAsync throws InvalidOperationException
+            yield return new object[] {
+                "RequireValue",
+                (Func<IGetRequest, Task>)(async r => await r.RequireValueAsync<ModelDto>()),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<InvalidOperationException>(async () => await r.RequireValueAsync<ModelDto>()))
+            };
+
+            // With Timeout_Int and Model returns model
+            yield return new object[] {
+                "Model_WithTimeout_Int",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => { r.Timeout(5000); r.Model(Test.Model); })),
+                (Func<IResourceContext, Task>)(async r => Assert.Equal(Test.Model, await r.RequireValueAsync<ModelDto>()))
+            };
+
+            // With Timeout_Timespan and Model returns model
+            yield return new object[] {
+                "Model_WithTimeout_TimeSpan",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => { r.Timeout(TimeSpan.FromSeconds(5)); r.Model(Test.Model); })),
+                (Func<IResourceContext, Task>)(async r => Assert.Equal(Test.Model, await r.RequireValueAsync<ModelDto>()))
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(GetRequireValueAsyncTestData))]
+        public void RequireValueAsync_UsingCall_ReturnsCorrectValue(string resourceName, Func<IGetRequest, Task> getHandler, Func<IResourceContext, Task> assertion)
+        {
+            Service.AddHandler(resourceName, new DynamicHandler()
+                .SetCall(async r =>
+                {
+                    await assertion(r);
+                    r.Ok();
+                })
+                .SetGet(getHandler)
+           );
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test." + resourceName + ".method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(null);
+        }
+
+        [Theory]
+        [MemberData(nameof(GetRequireValueAsyncTestData))]
+        public void RequireValueAsync_UsingWith_ReturnsCorrectValue(string resourceName, Func<IGetRequest, Task> getHandler, Func<IResourceContext, Task> assertion)
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler(resourceName, new DynamicHandler().SetGet(getHandler));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            Service.With("test." + resourceName, r =>
             {
                 assertion(r);
                 ev.Set();
