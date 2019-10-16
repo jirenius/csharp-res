@@ -11,7 +11,7 @@ namespace ResgateIO.Service
     /// <summary>
     /// Provides context information and methods for responding to a request.
     /// </summary>
-    public class Request: ResourceContext, IRequest
+    public class Request: ResourceContext, IRequest, IAccessRequest, IGetRequest, ICallRequest, IAuthRequest, IModelRequest, ICollectionRequest, INewRequest
     {
         private readonly Msg msg;
 

@@ -2,13 +2,14 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 using NATS.Client;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace ResgateIO.Service
 {
-    internal class ValueGetRequest: ResourceDecorator, IRequest
+    internal class ValueGetRequest : ResourceDecorator, IRequest, IGetRequest, IModelRequest, ICollectionRequest
     {
         private const string invalidError = "Method call invalid within get request handler";
 
@@ -19,7 +20,7 @@ namespace ResgateIO.Service
         private bool replied = false;
 
         public ValueGetRequest(IResourceContext resource)
-            :base(resource)
+            : base(resource)
         {
         }
 
@@ -105,7 +106,7 @@ namespace ResgateIO.Service
 
         public bool ForValue { get { return true; } }
 
-        public RequestType Type => throw new InvalidOperationException(invalidError);
+        public RequestType Type { get { return RequestType.Get; } }
 
         public string Method => throw new InvalidOperationException(invalidError);
 
@@ -123,14 +124,11 @@ namespace ResgateIO.Service
 
         public string URI => throw new InvalidOperationException(invalidError);
 
-        internal void ExecuteHandler()
+        internal async Task ExecuteHandler()
         {
             try
             {
-                if (Handler.EnabledHandlers.HasFlag(HandlerTypes.Get))
-                {
-                    Handler.Handle(this);
-                }
+                await Handler.Handle(this);
             }
             catch (ResException ex)
             {

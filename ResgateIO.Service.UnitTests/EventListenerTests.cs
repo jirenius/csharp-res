@@ -101,7 +101,7 @@ namespace ResgateIO.Service.UnitTests
                     Assert.False(called, "event listener was called");
                     r.Ok();
                 })
-                .SetApplyChange((rc, changes) => new Dictionary<string, object> { }));
+                .SetApplyChange((rc, ev) => ev.Revert = new Dictionary<string, object> { }));
             Service.AddEventListener("model", (sender, ev) => called = true);
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
@@ -113,21 +113,24 @@ namespace ResgateIO.Service.UnitTests
 
         [Theory]
         [MemberData(nameof(GetChangeEventTestData))]
-        public void ChangeEvent_NullRevertDictionary_NoCallToListener(Dictionary<string, object> changed)
+        public void ChangeEvent_NullRevertDictionary_CallToListener(Dictionary<string, object> changed)
         {
             bool called = false;
             Service.AddHandler("model", new DynamicHandler()
                 .SetCall(r =>
                 {
                     r.ChangeEvent(changed);
-                    Assert.False(called, "event listener was called");
+                    Assert.True(called, "event listener not called");
                     r.Ok();
                 })
-                .SetApplyChange((rc, changes) => null));
+                .SetApplyChange((rc, ev) => { }));
             Service.AddEventListener("model", (sender, ev) => called = true);
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
             string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject("event.test.model.change")
+                .AssertPayload(new { values = changed });
             Conn.GetMsg()
                 .AssertSubject(inbox)
                 .AssertResult(null);

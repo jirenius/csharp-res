@@ -28,7 +28,9 @@ namespace ResgateIO.Service
         public IDictionary Items { get { return resource.Items; } }
         public IAsyncHandler Handler { get { return resource.Handler; } }
         public virtual T Value<T>() where T : class { return resource.Value<T>(); }
+        public virtual Task<T> ValueAsync<T>() where T : class { return resource.ValueAsync<T>(); }
         public virtual T RequireValue<T>() where T : class { return resource.RequireValue<T>(); }
+        public virtual Task<T> RequireValueAsync<T>() where T : class { return resource.RequireValueAsync<T>(); }
         public void Event(string eventName) { resource.Event(eventName); }
         public void Event(string eventName, object payload) { resource.Event(eventName, payload); }
         public virtual void ChangeEvent(Dictionary<string, object> properties) { resource.ChangeEvent(properties); }

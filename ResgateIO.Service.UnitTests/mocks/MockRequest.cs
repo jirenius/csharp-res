@@ -9,7 +9,7 @@ using Newtonsoft.Json.Linq;
 
 namespace ResgateIO.Service
 {
-    public class MockRequest : IRequest
+    public class MockRequest : IRequest, IAccessRequest, IGetRequest, ICallRequest, IAuthRequest, IModelRequest, ICollectionRequest, INewRequest
     {
         public class Call
         {
@@ -236,6 +236,12 @@ namespace ResgateIO.Service
             return default(T);
         }
 
+        public Task<T> RequireValueAsync<T>() where T : class
+        {
+            Calls.Add(new Call("RequireValueAsync"));
+            return Task.FromResult(default(T));
+        }
+
         public void Timeout(int milliseconds)
         {
             Calls.Add(new Call("Timeout", new object[] { milliseconds }));
@@ -255,6 +261,12 @@ namespace ResgateIO.Service
         {
             Calls.Add(new Call("Value"));
             return default(T);
+        }
+
+        public Task<T> ValueAsync<T>() where T : class
+        {
+            Calls.Add(new Call("ValueAsync"));
+            return Task.FromResult(default(T));
         }
 
         public void RawResponse(byte[] data)

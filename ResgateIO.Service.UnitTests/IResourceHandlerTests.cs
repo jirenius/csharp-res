@@ -137,7 +137,9 @@ namespace ResgateIO.Service.UnitTests
                 re.Set();
             });
             Assert.True(re.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
-            Conn.GetMsg().AssertSubject("event.test.model.change").AssertPayload(changed);
+            Conn.GetMsg()
+                .AssertSubject("event.test.model.change")
+                .AssertPayload(new { values = changed });
         }
         #endregion
 

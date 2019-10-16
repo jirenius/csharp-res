@@ -222,6 +222,34 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Fact]
+        public async Task SetCallMethod_WithMethodWithCallHandler_MethodIsCalled()
+        {
+            int methodCalled = 0;
+            int callCalled = 0;
+            var handler = new DynamicHandler()
+                .SetCallMethod("foo", r => methodCalled++)
+                .SetCall(r => callCalled++);
+            var mock = new MockRequest { Type = RequestType.Call, Method = "foo" };
+            await handler.Handle(mock);
+            Assert.Equal(1, methodCalled);
+            Assert.Equal(0, callCalled);
+        }
+
+        [Fact]
+        public async Task SetCallMethod_WithoutMethodWithCallHandler_CallHandlerIsCalled()
+        {
+            int methodCalled = 0;
+            int callCalled = 0;
+            var handler = new DynamicHandler()
+                .SetCallMethod("bar", r => methodCalled++)
+                .SetCall(r => callCalled++);
+            var mock = new MockRequest { Type = RequestType.Call, Method = "foo" };
+            await handler.Handle(mock);
+            Assert.Equal(0, methodCalled);
+            Assert.Equal(1, callCalled);
+        }
+
+        [Fact]
         public void SetAuth_WithHandler_AuthFlagSet()
         {
             var handler = new DynamicHandler().SetAuth(r => { });
@@ -309,6 +337,46 @@ namespace ResgateIO.Service.UnitTests
             Assert.Equal(0, called);
             Assert.Single(mock.Calls);
             Assert.Equal("MethodNotFound", mock.Calls[0].Method);
+        }
+
+        [Fact]
+        public async Task SetNew_WithHandler_IsCalled()
+        {
+            int called = 0;
+            var handler = new DynamicHandler().SetNew(r => called++);
+            await handler.Handle(new MockRequest { Type = RequestType.Call, Method = "new" });
+            Assert.Equal(1, called);
+        }
+
+        [Fact]
+        public async Task SetNew_WithAsyncHandler_IsCalled()
+        {
+            int called = 0;
+            var handler = new DynamicHandler().SetNew(async r => await Task.Run(() => called++));
+            await handler.Handle(new MockRequest { Type = RequestType.Call, Method = "new" });
+            Assert.Equal(1, called);
+        }
+
+        [Fact]
+        public async Task SetNew_CallHandlerWithoutNewHandler_IsCalled()
+        {
+            int called = 0;
+            var handler = new DynamicHandler().SetCall(r => called++);
+            await handler.Handle(new MockRequest { Type = RequestType.Call, Method = "new" });
+            Assert.Equal(1, called);
+        }
+
+        [Fact]
+        public async Task SetNew_CallHandler_IsNotCalled()
+        {
+            int newCalled = 0;
+            int callCalled = 0;
+            var handler = new DynamicHandler()
+                .SetCall(r => callCalled++)
+                .SetNew(r => newCalled++);
+            await handler.Handle(new MockRequest { Type = RequestType.Call, Method = "new" });
+            Assert.Equal(1, newCalled);
+            Assert.Equal(0, callCalled);
         }
 
         [Fact]

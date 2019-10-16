@@ -614,16 +614,30 @@ namespace ResgateIO.Service
             switch (r.Type)
             {
                 case RequestType.Access:
-                    await accessHandler.Invoke((IAccessRequest)r);
+                    if (accessHandler != null)
+                    {
+                        await accessHandler.Invoke((IAccessRequest)r);
+                    }
                     break;
                 case RequestType.Get:
-                    await getHandler.Invoke((IGetRequest)r);
+                    if (getHandler != null)
+                    {
+                        await getHandler.Invoke((IGetRequest)r);
+                    }
                     break;
                 case RequestType.Call:
-                    await handleCall(r);
+                    if (r.Method == "new")
+                    {
+                        if (newHandler != null)
+                        {
+                            await newHandler.Invoke((INewRequest)r);
+                            break;
+                        }
+                    }
+                    await handleCall((ICallRequest)r);
                     break;
                 case RequestType.Auth:
-                    await handleAuth(r);
+                    await handleAuth((IAuthRequest)r);
                     break;
             }
         }

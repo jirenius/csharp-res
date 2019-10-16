@@ -93,17 +93,19 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
-        /// Gets the resource data object as provided from the Get resource handler.
-        /// If the get handler fails, or no get handler is defined, it return with null.
+        /// Gets the resource data object as provided from <see cref="Handler"/> for <see cref="Type"/> being <see cref="RequestType.Get"/>.
+        /// If the handler fails, or no resource is provided by the handler, it returns with null.
         /// If the get handler responds with a different type than T, it throws an exception.
-        /// May not be called from within a resource Get handler.
+        /// 
+        /// May not be called from on <see cref="Type"/> being <see cref="RequestType.Get"/>.
+        /// The call will block the current thread while awaiting the result from the <see cref="Handler"/>.
         /// </summary>
         /// <typeparam name="T">Type of resource data object.</typeparam>
         /// <returns>Resource data object.</returns>
         public T Value<T>() where T : class
         {
             var valueGetRequest = new ValueGetRequest(this);
-            valueGetRequest.ExecuteHandler();
+            valueGetRequest.ExecuteHandler().GetAwaiter().GetResult();
 
             if (valueGetRequest.ErrorResult != null)
             {
@@ -114,17 +116,61 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
-        /// Gets the resource data object as provided from the Get resource handler.
-        /// If the get handler fails, or no get handler is defined, or the get handler responds
-        /// with a different type than T, it throws an exception.
-        /// May not be called from within a resource Get handler.
+        /// Gets the resource data object as provided from <see cref="Handler"/> for <see cref="Type"/> being <see cref="RequestType.Get"/>.
+        /// If the handler fails, or no resource is provided by the handler, it returns with null.
+        /// If the get handler responds with a different type than T, it throws an exception.
+        /// 
+        /// May not be called from on <see cref="Type"/> being <see cref="RequestType.Get"/>.
+        /// </summary>
+        /// <typeparam name="T">Type of resource data object.</typeparam>
+        /// <returns>Resource data object.</returns>
+        public async Task<T> ValueAsync<T>() where T : class
+        {
+            var valueGetRequest = new ValueGetRequest(this);
+            await valueGetRequest.ExecuteHandler();
+
+            if (valueGetRequest.ErrorResult != null)
+            {
+                return default(T);
+            }
+
+            return (T)valueGetRequest.ValueResult;
+        }
+
+        /// <summary>
+        /// Gets the resource data object as provided from <see cref="Handler"/> for <see cref="Type"/> being <see cref="RequestType.Get"/>.
+        /// If the handler fails, or the get handler responds with a different type than T, it throws an exception.
+        /// 
+        /// May not be called from on <see cref="Type"/> being <see cref="RequestType.Get"/>.
+        /// The call will block the current thread while awaiting the result from the <see cref="Handler"/>.
         /// </summary>
         /// <typeparam name="T">Type of resource data object.</typeparam>
         /// <returns>Resource data object.</returns>
         public T RequireValue<T>() where T : class
         {
             var valueGetRequest = new ValueGetRequest(this);
-            valueGetRequest.ExecuteHandler();
+            valueGetRequest.ExecuteHandler().GetAwaiter().GetResult();
+
+            if (valueGetRequest.ErrorResult != null)
+            {
+                throw new ResException(valueGetRequest.ErrorResult);
+            }
+
+            return (T)valueGetRequest.ValueResult;
+        }
+
+        /// <summary>
+        /// Gets the resource data object as provided from <see cref="Handler"/> for <see cref="Type"/> being <see cref="RequestType.Get"/>.
+        /// If the handler fails, or the get handler responds with a different type than T, it throws an exception.
+        /// 
+        /// May not be called from on <see cref="Type"/> being <see cref="RequestType.Get"/>.
+        /// </summary>
+        /// <typeparam name="T">Type of resource data object.</typeparam>
+        /// <returns>Resource data object.</returns>
+        public async Task<T> RequireValueAsync<T>() where T : class
+        {
+            var valueGetRequest = new ValueGetRequest(this);
+            await valueGetRequest.ExecuteHandler();
 
             if (valueGetRequest.ErrorResult != null)
             {
@@ -224,8 +270,7 @@ namespace ResgateIO.Service
             // we can do some additional checks.
             var rev = ev.Revert;
             if (rev != null)
-            {
-                    
+            {                    
                 if (rev.Count == 0)
                 {
                     return;
