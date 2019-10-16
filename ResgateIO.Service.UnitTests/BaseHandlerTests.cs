@@ -16,115 +16,218 @@ namespace ResgateIO.Service.UnitTests
             Assert.Equal(HandlerTypes.None, handler.EnabledHandlers);
         }
 
-        class EnabledHandlers_OverrideAccess_IsAccess_Class : BaseHandler
+        class EnabledHandlers_AccessHandler_IsAccess_Class : BaseHandler
         {
             public void Access(IAccessRequest r) { }
         }
         [Fact]
-        public void EnabledHandlers_OverrideAccess_IsAccess()
+        public void EnabledHandlers_AccessHandler_IsAccess()
         {
-            var handler = new EnabledHandlers_OverrideAccess_IsAccess_Class();
+            var handler = new EnabledHandlers_AccessHandler_IsAccess_Class();
             Assert.Equal(HandlerTypes.Access, handler.EnabledHandlers);
         }
 
-        class EnabledHandlers_OverrideGet_IsGet_Class : BaseHandler
+        class EnabledHandlers_GetHandler_IsGet_Class : BaseHandler
         {
             public void Get(IGetRequest r) { }
         }
         [Fact]
-        public void EnabledHandlers_OverrideGet_IsGet()
+        public void EnabledHandlers_GetHandler_IsGet()
         {
-            var handler = new EnabledHandlers_OverrideGet_IsGet_Class();
+            var handler = new EnabledHandlers_GetHandler_IsGet_Class();
             Assert.Equal(HandlerTypes.Get, handler.EnabledHandlers);
         }
 
-        class EnabledHandlers_OverrideCall_IsCall_Class : BaseHandler
+        class EnabledHandlers_CallHandler_IsCall_Class : BaseHandler
         {
             public void Call(ICallRequest r) { }
         }
         [Fact]
-        public void EnabledHandlers_OverrideCall_IsCall()
+        public void EnabledHandlers_CallHandler_IsCall()
         {
-            var handler = new EnabledHandlers_OverrideCall_IsCall_Class();
+            var handler = new EnabledHandlers_CallHandler_IsCall_Class();
             Assert.Equal(HandlerTypes.Call, handler.EnabledHandlers);
         }
 
-        class EnabledHandlers_OverrideAuth_IsAuth_Class : BaseHandler
+        class EnabledHandlers_AuthHandler_IsAuth_Class : BaseHandler
         {
             public void Auth(IAuthRequest r) { }
         }
         [Fact]
-        public void EnabledHandlers_OverrideAuth_IsAuth()
+        public void EnabledHandlers_AuthHandler_IsAuth()
         {
-            var handler = new EnabledHandlers_OverrideAuth_IsAuth_Class();
+            var handler = new EnabledHandlers_AuthHandler_IsAuth_Class();
             Assert.Equal(HandlerTypes.Auth, handler.EnabledHandlers);
         }
 
-        class EnabledHandlers_OverrideNew_IsNew_Class : BaseHandler
+        class EnabledHandlers_NewHandler_IsNew_Class : BaseHandler
         {
             public void New(INewRequest r) { }
         }
         [Fact]
-        public void EnabledHandlers_OverrideNew_IsNew()
+        public void EnabledHandlers_NewHandler_IsNew()
         {
-            var handler = new EnabledHandlers_OverrideNew_IsNew_Class();
+            var handler = new EnabledHandlers_NewHandler_IsNew_Class();
             Assert.Equal(HandlerTypes.New, handler.EnabledHandlers);
         }
 
-        //class EnabledHandlers_OverrideApplyChange_IsApplyChange_Class : BaseHandler
-        //{
-        //    public Dictionary<string, object> ApplyChange(IResourceContext rc, IDictionary<string, object> c) { return null; }
-        //}
-        //[Fact]
-        //public void EnabledHandlers_OverrideApplyChange_IsApplyChange()
-        //{
-        //    var handler = new EnabledHandlers_OverrideApplyChange_IsApplyChange_Class();
-        //    Assert.Equal(HandlerTypes.ApplyChange, handler.EnabledHandlers);
-        //}
+        #region ApplyHandler
+        class ApplyHandler_ApplyChangeHandler_IsCalled_Class : BaseHandler
+        {
+            public int Called = 0;
+            public void ApplyChange(IResourceContext rc, ChangeEventArgs ev) { Called++; }
+        }
+        [Fact]
+        public async Task ApplyHandler_ApplyChangeHandler_IsCalled()
+        {
+            var handler = new ApplyHandler_ApplyChangeHandler_IsCalled_Class();
+            await handler.Apply(null, new ChangeEventArgs(null));
+            Assert.Equal(1, handler.Called);
+        }
 
-        //class EnabledHandlers_OverrideApplyAdd_IsApplyAdd_Class : BaseHandler
-        //{
-        //    public void ApplyAdd(IResourceContext rc, object v, int idx) { }
-        //}
-        //[Fact]
-        //public void EnabledHandlers_OverrideApplyAdd_IsApplyAdd()
-        //{
-        //    var handler = new EnabledHandlers_OverrideApplyAdd_IsApplyAdd_Class();
-        //    Assert.Equal(HandlerTypes.ApplyAdd, handler.EnabledHandlers);
-        //}
+        class ApplyHandler_ApplyChangeAsyncHandler_IsCalled_Class : BaseHandler
+        {
+            public int Called = 0;
+            public async Task ApplyChange(IResourceContext rc, ChangeEventArgs ev) { await Task.Run(() => Called++); }
+        }
+        [Fact]
+        public async Task ApplyHandler_ApplyChangeAsyncHandler_IsCalled()
+        {
+            var handler = new ApplyHandler_ApplyChangeAsyncHandler_IsCalled_Class();
+            await handler.Apply(null, new ChangeEventArgs(null));
+            Assert.Equal(1, handler.Called);
+        }
 
-        //class EnabledHandlers_OverrideApplyRemove_IsApplyRemove_Class : BaseHandler
-        //{
-        //    public object ApplyRemove(IResourceContext rc, int idx) { return null; }
-        //}
-        //[Fact]
-        //public void EnabledHandlers_OverrideApplyRemove_IsApplyRemove()
-        //{
-        //    var handler = new EnabledHandlers_OverrideApplyRemove_IsApplyRemove_Class();
-        //    Assert.Equal(HandlerTypes.ApplyRemove, handler.EnabledHandlers);
-        //}
+        class ApplyHandler_ApplyAddHandler_IsCalled_Class : BaseHandler
+        {
+            public int Called = 0;
+            public void ApplyAdd(IResourceContext rc, AddEventArgs ev) { Called++; }
+        }
+        [Fact]
+        public async Task ApplyHandler_ApplyAddHandler_IsCalled()
+        {
+            var handler = new ApplyHandler_ApplyAddHandler_IsCalled_Class();
+            await handler.Apply(null, new AddEventArgs(null, 0));
+            Assert.Equal(1, handler.Called);
+        }
 
-        //class EnabledHandlers_OverrideApplyCreate_IsApplyCreate_Class : BaseHandler
-        //{
-        //    public void ApplyCreate(IResourceContext rc, object data) { }
-        //}
-        //[Fact]
-        //public void EnabledHandlers_OverrideApplyCreate_IsApplyCreate()
-        //{
-        //    var handler = new EnabledHandlers_OverrideApplyCreate_IsApplyCreate_Class();
-        //    Assert.Equal(HandlerTypes.ApplyCreate, handler.EnabledHandlers);
-        //}
+        class ApplyHandler_ApplyAddAsyncHandler_IsCalled_Class : BaseHandler
+        {
+            public int Called = 0;
+            public async Task ApplyAdd(IResourceContext rc, AddEventArgs ev) { await Task.Run(() => Called++); }
+        }
+        [Fact]
+        public async Task ApplyHandler_ApplyAddAsyncHandler_IsCalled()
+        {
+            var handler = new ApplyHandler_ApplyAddAsyncHandler_IsCalled_Class();
+            await handler.Apply(null, new AddEventArgs(null, 0));
+            Assert.Equal(1, handler.Called);
+        }
 
-        //class EnabledHandlers_OverrideApplyDelete_IsApplyDelete_Class : BaseHandler
-        //{
-        //    public object ApplyDelete(IResourceContext rc) { return null; }
-        //}
-        //[Fact]
-        //public void EnabledHandlers_OverrideApplyDelete_IsApplyDelete()
-        //{
-        //    var handler = new EnabledHandlers_OverrideApplyDelete_IsApplyDelete_Class();
-        //    Assert.Equal(HandlerTypes.ApplyDelete, handler.EnabledHandlers);
-        //}
+        class ApplyHandler_ApplyRemoveHandler_IsCalled_Class : BaseHandler
+        {
+            public int Called = 0;
+            public void ApplyRemove(IResourceContext rc, RemoveEventArgs ev) { Called++; }
+        }
+        [Fact]
+        public async Task ApplyHandler_ApplyRemoveHandler_IsCalled()
+        {
+            var handler = new ApplyHandler_ApplyRemoveHandler_IsCalled_Class();
+            await handler.Apply(null, new RemoveEventArgs(0));
+            Assert.Equal(1, handler.Called);
+        }
+
+        class ApplyHandler_ApplyRemoveAsyncHandler_IsCalled_Class : BaseHandler
+        {
+            public int Called = 0;
+            public async Task ApplyRemove(IResourceContext rc, RemoveEventArgs ev) { await Task.Run(() => Called++); }
+        }
+        [Fact]
+        public async Task ApplyHandler_ApplyRemoveAsyncHandler_IsCalled()
+        {
+            var handler = new ApplyHandler_ApplyRemoveAsyncHandler_IsCalled_Class();
+            await handler.Apply(null, new RemoveEventArgs(0));
+            Assert.Equal(1, handler.Called);
+        }
+
+        class ApplyHandler_ApplyCreateHandler_IsCalled_Class : BaseHandler
+        {
+            public int Called = 0;
+            public void ApplyCreate(IResourceContext rc, CreateEventArgs ev) { Called++; }
+        }
+        [Fact]
+        public async Task ApplyHandler_ApplyCreateHandler_IsCalled()
+        {
+            var handler = new ApplyHandler_ApplyCreateHandler_IsCalled_Class();
+            await handler.Apply(null, new CreateEventArgs(null));
+            Assert.Equal(1, handler.Called);
+        }
+
+        class ApplyHandler_ApplyCreateAsyncHandler_IsCalled_Class : BaseHandler
+        {
+            public int Called = 0;
+            public async Task ApplyCreate(IResourceContext rc, CreateEventArgs ev) { await Task.Run(() => Called++); }
+        }
+        [Fact]
+        public async Task ApplyHandler_ApplyCreateAsyncHandler_IsCalled()
+        {
+            var handler = new ApplyHandler_ApplyCreateAsyncHandler_IsCalled_Class();
+            await handler.Apply(null, new CreateEventArgs(null));
+            Assert.Equal(1, handler.Called);
+        }
+
+        class ApplyHandler_ApplyDeleteHandler_IsCalled_Class : BaseHandler
+        {
+            public int Called = 0;
+            public void ApplyDelete(IResourceContext rc, DeleteEventArgs ev) { Called++; }
+        }
+        [Fact]
+        public async Task ApplyHandler_ApplyDeleteHandler_IsCalled()
+        {
+            var handler = new ApplyHandler_ApplyDeleteHandler_IsCalled_Class();
+            await handler.Apply(null, new DeleteEventArgs());
+            Assert.Equal(1, handler.Called);
+        }
+
+        class ApplyHandler_ApplyDeleteAsyncHandler_IsCalled_Class : BaseHandler
+        {
+            public int Called = 0;
+            public async Task ApplyDelete(IResourceContext rc, DeleteEventArgs ev) { await Task.Run(() => Called++); }
+        }
+        [Fact]
+        public async Task ApplyHandler_ApplyDeleteAsyncHandler_IsCalled()
+        {
+            var handler = new ApplyHandler_ApplyDeleteAsyncHandler_IsCalled_Class();
+            await handler.Apply(null, new DeleteEventArgs());
+            Assert.Equal(1, handler.Called);
+        }
+
+        class ApplyHandler_ApplyCustomHandler_IsCalled_Class : BaseHandler
+        {
+            public int Called = 0;
+            public void ApplyCustom(IResourceContext rc, CustomEventArgs ev) { Called++; }
+        }
+        [Fact]
+        public async Task ApplyHandler_ApplyCustomHandler_IsCalled()
+        {
+            var handler = new ApplyHandler_ApplyCustomHandler_IsCalled_Class();
+            await handler.Apply(null, new CustomEventArgs("foo", null));
+            Assert.Equal(1, handler.Called);
+        }
+
+        class ApplyHandler_ApplyCustomAsyncHandler_IsCalled_Class : BaseHandler
+        {
+            public int Called = 0;
+            public async Task ApplyCustom(IResourceContext rc, CustomEventArgs ev) { await Task.Run(() => Called++); }
+        }
+        [Fact]
+        public async Task ApplyHandler_ApplyCustomAsyncHandler_IsCalled()
+        {
+            var handler = new ApplyHandler_ApplyCustomAsyncHandler_IsCalled_Class();
+            await handler.Apply(null, new CustomEventArgs("foo", null));
+            Assert.Equal(1, handler.Called);
+        }
+        #endregion
 
         class EnabledHandlers_CallMethodWithoutAttribute_IsCall_Class : BaseHandler
         {

@@ -270,11 +270,10 @@ namespace ResgateIO.Service
         private bool tryMatchApplyHandler(MethodInfo m, ParameterInfo p)
         {
             var t = p.ParameterType;
-            if (t != typeof(EventArgs) &&
-                t != typeof(ChangeEventArgs) &&
+            if (t != typeof(ChangeEventArgs) &&
                 t != typeof(AddEventArgs) &&
                 t != typeof(RemoveEventArgs) &&
-                t != typeof(ChangeEventArgs) &&
+                t != typeof(CreateEventArgs) &&
                 t != typeof(DeleteEventArgs) &&
                 t != typeof(CustomEventArgs))
             {
@@ -289,11 +288,7 @@ namespace ResgateIO.Service
                 return true;
             }
 
-            if (t == typeof(EventArgs))
-            {
-                handler.SetApply(createApplyHandler<EventArgs>(m));
-            }
-            else if (t == typeof(ChangeEventArgs))
+            if (t == typeof(ChangeEventArgs))
             {
                 handler.SetApplyChange(createApplyHandler<ChangeEventArgs>(m));
             }
