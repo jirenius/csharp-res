@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace TextService
 {
-    class MyModelHandler : ModelHandler
+    class MyModelHandler : BaseHandler
     {
         class MyModel
         {
@@ -15,13 +15,13 @@ namespace TextService
         // The model we will serve as "text.mymodel" or GET /api/text/mymodel
         private readonly MyModel myModel = new MyModel { Message = "Hello, C# World!" };
         
-        public override void Get(IModelRequest request)
+        public void Get(IModelRequest request)
         {
             // Respond to get requests with the model
             request.Model(myModel);
         }
 
-        public override void Access(IAccessRequest request)
+        public void Access(IAccessRequest request)
         {
             // Allow everone to access this resource
             request.AccessGranted();

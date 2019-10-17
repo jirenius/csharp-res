@@ -8,7 +8,7 @@ namespace SearchService
 {
     [ResourcePattern("customer.$id")]
     [ResourceGroup("customers")]
-    class CustomerHandler: ModelHandler
+    class CustomerHandler: BaseHandler
     {
         private readonly LiteCollection<Customer> customers;
 
@@ -24,12 +24,12 @@ namespace SearchService
             customers.EnsureIndex("Name", "LOWER($.Name)", false);
         }
 
-        public override void Access(IAccessRequest req)
+        public void Access(IAccessRequest req)
         {
             req.AccessGranted();
         }
 
-        public override void Get(IModelRequest req)
+        public void Get(IModelRequest req)
         {
             var customer = customers.FindById(new ObjectId(req.PathParam("id")));
             if (customer == null)
@@ -80,13 +80,13 @@ namespace SearchService
         }
 
         // Applies the changes to the database.
-        public override Dictionary<string, object> ApplyChange(IResourceContext resource, IDictionary<string, object> changes)
+        public void ApplyChange(IResourceContext resource, ChangeEventArgs ev)
         {
             var customer = resource.RequireValue<Customer>();
-            var revert = new Dictionary<string, object>(changes.Count);
+            var revert = new Dictionary<string, object>(ev.ChangedProperties.Count);
 
             // Apply Name
-            if (changes.TryGetValue("name", out object nameObject))
+            if (ev.ChangedProperties.TryGetValue("name", out object nameObject))
             {
                 string name = (string)nameObject;
                 if (name != customer.Name)
@@ -97,7 +97,7 @@ namespace SearchService
             }
 
             // Apply Email
-            if (changes.TryGetValue("email", out object emailObject))
+            if (ev.ChangedProperties.TryGetValue("email", out object emailObject))
             {
                 string email = (string)emailObject;
                 if (email != customer.Email)
@@ -108,7 +108,7 @@ namespace SearchService
             }
 
             // Apply Country
-            if (changes.TryGetValue("country", out object countryObject))
+            if (ev.ChangedProperties.TryGetValue("country", out object countryObject))
             {
                 string country = (string)countryObject;
                 if (country != customer.Country)
@@ -124,18 +124,18 @@ namespace SearchService
                 customers.Update(customer);
             }
 
-            return revert;
+            ev.SetRevert(revert);
         }
 
         // Applies the create to the database.
-        public override void ApplyCreate(IResourceContext resource, object data)
+        public void ApplyCreate(IResourceContext resource, CreateEventArgs ev)
         {
-            customers.Insert((Customer)data);
+            customers.Insert((Customer)ev.Data);
         }
 
         // Applies the delete to the database if it existed,
         // or else throws a ResError.NotFound ResException.
-        public override object ApplyDelete(IResourceContext resource)
+        public void ApplyDelete(IResourceContext resource, DeleteEventArgs ev)
         {
             var id = new ObjectId(resource.PathParam("id"));
             var customer = customers.FindById(id);
@@ -144,7 +144,7 @@ namespace SearchService
                 throw new ResException(ResError.NotFound);
             }
             customers.Delete(Query.EQ("_id", id));
-            return customers;
+            ev.SetRevert(customer);
         }
 
         private void populateDBWithDefaultData()

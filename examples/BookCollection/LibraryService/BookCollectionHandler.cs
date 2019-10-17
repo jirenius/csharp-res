@@ -3,21 +3,21 @@ using System;
 
 namespace LibraryService
 {
-    internal class BookCollectionHandler : CollectionHandler
+    internal class BookCollectionHandler : BaseHandler
     {
-        public override void Access(IAccessRequest request)
+        public void Access(IAccessRequest request)
         {
             // Allow everone to access this resource
             request.AccessGranted();
         }
 
-        public override void Get(ICollectionRequest request)
+        public void Get(ICollectionRequest request)
         {
             // Pass the entire list of book references
             request.Collection(BookStore.GetBookList());
         }
 
-        public override void New(INewRequest request)
+        public void New(INewRequest request)
         {
             Book newParams = request.ParseParams<Book>();
 
