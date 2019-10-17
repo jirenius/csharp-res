@@ -37,9 +37,9 @@ namespace ResgateIO.Service.UnitTests
                 .SetApplyChange((rc, ev) =>
                 {
                     called = true;
-                    Assert.Equal(changed, ev.Changed);
+                    Assert.Equal(changed, ev.ChangedProperties);
                     Assert.Equal("test.model", rc.ResourceName);
-                    ev.Revert = new Dictionary<string, object> { { "foo", "baz" } };
+                    ev.SetRevert(new Dictionary<string, object> { { "foo", "baz" } });
                 }));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
@@ -63,9 +63,9 @@ namespace ResgateIO.Service.UnitTests
                 .SetApplyChange((rc, ev) =>
                 {
                     called = true;
-                    Assert.Equal(changed, ev.Changed);
+                    Assert.Equal(changed, ev.ChangedProperties);
                     Assert.Equal("test.model", rc.ResourceName);
-                    ev.Revert = new Dictionary<string, object> { { "foo", "baz" } };
+                    ev.SetRevert(new Dictionary<string, object> { { "foo", "baz" } });
                 }));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
@@ -96,9 +96,9 @@ namespace ResgateIO.Service.UnitTests
                 .SetApplyChange((rc, ev) =>
                 {
                     called = true;
-                    Assert.Equal(changed, ev.Changed);
+                    Assert.Equal(changed, ev.ChangedProperties);
                     Assert.Equal("test.model", rc.ResourceName);
-                    ev.Revert = new Dictionary<string, object> {};
+                    ev.SetRevert(new Dictionary<string, object> {});
                 }));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
@@ -125,7 +125,7 @@ namespace ResgateIO.Service.UnitTests
                 .SetApplyChange((rc, ev) =>
                 {
                     called = true;
-                    Assert.Equal(changed, ev.Changed);
+                    Assert.Equal(changed, ev.ChangedProperties);
                     Assert.Equal("test.model", rc.ResourceName);
                 }));
             Service.Serve(Conn);
@@ -238,7 +238,7 @@ namespace ResgateIO.Service.UnitTests
                     called = true;
                     Assert.Equal("test.collection", rc.ResourceName);
                     Assert.Equal(idx, ev.Idx);
-                    ev.Value = "foo";
+                    ev.SetRevert("foo");
                 }));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
@@ -264,7 +264,7 @@ namespace ResgateIO.Service.UnitTests
                     called = true;
                     Assert.Equal("test.collection", rc.ResourceName);
                     Assert.Equal(idx, ev.Idx);
-                    ev.Value = "foo";
+                    ev.SetRevert("foo");
                 }));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
@@ -352,7 +352,7 @@ namespace ResgateIO.Service.UnitTests
                 {
                     called = true;
                     Assert.Equal("test.model", rc.ResourceName);
-                    ev.Data = Test.Model;
+                    ev.SetRevert(Test.Model);
                 }));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
@@ -375,7 +375,7 @@ namespace ResgateIO.Service.UnitTests
                 {
                     called = true;
                     Assert.Equal("test.model", rc.ResourceName);
-                    ev.Data = Test.Model;
+                    ev.SetRevert(Test.Model);
                 }));
             Service.Serve(Conn);
             Service.With("test.model", r =>

@@ -323,7 +323,7 @@ namespace ResgateIO.Service
             await Handler.Apply(this, ev);
             // If we have a revert dictionary set
             // we can do some additional checks.
-            var rev = ev.Revert;
+            var rev = ev.OldProperties;
             if (rev != null)
             {                    
                 if (rev.Count == 0)
@@ -336,12 +336,9 @@ namespace ResgateIO.Service
                 {
                     return;
                 }
-                if (properties.Count != ev.Changed.Count)
+                if (properties.Count != ev.ChangedProperties.Count)
                 {
-                    ev = new ChangeEventArgs(properties)
-                    {
-                        Revert = rev
-                    };
+                    ev = new ChangeEventArgs(properties).SetRevert(rev);
                 }
             }
             sendEvent("change", new ChangeEventDto(properties));

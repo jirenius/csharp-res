@@ -10,7 +10,10 @@ namespace ResgateIO.Service
         /// <summary>
         /// Value that was removed.
         /// </summary>
-        public object Value { get; set; }
+        /// <remarks>
+        /// Will be null unless its value is set through <see cref="SetRevert"/>.
+        /// </remarks>
+        public object Value { get; private set; }
 
         /// <summary>
         /// Index position where the value was removed from.
@@ -24,6 +27,18 @@ namespace ResgateIO.Service
         {
             Idx = idx;
             Value = null;
+        }
+
+        /// <summary>
+        /// Value that was removed,
+        /// that can be used to revert the effects event.
+        /// </summary>
+        /// <param name="value">Removed value.</param>
+        /// <returns>This instance.</returns>
+        public RemoveEventArgs SetRevert(object value)
+        {
+            Value = value;
+            return this;
         }
     }
 }

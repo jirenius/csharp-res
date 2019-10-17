@@ -46,7 +46,7 @@ namespace ResgateIO.Service
         /// 
         /// This applies to:
         /// <list type="bullet">
-        /// <item><term><see cref="ChangeEventArgs"/></term><description><see cref="ChangeEventArgs.Revert"/> should be set.</description></item>
+        /// <item><term><see cref="ChangeEventArgs"/></term><description><see cref="ChangeEventArgs.OldProperties"/> should be set.</description></item>
         /// <item><term><see cref="RemoveEventArgs"/></term><description><see cref="RemoveEventArgs.Value"/> should be set.</description></item>
         /// <item><term><see cref="DeleteEventArgs"/></term><description><see cref="DeleteEventArgs.Value"/> should be set.</description></item>
         /// </list>
