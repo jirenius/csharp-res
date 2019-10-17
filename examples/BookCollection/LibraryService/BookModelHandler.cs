@@ -3,15 +3,15 @@ using System.Collections.Generic;
 
 namespace LibraryService
 {
-    class BookModelHandler : ModelHandler
+    class BookModelHandler : BaseHandler
     {
-        public override void Access(IAccessRequest request)
+        public void Access(IAccessRequest request)
         {
             // Allow everone to access this resource
             request.AccessGranted();
         }
 
-        public override void Get(IModelRequest request)
+        public void Get(IModelRequest request)
         {
             Book book = BookStore.GetBook(request.ResourceName);
             if (book == null)
@@ -49,12 +49,12 @@ namespace LibraryService
             request.Ok();
         }
 
-        public override Dictionary<string, object> ApplyChange(IResourceContext resource, IDictionary<string, object> changes)
+        public void ApplyChange(IResourceContext resource, ChangeEventArgs  ev)
         {
             var book = resource.RequireValue<Book>();
-            var revert = new Dictionary<string, object>(changes.Count);
+            var revert = new Dictionary<string, object>(ev.ChangedProperties.Count);
 
-            if (changes.TryGetValue("title", out object titleObject))
+            if (ev.ChangedProperties.TryGetValue("title", out object titleObject))
             {
                 string title = (string)titleObject;
                 if (title == "")
@@ -68,7 +68,7 @@ namespace LibraryService
                 }
             }
 
-            if (changes.TryGetValue("author", out object authorObject))
+            if (ev.ChangedProperties.TryGetValue("author", out object authorObject))
             {
                 string author = (string)authorObject;
                 if (author == "")
@@ -82,7 +82,7 @@ namespace LibraryService
                 }
             }
 
-            return revert;
+            ev.SetRevert(revert);
         }
     }
 }

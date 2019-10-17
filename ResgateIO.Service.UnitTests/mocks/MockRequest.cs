@@ -2,13 +2,14 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 using NATS.Client;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace ResgateIO.Service
 {
-    public class MockRequest : IResourceContext, IAccessRequest, IGetRequest, ICallRequest, IAuthRequest, IModelRequest, ICollectionRequest
+    public class MockRequest : IRequest, IAccessRequest, IGetRequest, ICallRequest, IAuthRequest, IModelRequest, ICollectionRequest, INewRequest
     {
         public class Call
         {
@@ -22,9 +23,14 @@ namespace ResgateIO.Service
             }
             public Call(string method) : this(method, new object[0]) { }
         }
+
+        private static readonly Task completedTask = Task.FromResult(false);
+
         public List<Call> Calls = new List<Call>();
         
         public ResService Service { get; set; }
+
+        public RequestType Type { get; set; }
 
         public string ResourceName { get; set; }
 
@@ -36,7 +42,7 @@ namespace ResgateIO.Service
 
         public IDictionary Items { get; set; }
 
-        public IResourceHandler Handler { get; set; }
+        public IAsyncHandler Handler { get; set; }
 
         public string CID { get; set; }
 
@@ -76,9 +82,21 @@ namespace ResgateIO.Service
             Calls.Add(new Call("AddEvent", new object[] { value, idx }));
         }
 
+        public Task AddEventAsync(object value, int idx)
+        {
+            Calls.Add(new Call("AddEventAsync", new object[] { value, idx }));
+            return completedTask;
+        }
+
         public void ChangeEvent(Dictionary<string, object> properties)
         {
             Calls.Add(new Call("ChangeEvent", new object[] { properties }));
+        }
+
+        public Task ChangeEventAsync(Dictionary<string, object> properties)
+        {
+            Calls.Add(new Call("ChangeEvent", new object[] { properties }));
+            return completedTask;
         }
 
         public void Collection(object collection)
@@ -96,9 +114,21 @@ namespace ResgateIO.Service
             Calls.Add(new Call("CreateEvent", new object[] { data }));
         }
 
+        public Task CreateEventAsync(object data)
+        {
+            Calls.Add(new Call("CreateEvent", new object[] { data }));
+            return completedTask;
+        }
+
         public void DeleteEvent()
         {
             Calls.Add(new Call("DeleteEvent"));
+        }
+
+        public Task DeleteEventAsync()
+        {
+            Calls.Add(new Call("DeleteEvent"));
+            return completedTask;
         }
 
         public void Error(ResError error)
@@ -111,9 +141,21 @@ namespace ResgateIO.Service
             Calls.Add(new Call("Event", new object[] { eventName }));
         }
 
+        public Task EventAsync(string eventName)
+        {
+            Calls.Add(new Call("EventAsync", new object[] { eventName }));
+            return completedTask;
+        }
+
         public void Event(string eventName, object payload)
         {
             Calls.Add(new Call("Event", new object[] { eventName, payload }));
+        }
+
+        public Task EventAsync(string eventName, object payload)
+        {
+            Calls.Add(new Call("Event", new object[] { eventName, payload }));
+            return completedTask;
         }
 
         public void InvalidParams()
@@ -176,6 +218,11 @@ namespace ResgateIO.Service
             Calls.Add(new Call("Ok", new object[] { result }));
         }
 
+        public void New(Ref rid)
+        {
+            Calls.Add(new Call("New", new object[] { rid }));
+        }
+
         public T ParseParams<T>()
         {
             Calls.Add(new Call("ParseParams"));
@@ -194,9 +241,15 @@ namespace ResgateIO.Service
             return "mock";
         }
 
-        public void QueryEvent(QueryCallback callback)
+        public void QueryEvent(Func<IQueryRequest, Task> callback)
         {
-            Calls.Add(new Call("QueryEvent"));
+            Calls.Add(new Call("QueryEvent(Func<IQueryRequest, Task>)"));
+            callback(null);
+        }
+
+        public void QueryEvent(Action<IQueryRequest> callback)
+        {
+            Calls.Add(new Call("QueryEvent(Action<IQueryRequest>)"));
             callback(null);
         }
 
@@ -215,10 +268,22 @@ namespace ResgateIO.Service
             Calls.Add(new Call("RemoveEvent", new object[] { idx }));
         }
 
+        public Task RemoveEventAsync(int idx)
+        {
+            Calls.Add(new Call("RemoveEvent", new object[] { idx }));
+            return completedTask;
+        }
+
         public T RequireValue<T>() where T : class
         {
             Calls.Add(new Call("RequireValue"));
             return default(T);
+        }
+
+        public Task<T> RequireValueAsync<T>() where T : class
+        {
+            Calls.Add(new Call("RequireValueAsync"));
+            return Task.FromResult(default(T));
         }
 
         public void Timeout(int milliseconds)
@@ -240,6 +305,17 @@ namespace ResgateIO.Service
         {
             Calls.Add(new Call("Value"));
             return default(T);
+        }
+
+        public Task<T> ValueAsync<T>() where T : class
+        {
+            Calls.Add(new Call("ValueAsync"));
+            return Task.FromResult(default(T));
+        }
+
+        public void RawResponse(byte[] data)
+        {
+            Calls.Add(new Call("RawResponse", new object[] { data }));
         }
     }
 }

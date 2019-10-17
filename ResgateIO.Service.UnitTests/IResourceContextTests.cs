@@ -2,6 +2,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -368,6 +369,152 @@ namespace ResgateIO.Service.UnitTests
             Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
         }
         #endregion
+        
+        #region ValueAsync
+        public static IEnumerable<object[]> GetValueAsyncTestData()
+        {
+            // With Model returns model
+            yield return new object[] {
+                "Model",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Model(Test.Model))),
+                (Func<IResourceContext, Task>)(async r => Assert.Equal(Test.Model, await r.ValueAsync<ModelDto>()))
+            };
+
+            // With Model with query returns model
+            yield return new object[] {
+                "ModelWithQuery",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Model(Test.Model, Test.NormalizedQuery))),
+                (Func<IResourceContext, Task>)(async r => Assert.Equal(Test.Model, await r.ValueAsync<ModelDto>()))
+            };
+
+            // With Collection returns collection
+            yield return new object[] {
+                "Collection",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Collection(Test.Collection))),
+                (Func<IResourceContext, Task>)(async r => Assert.Equal(Test.Collection, await r.ValueAsync<object[]>()))
+            };
+
+            // With Collection with query returns collection
+            yield return new object[] {
+                "CollectionWithQuery",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Collection(Test.Collection, Test.NormalizedQuery))),
+                (Func<IResourceContext, Task>)(async r => Assert.Equal(Test.Collection, await r.ValueAsync<object[]>()))
+            };
+
+            // With Error returns null
+            yield return new object[] {
+                "Error",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Error(Test.CustomError))),
+                (Func<IResourceContext, Task>)(async r => Assert.Null(await r.ValueAsync<ModelDto>()))
+            };
+
+            // With NotFound returns null
+            yield return new object[] {
+                "NotFound",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.NotFound())),
+                (Func<IResourceContext, Task>)(async r => Assert.Null(await r.ValueAsync<ModelDto>()))
+            };
+
+            // With InvalidQuery returns null
+            yield return new object[] {
+                "InvalidQuery",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.InvalidQuery())),
+                (Func<IResourceContext, Task>)(async r => Assert.Null(await r.ValueAsync<ModelDto>()))
+            };
+
+            // With InvalidQuery with message returns null
+            yield return new object[] {
+                "InvalidQuery_WithMessage",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.InvalidQuery(Test.ErrorMessage))),
+                (Func<IResourceContext, Task>)(async r => Assert.Null(await r.ValueAsync<ModelDto>()))
+            };
+
+            // With InvalidQuery with message and data returns null
+            yield return new object[] {
+                "InvalidQuery_WithMessageAndData",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.InvalidQuery(Test.ErrorMessage, Test.ErrorData))),
+                (Func<IResourceContext, Task>)(async r => Assert.Null(await r.ValueAsync<ModelDto>()))
+            };
+
+            // With different resource type throws InvalidCastException
+            yield return new object[] {
+                "Model_WithDifferentResourceType",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Model(new { id = 42, foo = "bar" }))),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<InvalidCastException>(async () => await r.ValueAsync<ModelDto>()))
+            };
+
+            // Calling Value throws InvalidOperationException
+            yield return new object[] {
+                "Value",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Value<ModelDto>())),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<InvalidOperationException>(async () => await r.ValueAsync<ModelDto>()))
+            };
+
+            // Calling ValueAsync throws InvalidOperationException
+            yield return new object[] {
+                "Value",
+                (Func<IGetRequest, Task>)(async r => await r.ValueAsync<ModelDto>()),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<InvalidOperationException>(async () => await r.ValueAsync<ModelDto>()))
+            };
+
+            // Calling RequireValue throws InvalidOperationException
+            yield return new object[] {
+                "RequireValue",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.RequireValue<ModelDto>())),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<InvalidOperationException>(async () => await r.ValueAsync<ModelDto>()))
+            };
+
+            // With Timeout_Int and Model returns model
+            yield return new object[] {
+                "Model_WithTimeout_Int",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => { r.Timeout(5000); r.Model(Test.Model); })),
+                (Func<IResourceContext, Task>)(async r => Assert.Equal(Test.Model, await r.ValueAsync<ModelDto>()))
+            };
+
+            // With Timeout_Timespan and Model returns model
+            yield return new object[] {
+                "Model_WithTimeout_TimeSpan",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => { r.Timeout(TimeSpan.FromSeconds(5)); r.Model(Test.Model); })),
+                (Func<IResourceContext, Task>)(async r => Assert.Equal(Test.Model, await r.ValueAsync<ModelDto>()))
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(GetValueAsyncTestData))]
+        public void ValueAsync_UsingCall_ReturnsCorrectValue(string resourceName, Func<IGetRequest, Task> getHandler, Func<IResourceContext, Task> assertion)
+        {
+            Service.AddHandler(resourceName, new DynamicHandler()
+                .SetCall(async r =>
+                {
+                    await assertion(r);
+                    r.Ok();
+                })
+                .SetGet(getHandler)
+           );
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test." + resourceName + ".method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(null);
+        }
+
+        [Theory]
+        [MemberData(nameof(GetValueAsyncTestData))]
+        public void ValueAsync_UsingWith_ReturnsCorrectValue(string resourceName, Func<IGetRequest, Task> getHandler, Func<IResourceContext, Task> assertion)
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler(resourceName, new DynamicHandler().SetGet(getHandler));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            Service.With("test." + resourceName, async r =>
+            {
+                await assertion(r);
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+        }
+        #endregion
 
         #region RequireValue
         public static IEnumerable<object[]> GetRequireValueTestData()
@@ -508,6 +655,152 @@ namespace ResgateIO.Service.UnitTests
         }
         #endregion
 
+        #region RequireValueAsync
+        public static IEnumerable<object[]> GetRequireValueAsyncTestData()
+        {
+            // With Model returns model
+            yield return new object[] {
+                "Model",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Model(Test.Model))),
+                (Func<IResourceContext, Task>)(async r => Assert.Equal(Test.Model, await r.RequireValueAsync<ModelDto>()))
+            };
+
+            // With Model with query returns model
+            yield return new object[] {
+                "ModelWithQuery",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Model(Test.Model, Test.NormalizedQuery))),
+                (Func<IResourceContext, Task>)(async r => Assert.Equal(Test.Model, await r.RequireValueAsync<ModelDto>()))
+            };
+
+            // With Collection returns collection
+            yield return new object[] {
+                "Collection",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Collection(Test.Collection))),
+                (Func<IResourceContext, Task>)(async r => Assert.Equal(Test.Collection, await r.RequireValueAsync<object[]>()))
+            };
+
+            // With Collection with query returns collection
+            yield return new object[] {
+                "CollectionWithQuery",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Collection(Test.Collection, Test.NormalizedQuery))),
+                (Func<IResourceContext, Task>)(async r => Assert.Equal(Test.Collection, await r.RequireValueAsync<object[]>()))
+            };
+
+            // With Error returns throws ResException
+            yield return new object[] {
+                "Error",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Error(Test.CustomError))),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<ResException>(async () => await r.RequireValueAsync<ModelDto>()))
+            };
+
+            // With NotFound throws ResException
+            yield return new object[] {
+                "NotFound",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.NotFound())),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<ResException>(async () => await r.RequireValueAsync<ModelDto>()))
+            };
+
+            // With InvalidQuery returns null
+            yield return new object[] {
+                "InvalidQuery",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.InvalidQuery())),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<ResException>(async () => await r.RequireValueAsync<ModelDto>()))
+            };
+
+            // With InvalidQuery with message returns null
+            yield return new object[] {
+                "InvalidQuery_WithMessage",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.InvalidQuery(Test.ErrorMessage))),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<ResException>(async () => await r.RequireValueAsync<ModelDto>()))
+            };
+
+            // With InvalidQuery with message and data returns null
+            yield return new object[] {
+                "InvalidQuery_WithMessageAndData",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.InvalidQuery(Test.ErrorMessage, Test.ErrorData))),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<ResException>(async () => await r.RequireValueAsync<ModelDto>()))
+            };
+
+            // With different resource type throws InvalidCastException
+            yield return new object[] {
+                "Model_WithDifferentResourceType",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Model(new { id = 42, foo = "bar" }))),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<InvalidCastException>(async () => await r.RequireValueAsync<ModelDto>()))
+            };
+
+            // Calling Value throws InvalidOperationException
+            yield return new object[] {
+                "Value",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.Value<ModelDto>())),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<InvalidOperationException>(async () => await r.RequireValueAsync<ModelDto>()))
+            };
+
+            // Calling RequireValue throws InvalidOperationException
+            yield return new object[] {
+                "RequireValue",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => r.RequireValue<ModelDto>())),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<InvalidOperationException>(async () => await r.RequireValueAsync<ModelDto>()))
+            };
+
+            // Calling RequireValueAsync throws InvalidOperationException
+            yield return new object[] {
+                "RequireValue",
+                (Func<IGetRequest, Task>)(async r => await r.RequireValueAsync<ModelDto>()),
+                (Func<IResourceContext, Task>)(async r => await Assert.ThrowsAsync<InvalidOperationException>(async () => await r.RequireValueAsync<ModelDto>()))
+            };
+
+            // With Timeout_Int and Model returns model
+            yield return new object[] {
+                "Model_WithTimeout_Int",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => { r.Timeout(5000); r.Model(Test.Model); })),
+                (Func<IResourceContext, Task>)(async r => Assert.Equal(Test.Model, await r.RequireValueAsync<ModelDto>()))
+            };
+
+            // With Timeout_Timespan and Model returns model
+            yield return new object[] {
+                "Model_WithTimeout_TimeSpan",
+                (Func<IGetRequest, Task>)(r => Task.Run(() => { r.Timeout(TimeSpan.FromSeconds(5)); r.Model(Test.Model); })),
+                (Func<IResourceContext, Task>)(async r => Assert.Equal(Test.Model, await r.RequireValueAsync<ModelDto>()))
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(GetRequireValueAsyncTestData))]
+        public void RequireValueAsync_UsingCall_ReturnsCorrectValue(string resourceName, Func<IGetRequest, Task> getHandler, Func<IResourceContext, Task> assertion)
+        {
+            Service.AddHandler(resourceName, new DynamicHandler()
+                .SetCall(async r =>
+                {
+                    await assertion(r);
+                    r.Ok();
+                })
+                .SetGet(getHandler)
+           );
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test." + resourceName + ".method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(null);
+        }
+
+        [Theory]
+        [MemberData(nameof(GetRequireValueAsyncTestData))]
+        public void RequireValueAsync_UsingWith_ReturnsCorrectValue(string resourceName, Func<IGetRequest, Task> getHandler, Func<IResourceContext, Task> assertion)
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler(resourceName, new DynamicHandler().SetGet(getHandler));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            Service.With("test." + resourceName, r =>
+            {
+                assertion(r);
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+        }
+        #endregion
+
         #region Event
         public static IEnumerable<object[]> GetEventTestData()
         {
@@ -608,6 +901,100 @@ namespace ResgateIO.Service.UnitTests
             {
                 Assert.Throws<ArgumentException>(() => r.Event(eventName));
                 r.Event("valid");
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+            Conn.GetMsg().AssertSubject("event.test.model.valid");
+        }
+        #endregion
+
+        #region EventAsync
+        [Theory]
+        [MemberData(nameof(GetEventTestData))]
+        public void EventAsync_ValidEvent_SendsEvent(string eventName, string payload)
+        {
+            Service.AddHandler("model", new DynamicHandler().SetCall(async r =>
+            {
+                if (payload == null)
+                    await r.EventAsync(eventName);
+                else
+                    await r.EventAsync(eventName, JToken.Parse(payload));
+                r.Ok();
+            }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            if (payload == null)
+            {
+                Conn.GetMsg()
+                    .AssertSubject("event.test.model." + eventName)
+                    .AssertNoPayload();
+            }
+            else
+            {
+                Conn.GetMsg()
+                    .AssertSubject("event.test.model." + eventName)
+                    .AssertPayload(JToken.Parse(payload));
+            }
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(null);
+        }
+
+        [Theory]
+        [MemberData(nameof(GetEventTestData))]
+        public void EventAsync_ValidEventUsingWith_SendsEvent(string eventName, string payload)
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler("model", new DynamicHandler());
+            Service.Serve(Conn);
+            Service.With("test.model", async r =>
+            {
+                if (payload == null)
+                    await r.EventAsync(eventName);
+                else
+                    await r.EventAsync(eventName, JToken.Parse(payload));
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+            if (payload == null)
+            {
+                Conn.GetMsg()
+                    .AssertSubject("event.test.model." + eventName)
+                    .AssertNoPayload();
+            }
+            else
+            {
+                Conn.GetMsg()
+                    .AssertSubject("event.test.model." + eventName)
+                    .AssertPayload(JToken.Parse(payload));
+            }
+        }
+
+        [Theory]
+        [InlineData("change")]
+        [InlineData("delete")]
+        [InlineData("add")]
+        [InlineData("remove")]
+        [InlineData("patch")]
+        [InlineData("reaccess")]
+        [InlineData("unsubscribe")]
+        [InlineData("foo.bar")]
+        [InlineData("foo.>")]
+        [InlineData("*")]
+        [InlineData("*.bar")]
+        [InlineData("?foo")]
+        [InlineData("foo?")]
+        [InlineData(">.baz")]
+        public void EventAsync_InvalidEventName_ThrowsArgumentException(string eventName)
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler("model", new DynamicHandler());
+            Service.Serve(Conn);
+            Service.With("test.model", async r =>
+            {
+                await Assert.ThrowsAsync<ArgumentException>(async () => await r.EventAsync(eventName));
+                await r.EventAsync("valid");
                 ev.Set();
             });
             Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
@@ -733,6 +1120,114 @@ namespace ResgateIO.Service.UnitTests
         }
         #endregion
 
+        #region ChangeEventAsync
+        [Theory]
+        [MemberData(nameof(GetChangeEventTestData))]
+        public void ChangeEventAsync_ValidEvent_SendsChangeEvent(Dictionary<string, object> changed)
+        {
+            Service.AddHandler("model", new DynamicHandler().SetCall(async r =>
+            {
+                await r.ChangeEventAsync(changed);
+                r.Ok();
+            }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject("event.test.model.change")
+                .AssertPayload(new { values = changed });
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(null);
+        }
+
+        [Theory]
+        [MemberData(nameof(GetChangeEventTestData))]
+        public void ChangeEventAsync_ValidEventUsingWith_SendsChangeEvent(Dictionary<string, object> changed)
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler("model", new DynamicHandler());
+            Service.Serve(Conn);
+            Service.With("test.model", async r =>
+            {
+                await r.ChangeEventAsync(changed);
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+            Conn.GetMsg()
+                .AssertSubject("event.test.model.change")
+                .AssertPayload(new { values = changed });
+        }
+
+        [Fact]
+        public void ChangeEventAsync_NoChanges_NoChangeEventSent()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetCall(async r =>
+            {
+                await r.ChangeEventAsync(new Dictionary<string, object>());
+                await r.ChangeEventAsync(null);
+                r.Ok();
+            }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(null);
+        }
+
+        [Fact]
+        public void ChangeEventAsync_NoChangesUsingWith_NoChangeEventSent()
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler("model", new DynamicHandler());
+            Service.Serve(Conn);
+            Service.With("test.model", async r =>
+            {
+                await r.ChangeEventAsync(new Dictionary<string, object>());
+                await r.ChangeEventAsync(null);
+                r.Event("foo");
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+            Conn.GetMsg().AssertSubject("event.test.model.foo");
+        }
+
+        [Fact]
+        public void ChangeEventAsync_OnCollection_ThrowsInvalidOperationException()
+        {
+            Service.AddHandler("collection", new DynamicHandler()
+                .SetType(ResourceType.Collection)
+                .SetCall(async r =>
+                {
+                    await Assert.ThrowsAsync<InvalidOperationException>(async () => await r.ChangeEventAsync(new Dictionary<string, object>()));
+                    r.Ok();
+                }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test.collection.method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(null);
+        }
+
+        [Fact]
+        public void ChangeEventAsync_OnCollectionUsingWith_ThrowsInvalidOperationException()
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler("collection", new DynamicHandler().SetType(ResourceType.Collection));
+            Service.Serve(Conn);
+            Service.With("test.collection", async r =>
+            {
+                await Assert.ThrowsAsync<InvalidOperationException>(async () => await r.ChangeEventAsync(new Dictionary<string, object>()));
+                r.Event("foo");
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+            Conn.GetMsg().AssertSubject("event.test.collection.foo");
+        }
+        #endregion
+
         #region AddEvent
         public static IEnumerable<object[]> GetAddEventTestData()
         {
@@ -840,6 +1335,112 @@ namespace ResgateIO.Service.UnitTests
             Service.With("test.model", r =>
             {
                 Assert.Throws<InvalidOperationException>(() => r.AddEvent("foo", 0));
+                r.Event("foo");
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+            Conn.GetMsg().AssertSubject("event.test.model.foo");
+        }
+        #endregion
+
+        #region AddEventAsync
+        [Theory]
+        [MemberData(nameof(GetAddEventTestData))]
+        public void AddEventAsync_ValidEvent_SendsAddEvent(object value, int idx, object expected)
+        {
+            Service.AddHandler("model", new DynamicHandler().SetCall(async r =>
+            {
+                await r.AddEventAsync(value, idx);
+                r.Ok();
+            }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject("event.test.model.add")
+                .AssertPayload(expected);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(null);
+        }
+
+        [Theory]
+        [MemberData(nameof(GetAddEventTestData))]
+        public void AddEventAsync_ValidEventUsingWith_SendsAddEvent(object value, int idx, object expected)
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler("model", new DynamicHandler());
+            Service.Serve(Conn);
+            Service.With("test.model", async r =>
+            {
+                await r.AddEventAsync(value, idx);
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+            Conn.GetMsg()
+                .AssertSubject("event.test.model.add")
+                .AssertPayload(expected);
+        }
+
+        [Fact]
+        public void AddEventAsync_NegativeIdx_ThrowsArgumentException()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetCall(async r =>
+            {
+                await Assert.ThrowsAsync<ArgumentException>(async () => await r.AddEventAsync("foo", -1));
+                r.Ok();
+            }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(null);
+        }
+
+        [Fact]
+        public void AddEventAsync_NegativeIdxUsingWith_ThrowsArgumentException()
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler("model", new DynamicHandler());
+            Service.Serve(Conn);
+            Service.With("test.model", async r =>
+            {
+                await Assert.ThrowsAsync<ArgumentException>(async () => await r.AddEventAsync("foo", -1));
+                r.Event("foo");
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+            Conn.GetMsg().AssertSubject("event.test.model.foo");
+        }
+
+        [Fact]
+        public void AddEventAsync_OnModel_ThrowsInvalidOperationException()
+        {
+            Service.AddHandler("model", new DynamicHandler()
+                .SetType(ResourceType.Model)
+                .SetCall(async r =>
+                {
+                    await Assert.ThrowsAsync<InvalidOperationException>(async () => await r.AddEventAsync("foo", 0));
+                    r.Ok();
+                }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(null);
+        }
+
+        [Fact]
+        public void AddEventAsync_OnModelUsingWith_ThrowsInvalidOperationException()
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler("model", new DynamicHandler().SetType(ResourceType.Model));
+            Service.Serve(Conn);
+            Service.With("test.model", async r =>
+            {
+                await Assert.ThrowsAsync<InvalidOperationException>(async () => await r.AddEventAsync("foo", 0));
                 r.Event("foo");
                 ev.Set();
             });
@@ -961,6 +1562,264 @@ namespace ResgateIO.Service.UnitTests
         }
         #endregion
 
+        #region RemoveEventAsync
+        [Theory]
+        [MemberData(nameof(GetRemoveEventTestData))]
+        public void RemoveEventAsync_ValidEvent_SendsRemoveEvent(int idx, object expected)
+        {
+            Service.AddHandler("model", new DynamicHandler().SetCall(async r =>
+            {
+                await r.RemoveEventAsync(idx);
+                r.Ok();
+            }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject("event.test.model.remove")
+                .AssertPayload(expected);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(null);
+        }
+
+        [Theory]
+        [MemberData(nameof(GetRemoveEventTestData))]
+        public void RemoveEventAsync_ValidEventUsingWith_SendsRemoveEvent(int idx, object expected)
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler("model", new DynamicHandler());
+            Service.Serve(Conn);
+            Service.With("test.model", async r =>
+            {
+                await r.RemoveEventAsync(idx);
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+            Conn.GetMsg()
+                .AssertSubject("event.test.model.remove")
+                .AssertPayload(expected);
+        }
+
+        [Fact]
+        public void RemoveEventAsync_NegativeIdx_ThrowsArgumentException()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetCall(async r =>
+            {
+                await Assert.ThrowsAsync<ArgumentException>(async () => await r.RemoveEventAsync(-1));
+                r.Ok();
+            }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(null);
+        }
+
+        [Fact]
+        public void RemoveEventAsync_NegativeIdxUsingWith_ThrowsArgumentException()
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler("model", new DynamicHandler());
+            Service.Serve(Conn);
+            Service.With("test.model", async r =>
+            {
+                await Assert.ThrowsAsync<ArgumentException>(async () => await r.RemoveEventAsync(-1));
+                r.Event("foo");
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+            Conn.GetMsg().AssertSubject("event.test.model.foo");
+        }
+
+        [Fact]
+        public void RemoveEventAsync_OnModel_ThrowsInvalidOperationException()
+        {
+            Service.AddHandler("model", new DynamicHandler()
+                .SetType(ResourceType.Model)
+                .SetCall(async r =>
+                {
+                    await Assert.ThrowsAsync<InvalidOperationException>(async () => await r.RemoveEventAsync(0));
+                    r.Ok();
+                }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(null);
+        }
+
+        [Fact]
+        public void RemoveEventAsync_OnModelUsingWith_ThrowsInvalidOperationException()
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler("model", new DynamicHandler().SetType(ResourceType.Model));
+            Service.Serve(Conn);
+            Service.With("test.model", async r =>
+            {
+                await Assert.ThrowsAsync<InvalidOperationException>(async () => await r.RemoveEventAsync(0));
+                r.Event("foo");
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+            Conn.GetMsg().AssertSubject("event.test.model.foo");
+        }
+        #endregion
+
+        #region CreateEvent
+        [Fact]
+        public void CreateEvent_UsingRequest_SendsCreateEvent()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            {
+                r.CreateEvent(Test.Model);
+                r.Ok();
+            }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject("event.test.model.create")
+                .AssertNoPayload();
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(null);
+        }
+
+        [Fact]
+        public void CreateEvent_UsingWith_SendsCreateEvent()
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler("model", new DynamicHandler());
+            Service.Serve(Conn);
+            Service.With("test.model", r =>
+            {
+                r.CreateEvent(Test.Model);
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+            Conn.GetMsg()
+                .AssertSubject("event.test.model.create")
+                .AssertNoPayload();
+        }
+        #endregion
+
+        #region CreateEventAsync
+        [Fact]
+        public void CreateEventAsync_UsingRequest_SendsCreateEvent()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetCall(async r =>
+            {
+                await r.CreateEventAsync(Test.Model);
+                r.Ok();
+            }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject("event.test.model.create")
+                .AssertNoPayload();
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(null);
+        }
+
+        [Fact]
+        public void CreateEventAsync_UsingWith_SendsCreateEvent()
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler("model", new DynamicHandler());
+            Service.Serve(Conn);
+            Service.With("test.model", async r =>
+            {
+                await r.CreateEventAsync(Test.Model);
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+            Conn.GetMsg()
+                .AssertSubject("event.test.model.create")
+                .AssertNoPayload();
+        }
+        #endregion
+
+        #region DeleteEvent
+        [Fact]
+        public void DeleteEvent_UsingRequest_SendsDeleteEvent()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            {
+                r.DeleteEvent();
+                r.Ok();
+            }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject("event.test.model.delete")
+                .AssertNoPayload();
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(null);
+        }
+
+        [Fact]
+        public void DeleteEvent_UsingWith_SendsDeleteEvent()
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler("model", new DynamicHandler());
+            Service.Serve(Conn);
+            Service.With("test.model", r =>
+            {
+                r.DeleteEvent();
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+            Conn.GetMsg()
+                .AssertSubject("event.test.model.delete")
+                .AssertNoPayload();
+        }
+        #endregion
+
+        #region DeleteEventAsync
+        [Fact]
+        public void DeleteEventAsync_UsingRequest_SendsDeleteEvent()
+        {
+            Service.AddHandler("model", new DynamicHandler().SetCall(async r =>
+            {
+                await r.DeleteEventAsync();
+                r.Ok();
+            }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject("event.test.model.delete")
+                .AssertNoPayload();
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(null);
+        }
+
+        [Fact]
+        public void DeleteEventAsync_UsingWith_SendsDeleteEvent()
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler("model", new DynamicHandler());
+            Service.Serve(Conn);
+            Service.With("test.model", async r =>
+            {
+                await r.DeleteEventAsync();
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+            Conn.GetMsg()
+                .AssertSubject("event.test.model.delete")
+                .AssertNoPayload();
+        }
+        #endregion
+
         #region ReaccessEvent
         [Fact]
         public void ReaccessEvent_UsingRequest_SendsReaccessEvent()
@@ -1034,82 +1893,6 @@ namespace ResgateIO.Service.UnitTests
             Conn.GetMsg()
                 .AssertSubject("system.reset")
                 .AssertPayload(new { resources = new[] { "test.model" } });
-        }
-        #endregion
-
-        #region CreateEvent
-        [Fact]
-        public void CreateEvent_UsingRequest_SendsCreateEvent()
-        {
-            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
-            {
-                r.CreateEvent(Test.Model);
-                r.Ok();
-            }));
-            Service.Serve(Conn);
-            Conn.GetMsg().AssertSubject("system.reset");
-            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
-            Conn.GetMsg()
-                .AssertSubject("event.test.model.create")
-                .AssertNoPayload();
-            Conn.GetMsg()
-                .AssertSubject(inbox)
-                .AssertResult(null);
-        }
-
-        [Fact]
-        public void CreateEvent_UsingWith_SendsCreateEvent()
-        {
-            AutoResetEvent ev = new AutoResetEvent(false);
-            Service.AddHandler("model", new DynamicHandler());
-            Service.Serve(Conn);
-            Service.With("test.model", r =>
-            {
-                r.CreateEvent(Test.Model);
-                ev.Set();
-            });
-            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
-            Conn.GetMsg()
-                .AssertSubject("event.test.model.create")
-                .AssertNoPayload();
-        }
-        #endregion
-
-        #region DeleteEvent
-        [Fact]
-        public void DeleteEvent_UsingRequest_SendsDeleteEvent()
-        {
-            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
-            {
-                r.DeleteEvent();
-                r.Ok();
-            }));
-            Service.Serve(Conn);
-            Conn.GetMsg().AssertSubject("system.reset");
-            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
-            Conn.GetMsg()
-                .AssertSubject("event.test.model.delete")
-                .AssertNoPayload();
-            Conn.GetMsg()
-                .AssertSubject(inbox)
-                .AssertResult(null);
-        }
-
-        [Fact]
-        public void DeleteEvent_UsingWith_SendsDeleteEvent()
-        {
-            AutoResetEvent ev = new AutoResetEvent(false);
-            Service.AddHandler("model", new DynamicHandler());
-            Service.Serve(Conn);
-            Service.With("test.model", r =>
-            {
-                r.DeleteEvent();
-                ev.Set();
-            });
-            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
-            Conn.GetMsg()
-                .AssertSubject("event.test.model.delete")
-                .AssertNoPayload();
         }
         #endregion
     }

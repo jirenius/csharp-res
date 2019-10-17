@@ -18,14 +18,14 @@ namespace SearchService
     }
 
     [ResourcePattern("countries")]
-    class CountriesHandler: CollectionHandler
+    class CountriesHandler: BaseHandler
     {
-        public override void Access(IAccessRequest req)
+        public void Access(IAccessRequest req)
         {
             req.AccessGranted();
         }
 
-        public override void Get(ICollectionRequest req)
+        public void Get(ICollectionRequest req)
         {
             req.Collection(Countries.List);
         }

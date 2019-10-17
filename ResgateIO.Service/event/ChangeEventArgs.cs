@@ -12,21 +12,37 @@ namespace ResgateIO.Service
         /// Properties being changed, and their new values.
         /// The value will be ResAction.Delete for deleted properties.
         /// </summary>
-        public Dictionary<string, object> Changed { get; }
+        public Dictionary<string, object> ChangedProperties { get; }
 
         /// <summary>
         /// Properties being changed, and their old values.
-        /// The value will be ResAction.Delete for new properties.
+        /// The value will be ResAction.Delete for new properties.        
         /// </summary>
-        public Dictionary<string, object> Revert { get; }
+        /// <remarks>
+        /// Will be null unless its value is set through <see cref="SetRevert"/>.
+        /// </remarks>
+        public Dictionary<string, object> OldProperties { get; private set; }
 
         /// <summary>
         /// Initializes a new instance of the ChangeEvent class.
         /// </summary>
-        public ChangeEventArgs(Dictionary<string, object> changes, Dictionary<string, object> revert)
+        public ChangeEventArgs(Dictionary<string, object> changes)
         {
-            Changed = changes;
-            Revert = revert;
+            ChangedProperties = changes;
+            OldProperties = null;
+        }
+
+        /// <summary>
+        /// Set properties being changed, and their old values,
+        /// that can be used to revert the effects event.
+        /// The property value should be ResAction.Delete for new properties.
+        /// </summary>
+        /// <param name="oldProperties">Old property values.</param>
+        /// <returns>This instance.</returns>
+        public ChangeEventArgs SetRevert(Dictionary<string, object> oldProperties)
+        {
+            OldProperties = oldProperties;
+            return this;
         }
     }
 }

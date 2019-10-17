@@ -456,8 +456,8 @@ namespace ResgateIO.Service.UnitTests
         public void GetHandler_MoreSpecificPath_ReturnsMoreSpecificHandler(string pattern, string specificPath, string wildcardPath, string resourceName)
         {
             Router r = new Router(pattern);
-            IResourceHandler specificHandler = new DynamicHandler().SetType(ResourceType.Model);
-            IResourceHandler wildcardHandler = new DynamicHandler().SetType(ResourceType.Collection);
+            var specificHandler = new DynamicHandler().SetType(ResourceType.Model);
+            var wildcardHandler = new DynamicHandler().SetType(ResourceType.Collection);
             r.AddHandler(specificPath, specificHandler);
             r.AddHandler(wildcardPath, wildcardHandler);
             Router.Match m = r.GetHandler(resourceName);
@@ -471,8 +471,8 @@ namespace ResgateIO.Service.UnitTests
             int specificCalled = 0;
             int wildcardCalled = 0;
             Router r = new Router(pattern);
-            IResourceHandler specificHandler = new DynamicHandler().SetType(ResourceType.Model);
-            IResourceHandler wildcardHandler = new DynamicHandler().SetType(ResourceType.Collection);
+            var specificHandler = new DynamicHandler().SetType(ResourceType.Model);
+            var wildcardHandler = new DynamicHandler().SetType(ResourceType.Collection);
             r.AddHandler(specificPath, specificHandler);
             r.AddHandler(wildcardPath, wildcardHandler);
             r.AddEventListener(specificPath, (sender, ev) => specificCalled++);
@@ -639,8 +639,8 @@ namespace ResgateIO.Service.UnitTests
         public void Contains_OverlappingPaths_ReturnsCorrectValue(string pattern, string specificPath, string wildcardPath)
         {
             Router r = new Router(pattern);
-            IResourceHandler specificHandler = new DynamicHandler().SetType(ResourceType.Model);
-            IResourceHandler wildcardHandler = new DynamicHandler().SetType(ResourceType.Collection);
+            var specificHandler = new DynamicHandler().SetType(ResourceType.Model);
+            var wildcardHandler = new DynamicHandler().SetType(ResourceType.Collection);
             r.AddHandler(specificPath, specificHandler);
             r.AddHandler(wildcardPath, wildcardHandler);
             Assert.True(r.Contains(rh => rh.Type == ResourceType.Model));

@@ -1,26 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace ResgateIO.Service
 {
     internal class Work
     {
         public string ResourceName { get; }
-        private Queue<Action> callbacks;
+        private Queue<Func<Task>> callbacks;
 
-        public Work(string resourceName, Action callback)
+        public Work(string resourceName, Func<Task> callback)
         {
             this.ResourceName = resourceName;
-            this.callbacks = new Queue<Action>(4);
+            this.callbacks = new Queue<Func<Task>>(4);
             this.callbacks.Enqueue(callback);
         }
 
-        public void AddTask(Action callback)
+        public void AddTask(Func<Task> callback)
         {
             callbacks.Enqueue(callback);
         }
 
-        public Action NextTask()
+        public Func<Task> NextTask()
         {
             if (callbacks.Count == 0)
             {

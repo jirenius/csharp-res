@@ -10,7 +10,7 @@ namespace SearchService
 {
     [ResourcePattern("customers")]
     [ResourceGroup("customers")]
-    public class CustomersHandler : CollectionHandler
+    public class CustomersHandler : BaseHandler
     {
         private readonly LiteCollection<Customer> customers;
 
@@ -19,12 +19,12 @@ namespace SearchService
             customers = db.GetCollection<Customer>("customers");
         }
 
-        public override void Access(IAccessRequest req)
+        public void Access(IAccessRequest req)
         {
             req.AccessGranted();
         }
 
-        public override void Get(ICollectionRequest req)
+        public void Get(ICollectionRequest req)
         {
             var q = HttpUtility.ParseQueryString(req.Query);
             var name = q.Get("name")?.ToLower();
@@ -58,7 +58,7 @@ namespace SearchService
             req.Collection(result.Select(c => new Ref("search.customer." + c.Id)), normalizedQuery);
         }
 
-        public override void New(INewRequest req)
+        public void New(INewRequest req)
         {
             Customer customer = req.ParseParams<Customer>();
 
@@ -100,7 +100,7 @@ namespace SearchService
             {
                 case ChangeEventArgs change:
                     // Only reset the query if the change in the customer may affect the query.
-                    if (change.Changed.ContainsKey("name") || change.Changed.ContainsKey("country"))
+                    if (change.ChangedProperties.ContainsKey("name") || change.ChangedProperties.ContainsKey("country"))
                     {
                         r.Service.Reset(new[] { "search.customers" }, null);
                     }

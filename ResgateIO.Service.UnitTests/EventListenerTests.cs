@@ -35,14 +35,14 @@ namespace ResgateIO.Service.UnitTests
                     Assert.Equal(1, called);
                     r.Ok();
                 })
-                .SetApplyChange((rc, changes) => revert));
+                .SetApplyChange((rc, ev) => ev.SetRevert(revert)));
             Service.AddEventListener("model", (sender, ev) =>
             {
                 called++;
                 var resource = (IResourceContext)sender;
                 var args = (ChangeEventArgs)ev;
-                Assert.Equal(new Dictionary<string, object>{ { "foo", changed["foo"] } }, args.Changed);
-                Assert.Equal(revert, args.Revert);
+                Assert.Equal(new Dictionary<string, object>{ { "foo", changed["foo"] } }, args.ChangedProperties);
+                Assert.Equal(revert, args.OldProperties);
             });
 
             Service.Serve(Conn);
@@ -74,8 +74,8 @@ namespace ResgateIO.Service.UnitTests
                 called++;
                 var resource = (IResourceContext)sender;
                 var args = (ChangeEventArgs)ev;
-                Assert.Equal(changed, args.Changed);
-                Assert.Null(args.Revert);
+                Assert.Equal(changed, args.ChangedProperties);
+                Assert.Null(args.OldProperties);
             });
 
             Service.Serve(Conn);
@@ -101,7 +101,7 @@ namespace ResgateIO.Service.UnitTests
                     Assert.False(called, "event listener was called");
                     r.Ok();
                 })
-                .SetApplyChange((rc, changes) => new Dictionary<string, object> { }));
+                .SetApplyChange((rc, ev) => ev.SetRevert(new Dictionary<string, object> { })));
             Service.AddEventListener("model", (sender, ev) => called = true);
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
@@ -113,21 +113,24 @@ namespace ResgateIO.Service.UnitTests
 
         [Theory]
         [MemberData(nameof(GetChangeEventTestData))]
-        public void ChangeEvent_NullRevertDictionary_NoCallToListener(Dictionary<string, object> changed)
+        public void ChangeEvent_NullRevertDictionary_CallToListener(Dictionary<string, object> changed)
         {
             bool called = false;
             Service.AddHandler("model", new DynamicHandler()
                 .SetCall(r =>
                 {
                     r.ChangeEvent(changed);
-                    Assert.False(called, "event listener was called");
+                    Assert.True(called, "event listener not called");
                     r.Ok();
                 })
-                .SetApplyChange((rc, changes) => null));
+                .SetApplyChange((rc, ev) => { }));
             Service.AddEventListener("model", (sender, ev) => called = true);
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
             string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject("event.test.model.change")
+                .AssertPayload(new { values = changed });
             Conn.GetMsg()
                 .AssertSubject(inbox)
                 .AssertResult(null);
@@ -157,7 +160,7 @@ namespace ResgateIO.Service.UnitTests
                     Assert.Equal(1, called);
                     r.Ok();
                 })
-                .SetApplyAdd((rc, v, i) => { }));
+                .SetApplyAdd((rc, ev) => { }));
             Service.AddEventListener("collection", (sender, ev) =>
             {
                 called++;
@@ -231,7 +234,7 @@ namespace ResgateIO.Service.UnitTests
                     Assert.Equal(1, called);
                     r.Ok();
                 })
-                .SetApplyRemove((rc, i) => Test.IntValue));
+                .SetApplyRemove((rc, ev) => ev.SetRevert(Test.IntValue)));
             Service.AddEventListener("collection", (sender, ev) =>
             {
                 called++;
@@ -297,7 +300,7 @@ namespace ResgateIO.Service.UnitTests
                     Assert.Equal(1, called);
                     r.Ok();
                 })
-                .SetApplyCreate((rc, v) => { }));
+                .SetApplyCreate((rc, ev) => { }));
             Service.AddEventListener("model", (sender, ev) =>
             {
                 called++;
@@ -360,7 +363,7 @@ namespace ResgateIO.Service.UnitTests
                     Assert.Equal(1, called);
                     r.Ok();
                 })
-                .SetApplyDelete(rc => Test.Model));
+                .SetApplyDelete((rc, ev) => ev.SetRevert(Test.Model)));
             Service.AddEventListener("model", (sender, ev) =>
             {
                 called++;

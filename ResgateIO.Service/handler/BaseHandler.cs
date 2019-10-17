@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace ResgateIO.Service
 {
@@ -29,10 +30,11 @@ namespace ResgateIO.Service
     ///         request.Ok();
     ///     }
     ///     
-    ///     // Will be called on call requests for method "baz".
+    ///     // Will be called async on call requests for method "baz".
     ///     [CallMethod("baz")]
-    ///     public void Bar(ICallRequest request)
+    ///     public async Task Bar(ICallRequest request)
     ///     {
+    ///         await Task.Delay(100);
     ///         request.Ok();
     ///     }
     ///     
@@ -42,23 +44,10 @@ namespace ResgateIO.Service
     /// }
     /// </code>
     /// </example>
-    public abstract class BaseHandler: IResourceHandler
+    public abstract class BaseHandler: IAsyncHandler
     {
-        private readonly ResourceType resourceType;
-        private readonly HandlerTypes enabledHandlers;
-        private Dictionary<string, Action<ICallRequest>> callMethods;
-        private Dictionary<string, Action<IAuthRequest>> authMethods;
-
-        private const string callMethodName = "Call";
-        private const string authMethodName = "Auth";
-
-        private class TupleList<T1, T2, T3> : List<Tuple<T1, T2, T3>>
-        {
-            public void Add(T1 item, T2 item2, T3 item3)
-            {
-                Add(new Tuple<T1, T2, T3>(item, item2, item3));
-            }
-        }
+        private readonly DynamicHandler handler = new DynamicHandler();
+        private readonly Task completedTask = Task.FromResult(false);
 
         /// <summary>
         /// Initializes a new instance of the BaseHandler class.
@@ -73,132 +62,83 @@ namespace ResgateIO.Service
         /// <param name="type">Resource type.</param>
         public BaseHandler(ResourceType type)
         {
-            resourceType = type;
-            enabledHandlers = HandlerTypes.None;
+            handler.SetType(type);
 
-            // Find overridden IResourceHandler methods
-            var handlers = new TupleList<string, Type[], HandlerTypes>
+            MethodInfo[] methods = this.GetType().GetTypeInfo().GetMethods(BindingFlags.Instance | BindingFlags.Public);
+            foreach (MethodInfo method in methods)
             {
-                { "Access", new Type[] { typeof(IAccessRequest) }, HandlerTypes.Access },
-                { "Get", new Type[] { typeof(IGetRequest) }, HandlerTypes.Get },
-                { "Call", new Type[] { typeof(ICallRequest) }, HandlerTypes.Call },
-                { "Auth", new Type[] { typeof(IAuthRequest) }, HandlerTypes.Auth },
-                { "New", new Type[] { typeof(INewRequest) }, HandlerTypes.New },
-                { "ApplyChange", new Type[] { typeof(IResourceContext), typeof(IDictionary<string, object>) }, HandlerTypes.ApplyChange },
-                { "ApplyAdd", new Type[] { typeof(IResourceContext), typeof(object), typeof(int) }, HandlerTypes.ApplyAdd },
-                { "ApplyRemove", new Type[] { typeof(IResourceContext), typeof(int) }, HandlerTypes.ApplyRemove },
-                { "ApplyCreate", new Type[] { typeof(IResourceContext), typeof(object) }, HandlerTypes.ApplyCreate },
-                { "ApplyDelete", new Type[] { typeof(IResourceContext) }, HandlerTypes.ApplyDelete },
-            };
+                matchHandler(method);
+            }
+        }
 
-            foreach (Tuple<string, Type[], HandlerTypes> tuple in handlers)
+        private void matchHandler(MethodInfo m)
+        {
+            ParameterInfo[] args = m.GetParameters();
+            
+            if (args.Length == 1)
             {
-                if (isMethodOverridden(tuple.Item1, tuple.Item2))
+                if (tryMatchRequestHandler(m, args[0]))
                 {
-                    enabledHandlers |= tuple.Item3;
+                    return;
+                }
+                var t = args[0].ParameterType;
+                if (t == typeof(ICallRequest))
+                {
+                    if (tryMatchCallRequestHandler(m))
+                    {
+                        return;
+                    }
+                }
+                else if(t == typeof(IAuthRequest))
+                {
+                    if (tryMatchAuthRequestHandler(m))
+                    {
+                        return;
+                    }
+                }
+            }
+            else if (args.Length == 2 && args[0].ParameterType == typeof(IResourceContext))
+            {
+                if (tryMatchApplyHandler(m, args[1]))
+                {
+                    return;
                 }
             }
 
-            MethodInfo[] methods = this.GetType().GetTypeInfo().GetMethods(BindingFlags.Instance | BindingFlags.Public);
-            if (findCallMethods(methods))
-            {
-                enabledHandlers |= HandlerTypes.Call;
-            }
-            if (findAuthMethods(methods))
-            {
-                enabledHandlers |= HandlerTypes.Auth;
-            }
+            validateAttributes(m, null);
         }
 
         /// <summary>
         /// Gets the resource type associated with the resource handler.
         /// </summary>
-        public virtual ResourceType Type { get { return resourceType; } }
+        public virtual ResourceType Type { get { return handler.Type; } }
 
         /// <summary>
         /// Gets the enabled handler based on the handler methods being overridden.
         /// </summary>
-        public virtual HandlerTypes EnabledHandlers { get { return enabledHandlers; } }
-
-        /// <summary>
-        /// Get request handler doing nothing.
-        /// </summary>
-        /// <param name="request">Get request context.</param>
-        public virtual void Get(IGetRequest request)
-        {
-        }
-
-        /// <summary>
-        /// Access request handler doing nothing.
-        /// </summary>
-        /// <param name="request">Access request context.</param>
-        public virtual void Access(IAccessRequest request)
-        {
-        }
-
-        /// <summary>
-        /// Call request handler.
-        /// It will invoke any call method matching that of the request,
-        /// or else respond with MethodNotFound.
-        /// </summary>
-        /// <param name="request">Call request context.</param>
-        public virtual void Call(ICallRequest request)
-        {
-            if (callMethods != null && callMethods.TryGetValue(request.Method, out Action<ICallRequest> h))
-            {
-                h(request);
-            }
-            else
-            {
-                request.MethodNotFound();
-            }
-        }
-
-        /// <summary>
-        /// Auth request handler.
-        /// It will invoke any auth method matching that of the request,
-        /// or else respond with MethodNotFound.
-        /// </summary>
-        /// <param name="request">Auth request context.</param>
-        public virtual void Auth(IAuthRequest request)
-        {
-            if (authMethods != null && authMethods.TryGetValue(request.Method, out Action<IAuthRequest> h))
-            {
-                h(request);
-            }
-            else
-            {
-                request.MethodNotFound();
-            }
-        }
-
-        /// <summary>
-        /// New call request handler doing nothing.
-        /// </summary>
-        /// <param name="request">New call request context.</param>
-        public virtual void New(INewRequest request)
-        {
-        }
+        public virtual HandlerTypes EnabledHandlers { get { return handler.EnabledHandlers; } }
 
         /// <summary>
         /// Apply change event handler doing nothing.
         /// </summary>
         /// <param name="resource">Resource to apply the change to.</param>
         /// <param name="changes">Property values to apply to model.</param>
-        /// <returns>A null dictionary.</returns>
-        public virtual Dictionary<string, object> ApplyChange(IResourceContext resource, IDictionary<string, object> changes)
+        /// <returns>A null Task.</returns>
+        public virtual Task<Dictionary<string, object>> ApplyChange(IResourceContext resource, IDictionary<string, object> changes)
         {
             return null;
         }
-        
+
         /// <summary>
         /// Apply change event handler doing nothing.
         /// </summary>
         /// <param name="resource">Resource to add the value to.</param>
         /// <param name="value">Value to add.</param>
         /// <param name="idx">Index position where to add the value.</param>
-        public virtual void ApplyAdd(IResourceContext resource, object value, int idx)
+        /// <returns>A null Task.</returns>
+        public virtual Task ApplyAdd(IResourceContext resource, object value, int idx)
         {
+            return null;
         }
 
         /// <summary>
@@ -206,8 +146,8 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="resource">Resource to remove the value from.</param>
         /// <param name="idx">Index position of the value to remove.</param>
-        /// <returns>A null object.</returns>
-        public virtual object ApplyRemove(IResourceContext resource, int idx)
+        /// <returns>A null Task.</returns>
+        public virtual Task<object> ApplyRemove(IResourceContext resource, int idx)
         {
             return null;
         }
@@ -217,79 +157,163 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="resource">Resource to create.</param>
         /// <param name="data">The resource data object.</param>
-        public virtual void ApplyCreate(IResourceContext resource, object data)
+        /// <returns>A null Task.</returns>
+        public virtual Task ApplyCreate(IResourceContext resource, object data)
         {
+            return null;
         }
 
         /// <summary>
         /// Apply delete event handler doing nothing.
         /// </summary>
         /// <param name="resource">Resource to delete.</param>
-        /// <returns>The deleted resource data object.</returns>
-        public virtual object ApplyDelete(IResourceContext resource)
+        /// <returns>A null Task.</returns>
+        public virtual Task<object> ApplyDelete(IResourceContext resource)
         {
             return null;
         }
 
-        private bool findCallMethods(MethodInfo[] methods)
+        public async Task Handle(IRequest r)
         {
-            foreach (MethodInfo method in methods)
-            {
-                CallMethodAttribute attr = method.GetCustomAttribute<CallMethodAttribute>();
-                if (isResourceMethod(method, typeof(ICallRequest), attr != null, callMethodName)
-                    && method.Name != callMethodName
-                    && (attr == null || !attr.Ignore))
-                {
-                    string methodName = getMethodName(method, attr?.MethodName);
-                    validateMethodName(callMethodName, callMethods != null && callMethods.ContainsKey(methodName), methodName);
-                    callMethods = callMethods ?? new Dictionary<string, Action<ICallRequest>>();
-                    callMethods.Add(methodName, (Action<ICallRequest>)method.CreateDelegate(typeof(Action<ICallRequest>), this));
-                }
-            }
-            return callMethods != null;
+            await handler.Handle(r);
         }
 
-        private bool findAuthMethods(MethodInfo[] methods)
+        public async Task Apply(IResourceContext r, EventArgs ev)
         {
-            foreach (MethodInfo method in methods)
-            {
-                AuthMethodAttribute attr = method.GetCustomAttribute<AuthMethodAttribute>();
-                if (isResourceMethod(method, typeof(IAuthRequest), attr != null, authMethodName)
-                    && method.Name != authMethodName
-                    && (attr == null || !attr.Ignore))
-                {
-                    string methodName = getMethodName(method, attr?.MethodName);
-                    validateMethodName(authMethodName, authMethods != null && authMethods.ContainsKey(methodName), methodName);
-                    authMethods = authMethods ?? new Dictionary<string, Action<IAuthRequest>>();
-                    authMethods.Add(methodName, (Action<IAuthRequest>)method.CreateDelegate(typeof(Action<IAuthRequest>), this));
-                }
-            }
-            return authMethods != null;
+            await handler.Apply(r, ev);
         }
 
-        private bool isMethodOverridden(string methodName, Type[] types)
+        private bool tryMatchRequestHandler(MethodInfo m, ParameterInfo p)
         {
-            MethodInfo m = this.GetType().GetTypeInfo().GetMethod(methodName, types);
-            return m.GetBaseDefinition().DeclaringType != m.DeclaringType;
+            var t = p.ParameterType;
+            if (t != typeof(IAccessRequest) &&
+                t != typeof(IGetRequest) &&
+                t != typeof(ICallRequest) &&
+                t != typeof(IAuthRequest) &&
+                t != typeof(IModelRequest) &&
+                t != typeof(ICollectionRequest) &&
+                t != typeof(INewRequest))
+            {
+                return false;
+            }
+
+            var attr = m.GetCustomAttribute<RequestHandlerAttribute>();
+            if (attr == null && (
+                t == typeof(ICallRequest) ||
+                t == typeof(IAuthRequest)))
+            {
+                return false;
+            }
+
+            validateAttributes(m, typeof(RequestHandlerAttribute));
+            if (attr != null && attr.Ignore)
+            {
+                return true;
+            }
+            
+            if (t == typeof(IAccessRequest))
+            {
+                handler.SetAccess(createRequestHandler<IAccessRequest>(m));
+            }
+            else if (t == typeof(IGetRequest))
+            {
+                handler.SetGet(createRequestHandler<IGetRequest>(m));
+            }
+            else if (t == typeof(ICallRequest))
+            {
+                handler.SetCall(createRequestHandler<ICallRequest>(m));
+            }
+            else if (t == typeof(IAuthRequest))
+            {
+                handler.SetAuth(createRequestHandler<IAuthRequest>(m));
+            }
+            else if (t == typeof(IModelRequest))
+            {
+                handler.SetModelGet(createRequestHandler<IModelRequest>(m));
+            }
+            else if (t == typeof(ICollectionRequest))
+            {
+                handler.SetCollectionGet(createRequestHandler<ICollectionRequest>(m));
+            }
+            else // if (t == typeof(INewRequest))
+            {
+                handler.SetNew(createRequestHandler<INewRequest>(m));
+            }
+
+            return true;
         }
 
-        private bool isResourceMethod(MethodInfo m, Type t, bool hasAttr, string reserved)
+        private bool tryMatchCallRequestHandler(MethodInfo m)
         {
-            ParameterInfo[] args = m.GetParameters();
-            bool isMatch = m.ReturnType == typeof(void)
-                && args.Length == 1
-                && args[0].ParameterType == t
-                && !args[0].IsOut;
+            var attr = m.GetCustomAttribute<CallMethodAttribute>();
+            validateAttributes(m, typeof(CallMethodAttribute));
+            if (attr != null && attr.Ignore)
+            {
+                return true;
+            }
+            handler.SetCallMethod(getMethodName(m, attr?.MethodName), createRequestHandler<ICallRequest>(m));
+            return true;
+        }
 
-            if (hasAttr && !isMatch)
+        private bool tryMatchAuthRequestHandler(MethodInfo m)
+        {
+            var attr = m.GetCustomAttribute<AuthMethodAttribute>();
+            validateAttributes(m, typeof(AuthMethodAttribute));
+            if (attr != null && attr.Ignore)
             {
-                throw new InvalidOperationException(String.Format("Method {0} does not match signature required by {1}Method attribute.", m.Name, reserved));
+                return true;
             }
-            if (hasAttr && m.Name == reserved)
+            handler.SetAuthMethod(getMethodName(m, attr?.MethodName), createRequestHandler<IAuthRequest>(m));
+            return true;
+        }
+
+        private bool tryMatchApplyHandler(MethodInfo m, ParameterInfo p)
+        {
+            var t = p.ParameterType;
+            if (t != typeof(ChangeEventArgs) &&
+                t != typeof(AddEventArgs) &&
+                t != typeof(RemoveEventArgs) &&
+                t != typeof(CreateEventArgs) &&
+                t != typeof(DeleteEventArgs) &&
+                t != typeof(CustomEventArgs))
             {
-                throw new InvalidOperationException(String.Format("{0}Method attribute not allowed on {0} method.", reserved));
+                return false;
             }
-            return isMatch;
+
+            validateAttributes(m, typeof(ApplyHandlerAttribute));
+
+            var attr = m.GetCustomAttribute<ApplyHandlerAttribute>();
+            if (attr != null && attr.Ignore)
+            {
+                return true;
+            }
+
+            if (t == typeof(ChangeEventArgs))
+            {
+                handler.SetApplyChange(createApplyHandler<ChangeEventArgs>(m));
+            }
+            else if (t == typeof(AddEventArgs))
+            {
+                handler.SetApplyAdd(createApplyHandler<AddEventArgs>(m));
+            }
+            else if (t == typeof(RemoveEventArgs))
+            {
+                handler.SetApplyRemove(createApplyHandler<RemoveEventArgs>(m));
+            }
+            else if (t == typeof(CreateEventArgs))
+            {
+                handler.SetApplyCreate(createApplyHandler<CreateEventArgs>(m));
+            }
+            else if (t == typeof(DeleteEventArgs))
+            {
+                handler.SetApplyDelete(createApplyHandler<DeleteEventArgs>(m));
+            }
+            else // if (t == typeof(CustomEventArgs))
+            {
+                handler.SetApplyCustom(createApplyHandler<CustomEventArgs>(m));
+            }
+
+            return true;
         }
 
         private string getMethodName(MethodInfo m, string name)
@@ -297,15 +321,59 @@ namespace ResgateIO.Service
             return name ?? Char.ToLower(m.Name[0]) + m.Name.Substring(1);
         }
 
-        private void validateMethodName(string reserved, bool redeclared, string name)
+        private Func<T, Task> createRequestHandler<T>(MethodInfo m)
         {
-            if (!ResService.IsValidPart(name))
+            if (m.ReturnType == typeof(Task))
             {
-                throw new InvalidOperationException("Invalid method name: " + name);
+                return (Func<T, Task>)m.CreateDelegate(typeof(Func<T, Task>), this);
             }
-            if (redeclared)
+            else if (m.ReturnType == typeof(void))
             {
-                throw new InvalidOperationException(String.Format("{0} resource method {1} declared multiple times.", reserved, name));
+                var d = (Action<T>)m.CreateDelegate(typeof(Action<T>), this);
+                return r =>
+                {
+                    d(r);
+                    return completedTask;
+                };
+            }
+            throw new InvalidOperationException("Request handler must either return void or Task.");
+        }
+
+        private Func<IResourceContext, T, Task> createApplyHandler<T>(MethodInfo m)
+        {
+            if (m.ReturnType == typeof(Task))
+            {
+                return (Func<IResourceContext, T, Task>)m.CreateDelegate(typeof(Func<IResourceContext, T, Task>), this);
+            }
+            else if (m.ReturnType == typeof(void))
+            {
+                var d = (Action<IResourceContext, T>)m.CreateDelegate(typeof(Action<IResourceContext, T>), this);
+                return (r, ev) =>
+                {
+                    d(r, ev);
+                    return completedTask;
+                };
+            }
+            throw new InvalidOperationException("Apply handler must either return void or Task.");
+        }
+
+        private void validateAttributes(MethodInfo m, Type excluded)
+        {
+            foreach (var attr in m.GetCustomAttributes())
+            {
+                var t = attr.GetType();
+                if (excluded != null && t == excluded)
+                {
+                    continue;
+                }
+
+                if (t == typeof(RequestHandlerAttribute) ||
+                    t == typeof(CallMethodAttribute) ||
+                    t == typeof(AuthMethodAttribute) ||
+                    t == typeof(ApplyHandlerAttribute))
+                {
+                    throw new InvalidOperationException(String.Format("Mismatching signature of method {0} with {1}.", m.Name, t.Name));
+                }
             }
         }
     }

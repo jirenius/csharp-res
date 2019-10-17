@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -94,87 +95,87 @@ namespace ResgateIO.Service.UnitTests
         {
             yield return new object[] {
                 "foo=none",
-                (QueryCallback)(r => Assert.Equal("foo=none", r.Query)),
+                (Action<IQueryRequest>)(r => Assert.Equal("foo=none", r.Query)),
                 JToken.Parse("{\"events\":[]}")
             };
             yield return new object[] {
                 "foo=change",
-                (QueryCallback)(r => r?.ChangeEvent(new Dictionary<string, object>{ { "foo", "bar" } })),
+                (Action<IQueryRequest>)(r => r?.ChangeEvent(new Dictionary<string, object>{ { "foo", "bar" } })),
                 JToken.Parse("{\"events\":[{\"event\":\"change\",\"data\":{\"values\":{\"foo\":\"bar\"}}}]}")
             };
             yield return new object[] {
                 "foo=change_with_empty",
-                (QueryCallback)(r => r?.ChangeEvent(new Dictionary<string, object>{ })),
+                (Action<IQueryRequest>)(r => r?.ChangeEvent(new Dictionary<string, object>{ })),
                 JToken.Parse("{\"events\":[]}")
             };
             yield return new object[] {
                 "foo=add",
-                (QueryCallback)(r => r?.AddEvent("bar", 2)),
+                (Action<IQueryRequest>)(r => r?.AddEvent("bar", 2)),
                 JToken.Parse("{\"events\":[{\"event\":\"add\",\"data\":{\"value\":\"bar\",\"idx\":2}}]}")
             };
             yield return new object[] {
                 "foo=invalid_add",
-                (QueryCallback)(r => r?.AddEvent("bar", -1)),
+                (Action<IQueryRequest>)(r => r?.AddEvent("bar", -1)),
                 ResError.CodeInternalError
             };
             yield return new object[] {
                 "foo=remove",
-                (QueryCallback)(r => r?.RemoveEvent(3)),
+                (Action<IQueryRequest>)(r => r?.RemoveEvent(3)),
                 JToken.Parse("{\"events\":[{\"event\":\"remove\",\"data\":{\"idx\":3}}]}")
             };
             yield return new object[] {
                 "foo=invalid_remove",
-                (QueryCallback)(r => r?.RemoveEvent(-1)),
+                (Action<IQueryRequest>)(r => r?.RemoveEvent(-1)),
                 ResError.CodeInternalError
             };
             yield return new object[] {
                 "foo=remove_add",
-                (QueryCallback)(r => { r?.RemoveEvent(3); r?.AddEvent("bar", 2); }),
+                (Action<IQueryRequest>)(r => { r?.RemoveEvent(3); r?.AddEvent("bar", 2); }),
                 JToken.Parse("{\"events\":[{\"event\":\"remove\",\"data\":{\"idx\":3}},{\"event\":\"add\",\"data\":{\"value\":\"bar\",\"idx\":2}}]}")
             };
             yield return new object[] {
                 "foo=remove_add",
-                (QueryCallback)(r => { r?.AddEvent("bar", 2); r?.RemoveEvent(3); }),
+                (Action<IQueryRequest>)(r => { r?.AddEvent("bar", 2); r?.RemoveEvent(3); }),
                 JToken.Parse("{\"events\":[{\"event\":\"add\",\"data\":{\"value\":\"bar\",\"idx\":2}},{\"event\":\"remove\",\"data\":{\"idx\":3}}]}")
             };
             yield return new object[] {
                 "foo=notFound",
-                (QueryCallback)(r => r?.NotFound()),
+                (Action<IQueryRequest>)(r => r?.NotFound()),
                 ResError.NotFound
             };
             yield return new object[] {
                 "foo=invalidQuery",
-                (QueryCallback)(r => r?.InvalidQuery()),
+                (Action<IQueryRequest>)(r => r?.InvalidQuery()),
                 ResError.InvalidQuery
             };
             yield return new object[] {
                 "foo=invalidQuery_with_message",
-                (QueryCallback)(r => r?.InvalidQuery(Test.ErrorMessage)),
+                (Action<IQueryRequest>)(r => r?.InvalidQuery(Test.ErrorMessage)),
                 new ResError(ResError.CodeInvalidQuery, Test.ErrorMessage)
             };
             yield return new object[] {
                 "foo=invalidQuery_with_message_and_data",
-                (QueryCallback)(r => r?.InvalidQuery(Test.ErrorMessage, Test.ErrorData)),
+                (Action<IQueryRequest>)(r => r?.InvalidQuery(Test.ErrorMessage, Test.ErrorData)),
                 new ResError(ResError.CodeInvalidQuery, Test.ErrorMessage, Test.ErrorData)
             };
             yield return new object[] {
                 "foo=error",
-                (QueryCallback)(r => r?.Error(Test.CustomError)),
+                (Action<IQueryRequest>)(r => r?.Error(Test.CustomError)),
                 Test.CustomError
             };
             yield return new object[] {
                 "foo=resException",
-                (QueryCallback)(r => { if (r != null) throw new ResException(Test.CustomError); }),
+                (Action<IQueryRequest>)(r => { if (r != null) throw new ResException(Test.CustomError); }),
                 Test.CustomError
             };
             yield return new object[] {
                 "foo=resException",
-                (QueryCallback)(r => { if (r != null) throw new Exception(Test.ErrorMessage); }),
+                (Action<IQueryRequest>)(r => { if (r != null) throw new Exception(Test.ErrorMessage); }),
                 ResError.CodeInternalError
             };
             yield return new object[] {
                 "foo=error_after_event",
-                (QueryCallback)(r =>
+                (Action<IQueryRequest>)(r =>
                 {
                     if (r != null)
                     {
@@ -186,7 +187,7 @@ namespace ResgateIO.Service.UnitTests
             };
             yield return new object[] {
                 "foo=exception_after_event",
-                (QueryCallback)(r =>
+                (Action<IQueryRequest>)(r =>
                 {
                     if (r != null)
                     {
@@ -198,7 +199,7 @@ namespace ResgateIO.Service.UnitTests
             };
             yield return new object[] {
                 "foo=multiple_error",
-                (QueryCallback)(r =>
+                (Action<IQueryRequest>)(r =>
                 {
                     if (r != null)
                     {
@@ -210,7 +211,7 @@ namespace ResgateIO.Service.UnitTests
             };
             yield return new object[] {
                 "foo=error_and_exception",
-                (QueryCallback)(r =>
+                (Action<IQueryRequest>)(r =>
                 {
                     if (r != null)
                     {
@@ -224,7 +225,7 @@ namespace ResgateIO.Service.UnitTests
 
         [Theory]
         [MemberData(nameof(GetQueryRequestTestData))]
-        public void QueryRequest_UsingRequest_SendsCorrectResponse(string query, QueryCallback callback, object expected)
+        public void QueryRequest_UsingRequest_SendsCorrectResponse(string query, Action<IQueryRequest> callback, object expected)
         {
             Service.AddHandler("model", new DynamicHandler().SetCall(r =>
             {
@@ -258,7 +259,7 @@ namespace ResgateIO.Service.UnitTests
 
         [Theory]
         [MemberData(nameof(GetQueryRequestTestData))]
-        public void QueryRequest_UsingWith_SendsCorrectResponse(string query, QueryCallback callback, object expected)
+        public void QueryRequest_UsingWith_SendsCorrectResponse(string query, Action<IQueryRequest> callback, object expected)
         {
             AutoResetEvent ev = new AutoResetEvent(false);
             Service.AddHandler("model", new DynamicHandler());

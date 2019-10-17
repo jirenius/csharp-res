@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace ResgateIO.Service.UnitTests
@@ -15,115 +16,218 @@ namespace ResgateIO.Service.UnitTests
             Assert.Equal(HandlerTypes.None, handler.EnabledHandlers);
         }
 
-        class EnabledHandlers_OverrideAccess_IsAccess_Class : BaseHandler
+        class EnabledHandlers_AccessHandler_IsAccess_Class : BaseHandler
         {
-            public override void Access(IAccessRequest r) { }
+            public void Access(IAccessRequest r) { }
         }
         [Fact]
-        public void EnabledHandlers_OverrideAccess_IsAccess()
+        public void EnabledHandlers_AccessHandler_IsAccess()
         {
-            var handler = new EnabledHandlers_OverrideAccess_IsAccess_Class();
+            var handler = new EnabledHandlers_AccessHandler_IsAccess_Class();
             Assert.Equal(HandlerTypes.Access, handler.EnabledHandlers);
         }
 
-        class EnabledHandlers_OverrideGet_IsGet_Class : BaseHandler
+        class EnabledHandlers_GetHandler_IsGet_Class : BaseHandler
         {
-            public override void Get(IGetRequest r) { }
+            public void Get(IGetRequest r) { }
         }
         [Fact]
-        public void EnabledHandlers_OverrideGet_IsGet()
+        public void EnabledHandlers_GetHandler_IsGet()
         {
-            var handler = new EnabledHandlers_OverrideGet_IsGet_Class();
+            var handler = new EnabledHandlers_GetHandler_IsGet_Class();
             Assert.Equal(HandlerTypes.Get, handler.EnabledHandlers);
         }
 
-        class EnabledHandlers_OverrideCall_IsCall_Class : BaseHandler
+        class EnabledHandlers_CallHandler_IsCall_Class : BaseHandler
         {
-            public override void Call(ICallRequest r) { }
+            public void Call(ICallRequest r) { }
         }
         [Fact]
-        public void EnabledHandlers_OverrideCall_IsCall()
+        public void EnabledHandlers_CallHandler_IsCall()
         {
-            var handler = new EnabledHandlers_OverrideCall_IsCall_Class();
+            var handler = new EnabledHandlers_CallHandler_IsCall_Class();
             Assert.Equal(HandlerTypes.Call, handler.EnabledHandlers);
         }
 
-        class EnabledHandlers_OverrideAuth_IsAuth_Class : BaseHandler
+        class EnabledHandlers_AuthHandler_IsAuth_Class : BaseHandler
         {
-            public override void Auth(IAuthRequest r) { }
+            public void Auth(IAuthRequest r) { }
         }
         [Fact]
-        public void EnabledHandlers_OverrideAuth_IsAuth()
+        public void EnabledHandlers_AuthHandler_IsAuth()
         {
-            var handler = new EnabledHandlers_OverrideAuth_IsAuth_Class();
+            var handler = new EnabledHandlers_AuthHandler_IsAuth_Class();
             Assert.Equal(HandlerTypes.Auth, handler.EnabledHandlers);
         }
 
-        class EnabledHandlers_OverrideNew_IsNew_Class : BaseHandler
+        class EnabledHandlers_NewHandler_IsNew_Class : BaseHandler
         {
-            public override void New(INewRequest r) { }
+            public void New(INewRequest r) { }
         }
         [Fact]
-        public void EnabledHandlers_OverrideNew_IsNew()
+        public void EnabledHandlers_NewHandler_IsNew()
         {
-            var handler = new EnabledHandlers_OverrideNew_IsNew_Class();
+            var handler = new EnabledHandlers_NewHandler_IsNew_Class();
             Assert.Equal(HandlerTypes.New, handler.EnabledHandlers);
         }
 
-        class EnabledHandlers_OverrideApplyChange_IsApplyChange_Class : BaseHandler
+        #region ApplyHandler
+        class ApplyHandler_ApplyChangeHandler_IsCalled_Class : BaseHandler
         {
-            public override Dictionary<string, object> ApplyChange(IResourceContext rc, IDictionary<string, object> c) { return null; }
+            public int Called = 0;
+            public void ApplyChange(IResourceContext rc, ChangeEventArgs ev) { Called++; }
         }
         [Fact]
-        public void EnabledHandlers_OverrideApplyChange_IsApplyChange()
+        public async Task ApplyHandler_ApplyChangeHandler_IsCalled()
         {
-            var handler = new EnabledHandlers_OverrideApplyChange_IsApplyChange_Class();
-            Assert.Equal(HandlerTypes.ApplyChange, handler.EnabledHandlers);
+            var handler = new ApplyHandler_ApplyChangeHandler_IsCalled_Class();
+            await handler.Apply(null, new ChangeEventArgs(null));
+            Assert.Equal(1, handler.Called);
         }
 
-        class EnabledHandlers_OverrideApplyAdd_IsApplyAdd_Class : BaseHandler
+        class ApplyHandler_ApplyChangeAsyncHandler_IsCalled_Class : BaseHandler
         {
-            public override void ApplyAdd(IResourceContext rc, object v, int idx) { }
+            public int Called = 0;
+            public async Task ApplyChange(IResourceContext rc, ChangeEventArgs ev) { await Task.Run(() => Called++); }
         }
         [Fact]
-        public void EnabledHandlers_OverrideApplyAdd_IsApplyAdd()
+        public async Task ApplyHandler_ApplyChangeAsyncHandler_IsCalled()
         {
-            var handler = new EnabledHandlers_OverrideApplyAdd_IsApplyAdd_Class();
-            Assert.Equal(HandlerTypes.ApplyAdd, handler.EnabledHandlers);
+            var handler = new ApplyHandler_ApplyChangeAsyncHandler_IsCalled_Class();
+            await handler.Apply(null, new ChangeEventArgs(null));
+            Assert.Equal(1, handler.Called);
         }
 
-        class EnabledHandlers_OverrideApplyRemove_IsApplyRemove_Class : BaseHandler
+        class ApplyHandler_ApplyAddHandler_IsCalled_Class : BaseHandler
         {
-            public override object ApplyRemove(IResourceContext rc, int idx) { return null; }
+            public int Called = 0;
+            public void ApplyAdd(IResourceContext rc, AddEventArgs ev) { Called++; }
         }
         [Fact]
-        public void EnabledHandlers_OverrideApplyRemove_IsApplyRemove()
+        public async Task ApplyHandler_ApplyAddHandler_IsCalled()
         {
-            var handler = new EnabledHandlers_OverrideApplyRemove_IsApplyRemove_Class();
-            Assert.Equal(HandlerTypes.ApplyRemove, handler.EnabledHandlers);
+            var handler = new ApplyHandler_ApplyAddHandler_IsCalled_Class();
+            await handler.Apply(null, new AddEventArgs(null, 0));
+            Assert.Equal(1, handler.Called);
         }
 
-        class EnabledHandlers_OverrideApplyCreate_IsApplyCreate_Class : BaseHandler
+        class ApplyHandler_ApplyAddAsyncHandler_IsCalled_Class : BaseHandler
         {
-            public override void ApplyCreate(IResourceContext rc, object data) { }
+            public int Called = 0;
+            public async Task ApplyAdd(IResourceContext rc, AddEventArgs ev) { await Task.Run(() => Called++); }
         }
         [Fact]
-        public void EnabledHandlers_OverrideApplyCreate_IsApplyCreate()
+        public async Task ApplyHandler_ApplyAddAsyncHandler_IsCalled()
         {
-            var handler = new EnabledHandlers_OverrideApplyCreate_IsApplyCreate_Class();
-            Assert.Equal(HandlerTypes.ApplyCreate, handler.EnabledHandlers);
+            var handler = new ApplyHandler_ApplyAddAsyncHandler_IsCalled_Class();
+            await handler.Apply(null, new AddEventArgs(null, 0));
+            Assert.Equal(1, handler.Called);
         }
 
-        class EnabledHandlers_OverrideApplyDelete_IsApplyDelete_Class : BaseHandler
+        class ApplyHandler_ApplyRemoveHandler_IsCalled_Class : BaseHandler
         {
-            public override object ApplyDelete(IResourceContext rc) { return null; }
+            public int Called = 0;
+            public void ApplyRemove(IResourceContext rc, RemoveEventArgs ev) { Called++; }
         }
         [Fact]
-        public void EnabledHandlers_OverrideApplyDelete_IsApplyDelete()
+        public async Task ApplyHandler_ApplyRemoveHandler_IsCalled()
         {
-            var handler = new EnabledHandlers_OverrideApplyDelete_IsApplyDelete_Class();
-            Assert.Equal(HandlerTypes.ApplyDelete, handler.EnabledHandlers);
+            var handler = new ApplyHandler_ApplyRemoveHandler_IsCalled_Class();
+            await handler.Apply(null, new RemoveEventArgs(0));
+            Assert.Equal(1, handler.Called);
         }
+
+        class ApplyHandler_ApplyRemoveAsyncHandler_IsCalled_Class : BaseHandler
+        {
+            public int Called = 0;
+            public async Task ApplyRemove(IResourceContext rc, RemoveEventArgs ev) { await Task.Run(() => Called++); }
+        }
+        [Fact]
+        public async Task ApplyHandler_ApplyRemoveAsyncHandler_IsCalled()
+        {
+            var handler = new ApplyHandler_ApplyRemoveAsyncHandler_IsCalled_Class();
+            await handler.Apply(null, new RemoveEventArgs(0));
+            Assert.Equal(1, handler.Called);
+        }
+
+        class ApplyHandler_ApplyCreateHandler_IsCalled_Class : BaseHandler
+        {
+            public int Called = 0;
+            public void ApplyCreate(IResourceContext rc, CreateEventArgs ev) { Called++; }
+        }
+        [Fact]
+        public async Task ApplyHandler_ApplyCreateHandler_IsCalled()
+        {
+            var handler = new ApplyHandler_ApplyCreateHandler_IsCalled_Class();
+            await handler.Apply(null, new CreateEventArgs(null));
+            Assert.Equal(1, handler.Called);
+        }
+
+        class ApplyHandler_ApplyCreateAsyncHandler_IsCalled_Class : BaseHandler
+        {
+            public int Called = 0;
+            public async Task ApplyCreate(IResourceContext rc, CreateEventArgs ev) { await Task.Run(() => Called++); }
+        }
+        [Fact]
+        public async Task ApplyHandler_ApplyCreateAsyncHandler_IsCalled()
+        {
+            var handler = new ApplyHandler_ApplyCreateAsyncHandler_IsCalled_Class();
+            await handler.Apply(null, new CreateEventArgs(null));
+            Assert.Equal(1, handler.Called);
+        }
+
+        class ApplyHandler_ApplyDeleteHandler_IsCalled_Class : BaseHandler
+        {
+            public int Called = 0;
+            public void ApplyDelete(IResourceContext rc, DeleteEventArgs ev) { Called++; }
+        }
+        [Fact]
+        public async Task ApplyHandler_ApplyDeleteHandler_IsCalled()
+        {
+            var handler = new ApplyHandler_ApplyDeleteHandler_IsCalled_Class();
+            await handler.Apply(null, new DeleteEventArgs());
+            Assert.Equal(1, handler.Called);
+        }
+
+        class ApplyHandler_ApplyDeleteAsyncHandler_IsCalled_Class : BaseHandler
+        {
+            public int Called = 0;
+            public async Task ApplyDelete(IResourceContext rc, DeleteEventArgs ev) { await Task.Run(() => Called++); }
+        }
+        [Fact]
+        public async Task ApplyHandler_ApplyDeleteAsyncHandler_IsCalled()
+        {
+            var handler = new ApplyHandler_ApplyDeleteAsyncHandler_IsCalled_Class();
+            await handler.Apply(null, new DeleteEventArgs());
+            Assert.Equal(1, handler.Called);
+        }
+
+        class ApplyHandler_ApplyCustomHandler_IsCalled_Class : BaseHandler
+        {
+            public int Called = 0;
+            public void ApplyCustom(IResourceContext rc, CustomEventArgs ev) { Called++; }
+        }
+        [Fact]
+        public async Task ApplyHandler_ApplyCustomHandler_IsCalled()
+        {
+            var handler = new ApplyHandler_ApplyCustomHandler_IsCalled_Class();
+            await handler.Apply(null, new CustomEventArgs("foo", null));
+            Assert.Equal(1, handler.Called);
+        }
+
+        class ApplyHandler_ApplyCustomAsyncHandler_IsCalled_Class : BaseHandler
+        {
+            public int Called = 0;
+            public async Task ApplyCustom(IResourceContext rc, CustomEventArgs ev) { await Task.Run(() => Called++); }
+        }
+        [Fact]
+        public async Task ApplyHandler_ApplyCustomAsyncHandler_IsCalled()
+        {
+            var handler = new ApplyHandler_ApplyCustomAsyncHandler_IsCalled_Class();
+            await handler.Apply(null, new CustomEventArgs("foo", null));
+            Assert.Equal(1, handler.Called);
+        }
+        #endregion
 
         class EnabledHandlers_CallMethodWithoutAttribute_IsCall_Class : BaseHandler
         {
@@ -227,10 +331,10 @@ namespace ResgateIO.Service.UnitTests
             public void Foo(ICallRequest r) { Called++; }
         }
         [Fact]
-        public void CallMethod_MethodWithNoAttribute_IsCalled()
+        public async Task CallMethod_MethodWithNoAttribute_IsCalled()
         {
             var handler = new CallMethod_MethodWithNoAttribute_IsCalled_Class();
-            handler.Call(new MockRequest { Method = "foo" });
+            await handler.Handle(new MockRequest { Type = RequestType.Call, Method = "foo" });
             Assert.Equal(1, handler.Called);
         }
 
@@ -241,10 +345,10 @@ namespace ResgateIO.Service.UnitTests
             public void Foo(ICallRequest r) { Called++; }
         }
         [Fact]
-        public void CallMethod_MethodWithAttribute_IsCalled()
+        public async Task CallMethod_MethodWithAttribute_IsCalled()
         {
             var handler = new CallMethod_MethodWithAttribute_IsCalled_Class();
-            handler.Call(new MockRequest { Method = "bar" });
+            await handler.Handle(new MockRequest { Type = RequestType.Call, Method = "bar" });
             Assert.Equal(1, handler.Called);
         }
 
@@ -255,10 +359,10 @@ namespace ResgateIO.Service.UnitTests
             public void Foo(ICallRequest r) { Called++; }
         }
         [Fact]
-        public void CallMethod_MethodWithEmptyAttribute_IsCalled()
+        public async Task CallMethod_MethodWithEmptyAttribute_IsCalled()
         {
             var handler = new CallMethod_MethodWithEmptyAttribute_IsCalled_Class();
-            handler.Call(new MockRequest { Method = "foo" });
+            await handler.Handle(new MockRequest { Type = RequestType.Call, Method = "foo" });
             Assert.Equal(1, handler.Called);
         }
 
@@ -269,10 +373,10 @@ namespace ResgateIO.Service.UnitTests
             public void Foo(ICallRequest r) { Called++; }
         }
         [Fact]
-        public void CallMethod_MethodWithIgnoreAttribute_IsNotCalled()
+        public async Task CallMethod_MethodWithIgnoreAttribute_IsNotCalled()
         {
             var handler = new CallMethod_MethodWithIgnoreAttribute_IsNotCalled_Class();
-            handler.Call(new MockRequest { Method = "foo" });
+            await handler.Handle(new MockRequest { Type = RequestType.Call, Method = "foo" });
             Assert.Equal(0, handler.Called);
         }
 
@@ -283,43 +387,43 @@ namespace ResgateIO.Service.UnitTests
             public void Foo(ICallRequest r) { Called++; }
         }
         [Fact]
-        public void CallMethod_MethodWithNullAttribute_IsCalled()
+        public async Task CallMethod_MethodWithNullAttribute_IsCalled()
         {
             var handler = new CallMethod_MethodWithNullAttribute_IsCalled_Class();
-            handler.Call(new MockRequest { Method = "foo" });
+            await handler.Handle(new MockRequest { Type = RequestType.Call, Method = "foo" });
             Assert.Equal(1, handler.Called);
         }
 
-        class CallMethod_MethodWithInvalidAttribute_ThrowsInvalidOperationException_Class : BaseHandler
+        class CallMethod_MethodWithInvalidAttribute_ThrowsArgumentException_Class : BaseHandler
         {
             [CallMethod("invalid.foo")]
             public void Foo(ICallRequest r) { }
         }
         [Fact]
-        public void CallMethod_MethodWithInvalidAttribute_ThrowsInvalidOperationException()
+        public void CallMethod_MethodWithInvalidAttribute_ThrowsArgumentException()
         {
-            Assert.Throws<InvalidOperationException>(() => new CallMethod_MethodWithInvalidAttribute_ThrowsInvalidOperationException_Class());
+            Assert.Throws<ArgumentException>(() => new CallMethod_MethodWithInvalidAttribute_ThrowsArgumentException_Class());
         }
 
-        class CallMethod_MethodWithEmptyStringAttribute_ThrowsInvalidOperationException_Class : BaseHandler
+        class CallMethod_MethodWithEmptyStringAttribute_ThrowsArgumentException_Class : BaseHandler
         {
             [CallMethod("")]
             public void Foo(ICallRequest r) { }
         }
         [Fact]
-        public void CallMethod_MethodWithEmptyStringAttribute_ThrowsInvalidOperationException()
+        public void CallMethod_MethodWithEmptyStringAttribute_ThrowsArgumentException()
         {
-            Assert.Throws<InvalidOperationException>(() => new CallMethod_MethodWithEmptyStringAttribute_ThrowsInvalidOperationException_Class());
+            Assert.Throws<ArgumentException>(() => new CallMethod_MethodWithEmptyStringAttribute_ThrowsArgumentException_Class());
         }
 
-        class CallMethod_MethodWithInvalidClassMethodName_ThrowsInvalidOperationException_Class : BaseHandler
+        class CallMethod_MethodWithInvalidClassMethodName_ThrowsArgumentException_Class : BaseHandler
         {
             public void Foo‿Bar(ICallRequest r) { }
         }
         [Fact]
-        public void CallMethod_MethodWithInvalidClassMethodName_ThrowsInvalidOperationException()
+        public void CallMethod_MethodWithInvalidClassMethodName_ThrowsArgumentException()
         {
-            Assert.Throws<InvalidOperationException>(() => new CallMethod_MethodWithInvalidClassMethodName_ThrowsInvalidOperationException_Class());
+            Assert.Throws<ArgumentException>(() => new CallMethod_MethodWithInvalidClassMethodName_ThrowsArgumentException_Class());
         }
 
         class CallMethod_MethodWithMismatchingSignature_ThrowsInvalidOperationException_Class : BaseHandler
@@ -331,17 +435,6 @@ namespace ResgateIO.Service.UnitTests
         public void CallMethod_MethodWithMismatchingSignature_ThrowsInvalidOperationException()
         {
             Assert.Throws<InvalidOperationException>(() => new CallMethod_MethodWithMismatchingSignature_ThrowsInvalidOperationException_Class());
-        }
-
-        class CallMethod_AttributeOnCallHandler_ThrowsInvalidOperationException_Class : BaseHandler
-        {
-            [CallMethod]
-            public override void Call(ICallRequest r) { }
-        }
-        [Fact]
-        public void CallMethod_AttributeOnCallHandler_ThrowsInvalidOperationException()
-        {
-            Assert.Throws<InvalidOperationException>(() => new CallMethod_AttributeOnCallHandler_ThrowsInvalidOperationException_Class());
         }
 
         class CallMethod_DuplicateMethods_ThrowsInvalidOperationException_Class : BaseHandler
@@ -364,10 +457,10 @@ namespace ResgateIO.Service.UnitTests
             public void Foo(IAuthRequest r) { Called++; }
         }
         [Fact]
-        public void AuthMethod_MethodWithNoAttribute_IsCalled()
+        public async Task AuthMethod_MethodWithNoAttribute_IsCalled()
         {
             var handler = new AuthMethod_MethodWithNoAttribute_IsCalled_Class();
-            handler.Auth(new MockRequest { Method = "foo" });
+            await handler.Handle(new MockRequest { Type = RequestType.Auth, Method = "foo" });
             Assert.Equal(1, handler.Called);
         }
 
@@ -378,10 +471,10 @@ namespace ResgateIO.Service.UnitTests
             public void Foo(IAuthRequest r) { Called++; }
         }
         [Fact]
-        public void AuthMethod_MethodWithAttribute_IsCalled()
+        public async Task AuthMethod_MethodWithAttribute_IsCalled()
         {
             var handler = new AuthMethod_MethodWithAttribute_IsCalled_Class();
-            handler.Auth(new MockRequest { Method = "bar" });
+            await handler.Handle(new MockRequest { Type = RequestType.Auth, Method = "bar" });
             Assert.Equal(1, handler.Called);
         }
 
@@ -392,10 +485,10 @@ namespace ResgateIO.Service.UnitTests
             public void Foo(IAuthRequest r) { Called++; }
         }
         [Fact]
-        public void AuthMethod_MethodWithEmptyAttribute_IsCalled()
+        public async Task AuthMethod_MethodWithEmptyAttribute_IsCalled()
         {
             var handler = new AuthMethod_MethodWithEmptyAttribute_IsCalled_Class();
-            handler.Auth(new MockRequest { Method = "foo" });
+            await handler.Handle(new MockRequest { Type = RequestType.Auth, Method = "foo" });
             Assert.Equal(1, handler.Called);
         }
 
@@ -406,10 +499,10 @@ namespace ResgateIO.Service.UnitTests
             public void Foo(IAuthRequest r) { Called++; }
         }
         [Fact]
-        public void AuthMethod_MethodWithIgnoreAttribute_IsNotCalled()
+        public async Task AuthMethod_MethodWithIgnoreAttribute_IsNotCalled()
         {
             var handler = new AuthMethod_MethodWithIgnoreAttribute_IsNotCalled_Class();
-            handler.Auth(new MockRequest { Method = "foo" });
+            await handler.Handle(new MockRequest { Type = RequestType.Auth, Method = "foo" });
             Assert.Equal(0, handler.Called);
         }
 
@@ -420,43 +513,43 @@ namespace ResgateIO.Service.UnitTests
             public void Foo(IAuthRequest r) { Called++; }
         }
         [Fact]
-        public void AuthMethod_MethodWithNullAttribute_IsCalled()
+        public async Task AuthMethod_MethodWithNullAttribute_IsCalled()
         {
             var handler = new AuthMethod_MethodWithNullAttribute_IsCalled_Class();
-            handler.Auth(new MockRequest { Method = "foo" });
+            await handler.Handle(new MockRequest { Type = RequestType.Auth, Method = "foo" });
             Assert.Equal(1, handler.Called);
         }
 
-        class AuthMethod_MethodWithInvalidAttribute_ThrowsInvalidOperationException_Class : BaseHandler
+        class AuthMethod_MethodWithInvalidAttribute_ThrowsArgumentException_Class : BaseHandler
         {
             [AuthMethod("invalid.foo")]
             public void Foo(IAuthRequest r) { }
         }
         [Fact]
-        public void AuthMethod_MethodWithInvalidAttribute_ThrowsInvalidOperationException()
+        public void AuthMethod_MethodWithInvalidAttribute_ThrowsArgumentException()
         {
-            Assert.Throws<InvalidOperationException>(() => new AuthMethod_MethodWithInvalidAttribute_ThrowsInvalidOperationException_Class());
+            Assert.Throws<ArgumentException>(() => new AuthMethod_MethodWithInvalidAttribute_ThrowsArgumentException_Class());
         }
 
-        class AuthMethod_MethodWithEmptyStringAttribute_ThrowsInvalidOperationException_Class : BaseHandler
+        class AuthMethod_MethodWithEmptyStringAttribute_ThrowsArgumentException_Class : BaseHandler
         {
             [AuthMethod("")]
             public void Foo(IAuthRequest r) { }
         }
         [Fact]
-        public void AuthMethod_MethodWithEmptyStringAttribute_ThrowsInvalidOperationException()
+        public void AuthMethod_MethodWithEmptyStringAttribute_ThrowsArgumentException()
         {
-            Assert.Throws<InvalidOperationException>(() => new AuthMethod_MethodWithEmptyStringAttribute_ThrowsInvalidOperationException_Class());
+            Assert.Throws<ArgumentException>(() => new AuthMethod_MethodWithEmptyStringAttribute_ThrowsArgumentException_Class());
         }
 
-        class AuthMethod_MethodWithInvalidClassMethodName_ThrowsInvalidOperationException_Class : BaseHandler
+        class AuthMethod_MethodWithInvalidClassMethodName_ThrowsArgumentException_Class : BaseHandler
         {
             public void Foo‿Bar(IAuthRequest r) { }
         }
         [Fact]
-        public void AuthMethod_MethodWithInvalidClassMethodName_ThrowsInvalidOperationException()
+        public void AuthMethod_MethodWithInvalidClassMethodName_ThrowsArgumentException()
         {
-            Assert.Throws<InvalidOperationException>(() => new AuthMethod_MethodWithInvalidClassMethodName_ThrowsInvalidOperationException_Class());
+            Assert.Throws<ArgumentException>(() => new AuthMethod_MethodWithInvalidClassMethodName_ThrowsArgumentException_Class());
         }
 
         class AuthMethod_MethodWithMismatchingSignature_ThrowsInvalidOperationException_Class : BaseHandler
@@ -468,17 +561,6 @@ namespace ResgateIO.Service.UnitTests
         public void AuthMethod_MethodWithMismatchingSignature_ThrowsInvalidOperationException()
         {
             Assert.Throws<InvalidOperationException>(() => new AuthMethod_MethodWithMismatchingSignature_ThrowsInvalidOperationException_Class());
-        }
-
-        class AuthMethod_AttributeOnAuthHandler_ThrowsInvalidOperationException_Class : BaseHandler
-        {
-            [AuthMethod]
-            public override void Auth(IAuthRequest r) { }
-        }
-        [Fact]
-        public void AuthMethod_AttributeOnAuthHandler_ThrowsInvalidOperationException()
-        {
-            Assert.Throws<InvalidOperationException>(() => new AuthMethod_AttributeOnAuthHandler_ThrowsInvalidOperationException_Class());
         }
 
         class AuthMethod_DuplicateMethods_ThrowsInvalidOperationException_Class : BaseHandler

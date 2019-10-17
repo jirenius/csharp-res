@@ -65,6 +65,7 @@ namespace ResgateIO.Service
         
         // Constants and readonly
         private const int shutdownTimeout = 5000; // milliseconds
+        private static readonly Task completedTask = Task.FromResult(false);
         internal static readonly byte[] EmptyData = new byte[] { };
         internal static readonly ServeEventArgs EmptyServeEventArgs = new ServeEventArgs();
 
@@ -297,7 +298,7 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="rid">Resource ID.</param>
         /// <param name="callback">Callback to be called on the resource's worker thread.</param>
-        public void With(string rid, Action<IResourceContext> callback)
+        public void With(string rid, Func<IResourceContext, Task> callback)
         {
             IResourceContext resource = Resource(rid);
             if (resource == null)
@@ -309,11 +310,28 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
+        /// Matches the resource ID, rid, with the registered resource handlers,
+        /// before calling the callback on the resource's worker thread.
+        /// It will throw an ArgumentException if there is no handler matching
+        /// the resource ID, rid.
+        /// </summary>
+        /// <param name="rid">Resource ID.</param>
+        /// <param name="callback">Callback to be called on the resource's worker thread.</param>
+        public void With(string rid, Action<IResourceContext> callback)
+        {
+            With(rid, r =>
+            {
+                callback(r);
+                return completedTask;
+            });
+        }
+
+        /// <summary>
         /// Calls the callback on the resource's worker thread.
         /// </summary>
         /// <param name="resource">Resource context.</param>
         /// <param name="callback">Callback to be called on the resource's worker thread.</param>
-        public void With(IResourceContext resource, Action callback)
+        public void With(IResourceContext resource, Func<Task> callback)
         {
             runWith(resource.Group, callback);
         }
@@ -323,9 +341,37 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="resource">Resource context.</param>
         /// <param name="callback">Callback to be called on the resource's worker thread.</param>
-        public void With(IResourceContext resource, Action<IResourceContext> callback)
+        public void With(IResourceContext resource, Action callback)
+        {
+            runWith(resource.Group, () =>
+            {
+                callback();
+                return completedTask;
+            });
+        }
+
+        /// <summary>
+        /// Calls the callback on the resource's worker thread.
+        /// </summary>
+        /// <param name="resource">Resource context.</param>
+        /// <param name="callback">Callback to be called on the resource's worker thread.</param>
+        public void With(IResourceContext resource, Func<IResourceContext, Task> callback)
         {
             runWith(resource.Group, () => callback(resource));
+        }
+
+        /// <summary>
+        /// Calls the callback on the resource's worker thread.
+        /// </summary>
+        /// <param name="resource">Resource context.</param>
+        /// <param name="callback">Callback to be called on the resource's worker thread.</param>
+        public void With(IResourceContext resource, Action<IResourceContext> callback)
+        {
+            runWith(resource.Group, () =>
+            {
+                callback(resource);
+                return completedTask;
+            });
         }
 
         /// <summary>
@@ -333,7 +379,7 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="group">Group ID.</param>
         /// <param name="callback">Callback to be called on the group's worker thread.</param>
-        public void WithGroup(string group, Action callback)
+        public void WithGroup(string group, Func<Task> callback)
         {
             runWith(group, callback);
         }
@@ -343,9 +389,37 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="group">Group ID.</param>
         /// <param name="callback">Callback to be called on the group's worker thread.</param>
-        public void WithGroup(string group, Action<ResService> callback)
+        public void WithGroup(string group, Action callback)
+        {
+            runWith(group, () =>
+            {
+                callback();
+                return completedTask;
+            });
+        }
+
+        /// <summary>
+        /// Calls the callback on the specified group's worker thread.
+        /// </summary>
+        /// <param name="group">Group ID.</param>
+        /// <param name="callback">Callback to be called on the group's worker thread.</param>
+        public void WithGroup(string group, Func<ResService, Task> callback)
         {
             runWith(group, () => callback(this));
+        }
+
+        /// <summary>
+        /// Calls the callback on the specified group's worker thread.
+        /// </summary>
+        /// <param name="group">Group ID.</param>
+        /// <param name="callback">Callback to be called on the group's worker thread.</param>
+        public void WithGroup(string group, Action<ResService> callback)
+        {
+            runWith(group, () =>
+            {
+                callback(this);
+                return completedTask;
+            });
         }
 
         private void serve()
@@ -483,24 +557,6 @@ namespace ResgateIO.Service
             Router.Match match = GetHandler(rname);
 
             runWith(match == null ? rname : match.Group, () => processRequest(msg, rtype, rname, method, match));
-        }
-
-        private void runWith(string groupId, Action callback)
-        {
-            lock (stateLock)
-            { 
-                if (rwork.TryGetValue(groupId, out Work work))
-                {
-                    work.AddTask(callback);
-                }
-                else
-                {
-                    work = new Work(groupId, callback);
-                    rwork.Add(groupId, work);
-                    activeWorkers.AddCount();
-                    Task.Run(() => processWork(work));
-                }
-            }
         }
 
         /// <summary>
@@ -641,36 +697,65 @@ namespace ResgateIO.Service
             queryEvent.Stop();
         }
 
-        private void processWork(Work work)
+        private void runWith(string groupId, Func<Task> callback)
         {
-            Action task;
-
-            try
+            Work work;
+            lock (stateLock)
             {
-                while (true)
+                if (rwork.TryGetValue(groupId, out work))
                 {
-                    lock (stateLock)
-                    {
-                        task = work.NextTask();
-                        // Check if work tasks are exhausted
-                        if (task == null)
-                        {
-                            // Work completed
-                            rwork.Remove(work.ResourceName);
-                            return;
-                        }
-                    }
-
-                    task();
+                    work.AddTask(callback);
+                    return;
                 }
+
+                work = new Work(groupId, callback);
+                rwork.Add(groupId, work);
+                activeWorkers.AddCount();
             }
-            finally
+
+            Task.Run(async () =>
             {
-                activeWorkers.Signal();
+                try
+                {
+                    await processWork(work);
+                }
+                finally
+                {
+                    activeWorkers.Signal();
+                }
+            });
+        }
+
+        private async Task processWork(Work work)
+        {
+            Func<Task> task;
+
+            while (true)
+            {
+                lock (stateLock)
+                {
+                    task = work.NextTask();
+                    // Check if work tasks are exhausted
+                    if (task == null)
+                    {
+                        // Work completed
+                        rwork.Remove(work.ResourceName);
+                        return;
+                    }
+                }
+
+                try
+                {
+                    await task();
+                }
+                catch(Exception ex)
+                {
+                    OnError("Exception encountered running resource task:\n{0}", ex.ToString());
+                }
             }
         }
         
-        private void processRequest(Msg msg, String rtype, String rname, String method, Router.Match match)
+        private Task processRequest(Msg msg, String rtype, String rname, String method, Router.Match match)
         {
             Request req;
 
@@ -680,7 +765,7 @@ namespace ResgateIO.Service
                 // [TODO] Allow for a default handler
                 req = new Request(this, msg);
                 req.NotFound();
-                return;
+                return completedTask;
             }
 
             try
@@ -714,10 +799,11 @@ namespace ResgateIO.Service
                 OnError("Error deserializing incoming request: {0}", msg.Data == null ? "<null>" : Encoding.UTF8.GetString(msg.Data));
                 req = new Request(this, msg);
                 req.Error(new ResError(ex));
-                return;
+                return completedTask;
             }
 
-            req.ExecuteHandler();
+
+            return req.ExecuteHandler();
         }
 
         private void onReconnect(object sender, ConnEventArgs args)
