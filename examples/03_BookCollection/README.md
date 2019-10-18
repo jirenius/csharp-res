@@ -14,7 +14,7 @@ A simple library management system, listing books by title and author. Books can
 ```text
 git clone https://github.com/jirenius/csharp-res
 ```
-Open the solution, `examples\BookCollection\BookCollection.sln`, in Visual Studio 2017.
+Open the solution, `examples\03_BookCollection\BookCollection.sln`, in Visual Studio 2017.
 
 Set *multiple startup projects* with the projects below ([how to](https://docs.microsoft.com/en-us/visualstudio/ide/how-to-set-multiple-startup-projects?view=vs-2019)). Press F5 to build and run.
 
@@ -29,14 +29,19 @@ http://localhost:8081
 
 ## Things to try out
 
-**Realtime updates**  
-Run the client in two separate tabs to observe realtime updates.
+### Realtime updates
+* Open the client in two separate tabs.
+* Add/Edit/Delete entries to observe realtime updates.
 
-**System reset**  
-Run the client and make some changes. Restart the service to observe resetting of resources in clients.
+### System reset
+* Open the client and make some changes.
+* Restart the service to observe resetting of resources in all clients.
 
-**Resynchronization**  
-Run the client on two separate devices. Disconnect one device, then make changes with the other. Reconnect the first device to observe resynchronization.
+### Resynchronization
+* Open the client on two separate devices.
+* Disconnect one device.
+* Make changes using the other device.
+* Reconnect the first device to observe resynchronization.
 
 ## API
 

@@ -14,7 +14,7 @@ A simple text field that can be edited by multiple clients simultaneously.
 ```text
 git clone https://github.com/jirenius/csharp-res
 ```
-Open the solution, `examples\EditText\EditText.sln`, in Visual Studio 2017.
+Open the solution, `examples\02_EditText\EditText.sln`, in Visual Studio 2017.
 
 Set *multiple startup projects* with the projects below ([how to](https://docs.microsoft.com/en-us/visualstudio/ide/how-to-set-multiple-startup-projects?view=vs-2019)). Press F5 to build and run.
 
@@ -28,11 +28,14 @@ http://localhost:8081
 
 ## Things to try out
 
-**Realtime updates**  
-Run the client in two separate tabs, edit the message in one tab, and observe realtime updates in both.
+### Realtime updates
+* Open the client in two separate tabs.
+* Edit the message in one tab, and observe realtime updates in both.
 
-**System reset**  
-Stop the service. Edit the default text in *MyModelHandler.cs*. Restart the service to observe resetting of the message in all clients.
+### System reset
+* Stop the service.
+* Edit the default text in *MyModelHandler.cs*.
+* Restart the service to observe resetting of the message in all clients.
 
 ## API
 
