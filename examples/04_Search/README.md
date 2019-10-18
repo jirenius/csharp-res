@@ -14,12 +14,12 @@ A customer management system, where you can search and filter customers by name 
 ```text
 git clone https://github.com/jirenius/csharp-res
 ```
-Open the solution, `examples\Search\Search.sln`, in Visual Studio 2017.
+Open the solution, `examples\04_Search\Search.sln`, in Visual Studio 2017.
 
 Set *multiple startup projects* with the projects below ([how to](https://docs.microsoft.com/en-us/visualstudio/ide/how-to-set-multiple-startup-projects?view=vs-2019)). Press F5 to build and run.
 
-  * *SearchService*
-  * *WebClient*
+* *SearchService*
+* *WebClient*
 
 Open the client
 ```text
@@ -28,15 +28,21 @@ http://localhost:8081
 
 ## Things to try out
 
-**Live query**  
-Make a query (eg. Set *Filter* to `B`, and *Country* to `Germany`) in one tab. In a separate tab, try to:
-* create a *New customer* matching the query.
-* edit a customer so that it starts to match the query.
-* edit a customer so that it no longer matches the query.
-* delete a customer that matches the query.
+### Live query
+* Open the client in two separate tabs.
+* Make a query (eg. Set *Filter* to `B`, and *Country* to `Germany`) in one tab.
+* In a separate tab, try to:
+	* create a *New customer* matching the query.
+	* edit a customer so that it starts to match the query.
+	* edit a customer so that it no longer matches the query.
+	* delete a customer that matches the query.
+* In the tab with the query, try to:
+	* Edit the 
 
-**Persistence**  
-Run the client and make some changes. Restart the service and all changes should be persisted in the LiteDB database.
+### Persistence
+* Open the client and make some changes.
+* Restart the service and the client.
+* Observe that all changes are persisted (in the LiteDB database).
 
 ## API
 
