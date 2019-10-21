@@ -1,9 +1,15 @@
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace ResgateIO.Service.UnitTests
 {
+    /// <summary>
+    /// Tests that are the Usage examples used in the README.md file.
+    /// This is to make sure the example code is valid.
+    /// </summary>
     public class Examples : TestsBase
     {
         public Examples(ITestOutputHelper output) : base(output, "example")
@@ -12,11 +18,20 @@ namespace ResgateIO.Service.UnitTests
 
         public class Article { }
 
+        public class User
+        {
+            public string Id;
+        }
+
         public static class DB
         {
             public static bool TryGetArticle(string id, out Article article)
             {
                 article = null; return false;
+            }
+            public static Task<List<User>> QueryAsync(string _)
+            {
+                return Task.FromResult(new List<User> { new User { Id = "foo" } });
             }
         }
 
@@ -44,6 +59,80 @@ namespace ResgateIO.Service.UnitTests
             service.Shutdown();
         }
 
+        [ResourcePattern("mymodel")]
+        class MyModelHandler : BaseHandler
+        {
+            private readonly object model = new
+            {
+                message = "Hello, .NET World!"
+            };
+
+            public void Get(IModelRequest request)
+            {
+                request.Model(model);
+            }
+        }
+        // ---
+        [Fact]
+        public void Usage_DefineAHandlerClassForAModelResource()
+        {
+            ResService service = new ResService("example");
+            // ---
+            service.AddHandler(new MyModelHandler());
+        }
+
+        [ResourcePattern("mycollection")]
+        class MyCollectionHandler : BaseHandler
+        {
+            private readonly object[] collection = new object[]{
+                "first", "second", "third"
+            };
+
+            public void Get(ICollectionRequest request)
+            {
+                request.Collection(collection);
+            }
+        }
+        // ---
+        [Fact]
+        public void Usage_DefineAHandlerClassForACollectionResource()
+        {
+            ResService service = new ResService("example");
+            // ---
+            service.AddHandler(new MyCollectionHandler());
+        }
+
+        [ResourcePattern("math")]
+        class MyResourceHandler : BaseHandler
+        {
+            [CallMethod("double")]
+            public void Double(ICallRequest r)
+            {
+                r.Ok(2 * (double)r.Params["value"]);
+            }
+        }
+        // ---
+        [Fact]
+        public void Usage_DefineMethodsOnAHandlerClass()
+        {
+            ResService service = new ResService("example");
+            service.AddHandler(new MyResourceHandler());
+            service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.example.math.double", new RequestDto { CID = Test.CID, Params = new { value = 7 } });
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(14.0);
+        }
+
+        [Fact]
+        public void Usage_AddHandlerForAResource()
+        {
+            ResService service = new ResService("example");
+            // ---
+            service.AddHandler(new MyResourceHandler());
+        }
+
         [Fact]
         public void Usage_AddHandlersForParameterizedResources()
         {
@@ -61,23 +150,6 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Fact]
-        public void Usage_AddHandlersForMethodCalls()
-        {
-            service.AddHandler("math", new DynamicHandler()
-                .SetCallMethod("double", r =>
-                {
-                    r.Ok(2 * (double)r.Params["value"]);
-                }));
-            // --
-            service.Serve(Conn);
-            Conn.GetMsg().AssertSubject("system.reset");
-            string inbox = Conn.NATSRequest("call.example.math.double", new RequestDto { CID = Test.CID, Params = new { value = 7 } });
-            Conn.GetMsg()
-                .AssertSubject(inbox)
-                .AssertResult(14.0);
-        }
-
-        [Fact]
         public void Usage_SendChangeEventOnModelUpdate()
         {
             service.AddHandler("mymodel", new DynamicHandler().SetType(ResourceType.Model));
@@ -87,7 +159,9 @@ namespace ResgateIO.Service.UnitTests
             service.With("example.mymodel", resource =>
             {
                 mymodel.Name = "bar";
-                resource.ChangeEvent(new Dictionary<string, object> { { "name", "bar" } });
+                resource.ChangeEvent(new Dictionary<string, object> {
+                    { "name", "bar" }
+                });
             });
             // --
             Conn.GetMsg().AssertSubject("event.example.mymodel.change");
@@ -152,6 +226,19 @@ namespace ResgateIO.Service.UnitTests
             Conn.GetMsg()
                 .AssertSubject(inbox)
                 .AssertResult();
+        }
+
+        [Fact]
+        public void Usage_AddAsyncHandler()
+        {
+            ResService service = new ResService("example");
+            // ---
+            service.AddHandler("store.users", new DynamicHandler()
+                .SetGet(async r =>
+                {
+                    var users = await DB.QueryAsync("SELECT id FROM users");
+                    r.Collection(users.Select(u => new Ref("store.user." + u.Id)));
+                }));
         }
     }
 }
