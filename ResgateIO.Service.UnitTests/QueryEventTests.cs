@@ -17,7 +17,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void QueryEvent_UsingRequest_SendsQueryEvent()
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            Service.AddHandler("model", new DynamicHandler().Call(r =>
             {
                 r.QueryEvent(qr => { });
                 r.Ok();
@@ -227,7 +227,7 @@ namespace ResgateIO.Service.UnitTests
         [MemberData(nameof(GetQueryRequestTestData))]
         public void QueryRequest_UsingRequest_SendsCorrectResponse(string query, Action<IQueryRequest> callback, object expected)
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            Service.AddHandler("model", new DynamicHandler().Call(r =>
             {
                 r.QueryEvent(callback);
                 r.Ok();
@@ -292,7 +292,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void QueryRequest_CallingTimeoutWithTimespan_SendsPreresponse()
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            Service.AddHandler("model", new DynamicHandler().Call(r =>
             {
                 r.QueryEvent(qr => {
                     qr.Timeout(TimeSpan.FromSeconds(42));
@@ -314,7 +314,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void QueryRequest_CallingTimeoutWithMilliseconds_SendsPreresponse()
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            Service.AddHandler("model", new DynamicHandler().Call(r =>
             {
                 r.QueryEvent(qr => {
                     qr.Timeout(42000);
@@ -336,7 +336,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void QueryRequest_CallingTimeoutWithInvalidDuration_SendsInternalErrorResponse()
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            Service.AddHandler("model", new DynamicHandler().Call(r =>
             {
                 r.QueryEvent(qr => {
                     qr.Timeout(TimeSpan.FromSeconds(-1));
