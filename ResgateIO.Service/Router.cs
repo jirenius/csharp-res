@@ -214,8 +214,6 @@ namespace ResgateIO.Service
             /// </summary>
             public string Group { get; }
 
-            private Node node;
-
             internal Match(IAsyncHandler handler, EventHandler eventHandler, Dictionary<string, string> pathParams, string group)
             {
                 Handler = handler;

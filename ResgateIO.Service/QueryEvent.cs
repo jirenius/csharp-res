@@ -32,7 +32,7 @@ namespace ResgateIO.Service
             catch (Exception ex)
             {
                 Service.OnError("Failed to subscribe to query event for {0}: {1}", Resource.ResourceName, ex.Message);
-                closeCallback();
+                Resource.Service.With(Resource, closeCallback);
                 return false;
             }
 
