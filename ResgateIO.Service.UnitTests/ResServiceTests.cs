@@ -37,7 +37,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void Serve_RegisteredGetHandler_SendsResourcesInSystemReset()
         {
-            Service.AddHandler("model", new DynamicHandler().SetModelGet(r => r.NotFound()));
+            Service.AddHandler("model", new DynamicHandler().ModelGet(r => r.NotFound()));
             Service.Serve(Conn);
             Conn.GetMsg()
                 .AssertSubject("system.reset")
@@ -47,7 +47,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void Serve_RegisteredAccessHandler_SendsAccessInSystemReset()
         {
-            Service.AddHandler("model", new DynamicHandler().SetAccess(r => r.AccessDenied()));
+            Service.AddHandler("model", new DynamicHandler().Access(r => r.AccessDenied()));
             Service.Serve(Conn);
             Conn.GetMsg()
                 .AssertSubject("system.reset")
@@ -58,8 +58,8 @@ namespace ResgateIO.Service.UnitTests
         public void Serve_RegisteredAccessAndGetHandler_SendsResourceAndAccessInSystemReset()
         {
             Service.AddHandler("model", new DynamicHandler()
-                .SetAccess(r => r.AccessDenied())
-                .SetGet(r => r.NotFound()));
+                .Access(r => r.AccessDenied())
+                .Get(r => r.NotFound()));
             Service.Serve(Conn);
             Conn.GetMsg()
                 .AssertSubject("system.reset")
@@ -69,7 +69,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void Shutdown_GetHandler_RemovesSubscriptions()
         {
-            Service.AddHandler("model", new DynamicHandler().SetGet(r => r.Model(Test.Model)));
+            Service.AddHandler("model", new DynamicHandler().Get(r => r.Model(Test.Model)));
             Assert.Equal(0, Conn.SubscriptionCount);
             Service.Serve(Conn);
             Assert.Equal(3, Conn.SubscriptionCount);
@@ -80,7 +80,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void Shutdown_AccessHandler_RemovesSubscriptions()
         {
-            Service.AddHandler("model", new DynamicHandler().SetAccess(r => r.AccessGranted()));
+            Service.AddHandler("model", new DynamicHandler().Access(r => r.AccessGranted()));
             Assert.Equal(0, Conn.SubscriptionCount);
             Service.Serve(Conn);
             Assert.Equal(1, Conn.SubscriptionCount);
@@ -92,8 +92,8 @@ namespace ResgateIO.Service.UnitTests
         public void Shutdown_GetAndAccessHandler_RemovesSubscriptions()
         {
             Service.AddHandler("model", new DynamicHandler()
-                .SetAccess(r => r.AccessGranted())
-                .SetGet(r => r.Model(Test.Model)));
+                .Access(r => r.AccessGranted())
+                .Get(r => r.Model(Test.Model)));
             Assert.Equal(0, Conn.SubscriptionCount);
             Service.Serve(Conn);
             Assert.Equal(4, Conn.SubscriptionCount);
@@ -139,7 +139,7 @@ namespace ResgateIO.Service.UnitTests
         public void With_WithValidResourceID_CallsCallback()
         {
             AutoResetEvent ev = new AutoResetEvent(false);
-            Service.AddHandler("model", new DynamicHandler().SetGet(r => r.NotFound()));
+            Service.AddHandler("model", new DynamicHandler().Get(r => r.NotFound()));
             Service.Serve(Conn);
             Service.With("test.model", r => ev.Set());
             Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
@@ -159,7 +159,7 @@ namespace ResgateIO.Service.UnitTests
         public void With_UsingResource_ThrowsException()
         {
             AutoResetEvent ev = new AutoResetEvent(false);
-            Service.AddHandler("model", new DynamicHandler().SetGet(r => r.NotFound()));
+            Service.AddHandler("model", new DynamicHandler().Get(r => r.NotFound()));
             Service.Serve(Conn);
             var resource = Service.Resource("test.model");
             Service.With(resource, () => ev.Set());
@@ -170,7 +170,7 @@ namespace ResgateIO.Service.UnitTests
         public void With_UsingResourceWithCallbackResourceParam_ThrowsException()
         {
             AutoResetEvent ev = new AutoResetEvent(false);
-            Service.AddHandler("model", new DynamicHandler().SetGet(r => r.NotFound()));
+            Service.AddHandler("model", new DynamicHandler().Get(r => r.NotFound()));
             Service.Serve(Conn);
             var resource = Service.Resource("test.model");
             Service.With(resource, r =>
@@ -185,7 +185,7 @@ namespace ResgateIO.Service.UnitTests
         public void WithGroup_WithMatchingResource_ThrowsException()
         {
             AutoResetEvent ev = new AutoResetEvent(false);
-            Service.AddHandler("model", "mygroup", new DynamicHandler().SetGet(r => r.NotFound()));
+            Service.AddHandler("model", "mygroup", new DynamicHandler().Get(r => r.NotFound()));
             Service.Serve(Conn);
             Service.WithGroup("mygroup", () => ev.Set());
             Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
@@ -195,7 +195,7 @@ namespace ResgateIO.Service.UnitTests
         public void WithGroup_WithMatchingResourceWithCallbackServiceParam_ThrowsException()
         {
             AutoResetEvent ev = new AutoResetEvent(false);
-            Service.AddHandler("model", "mygroup", new DynamicHandler().SetGet(r => r.NotFound()));
+            Service.AddHandler("model", "mygroup", new DynamicHandler().Get(r => r.NotFound()));
             Service.Serve(Conn);
             Service.WithGroup("mygroup", s =>
             {
@@ -230,7 +230,7 @@ namespace ResgateIO.Service.UnitTests
         {
             int called = 0;
             Service.Error += (sender, e) => called++;
-            Service.AddHandler("model", new DynamicHandler().SetModelGet(r => r.Model(Test.Model)));
+            Service.AddHandler("model", new DynamicHandler().ModelGet(r => r.Model(Test.Model)));
             Conn.FailNextSubscription();
             Assert.Equal(0, called);
             Assert.Throws<Exception>(() => Service.Serve(Conn));

@@ -213,31 +213,31 @@ namespace ResgateIO.Service
             
             if (t == typeof(IAccessRequest))
             {
-                handler.SetAccess(createRequestHandler<IAccessRequest>(m));
+                handler.Access(createRequestHandler<IAccessRequest>(m));
             }
             else if (t == typeof(IGetRequest))
             {
-                handler.SetGet(createRequestHandler<IGetRequest>(m));
+                handler.Get(createRequestHandler<IGetRequest>(m));
             }
             else if (t == typeof(ICallRequest))
             {
-                handler.SetCall(createRequestHandler<ICallRequest>(m));
+                handler.Call(createRequestHandler<ICallRequest>(m));
             }
             else if (t == typeof(IAuthRequest))
             {
-                handler.SetAuth(createRequestHandler<IAuthRequest>(m));
+                handler.Auth(createRequestHandler<IAuthRequest>(m));
             }
             else if (t == typeof(IModelRequest))
             {
-                handler.SetModelGet(createRequestHandler<IModelRequest>(m));
+                handler.ModelGet(createRequestHandler<IModelRequest>(m));
             }
             else if (t == typeof(ICollectionRequest))
             {
-                handler.SetCollectionGet(createRequestHandler<ICollectionRequest>(m));
+                handler.CollectionGet(createRequestHandler<ICollectionRequest>(m));
             }
             else // if (t == typeof(INewRequest))
             {
-                handler.SetNew(createRequestHandler<INewRequest>(m));
+                handler.New(createRequestHandler<INewRequest>(m));
             }
 
             return true;
@@ -251,7 +251,7 @@ namespace ResgateIO.Service
             {
                 return true;
             }
-            handler.SetCallMethod(getMethodName(m, attr?.MethodName), createRequestHandler<ICallRequest>(m));
+            handler.CallMethod(getMethodName(m, attr?.MethodName), createRequestHandler<ICallRequest>(m));
             return true;
         }
 
@@ -263,7 +263,7 @@ namespace ResgateIO.Service
             {
                 return true;
             }
-            handler.SetAuthMethod(getMethodName(m, attr?.MethodName), createRequestHandler<IAuthRequest>(m));
+            handler.AuthMethod(getMethodName(m, attr?.MethodName), createRequestHandler<IAuthRequest>(m));
             return true;
         }
 
@@ -290,27 +290,27 @@ namespace ResgateIO.Service
 
             if (t == typeof(ChangeEventArgs))
             {
-                handler.SetApplyChange(createApplyHandler<ChangeEventArgs>(m));
+                handler.ApplyChange(createApplyHandler<ChangeEventArgs>(m));
             }
             else if (t == typeof(AddEventArgs))
             {
-                handler.SetApplyAdd(createApplyHandler<AddEventArgs>(m));
+                handler.ApplyAdd(createApplyHandler<AddEventArgs>(m));
             }
             else if (t == typeof(RemoveEventArgs))
             {
-                handler.SetApplyRemove(createApplyHandler<RemoveEventArgs>(m));
+                handler.ApplyRemove(createApplyHandler<RemoveEventArgs>(m));
             }
             else if (t == typeof(CreateEventArgs))
             {
-                handler.SetApplyCreate(createApplyHandler<CreateEventArgs>(m));
+                handler.ApplyCreate(createApplyHandler<CreateEventArgs>(m));
             }
             else if (t == typeof(DeleteEventArgs))
             {
-                handler.SetApplyDelete(createApplyHandler<DeleteEventArgs>(m));
+                handler.ApplyDelete(createApplyHandler<DeleteEventArgs>(m));
             }
             else // if (t == typeof(CustomEventArgs))
             {
-                handler.SetApplyCustom(createApplyHandler<CustomEventArgs>(m));
+                handler.ApplyCustom(createApplyHandler<CustomEventArgs>(m));
             }
 
             return true;

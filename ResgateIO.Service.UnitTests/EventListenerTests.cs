@@ -28,14 +28,14 @@ namespace ResgateIO.Service.UnitTests
             int called = 0;
             var revert = new Dictionary<string, object> { { "foo", "baz" } };
             Service.AddHandler("model", new DynamicHandler()
-                .SetCall(r =>
+                .Call(r =>
                 {
                     Assert.Equal(0, called);
                     r.ChangeEvent(changed);
                     Assert.Equal(1, called);
                     r.Ok();
                 })
-                .SetApplyChange((rc, ev) => ev.SetRevert(revert)));
+                .ApplyChange((rc, ev) => ev.SetRevert(revert)));
             Service.AddEventListener("model", (sender, ev) =>
             {
                 called++;
@@ -62,7 +62,7 @@ namespace ResgateIO.Service.UnitTests
         {
             int called = 0;
             Service.AddHandler("model", new DynamicHandler()
-                .SetCall(r =>
+                .Call(r =>
                 {
                     Assert.Equal(0, called);
                     r.ChangeEvent(changed);
@@ -95,13 +95,13 @@ namespace ResgateIO.Service.UnitTests
         {
             bool called = false;
             Service.AddHandler("model", new DynamicHandler()
-                .SetCall(r =>
+                .Call(r =>
                 {
                     r.ChangeEvent(changed);
                     Assert.False(called, "event listener was called");
                     r.Ok();
                 })
-                .SetApplyChange((rc, ev) => ev.SetRevert(new Dictionary<string, object> { })));
+                .ApplyChange((rc, ev) => ev.SetRevert(new Dictionary<string, object> { })));
             Service.AddEventListener("model", (sender, ev) => called = true);
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
@@ -117,13 +117,13 @@ namespace ResgateIO.Service.UnitTests
         {
             bool called = false;
             Service.AddHandler("model", new DynamicHandler()
-                .SetCall(r =>
+                .Call(r =>
                 {
                     r.ChangeEvent(changed);
                     Assert.True(called, "event listener not called");
                     r.Ok();
                 })
-                .SetApplyChange((rc, ev) => { }));
+                .ApplyChange((rc, ev) => { }));
             Service.AddEventListener("model", (sender, ev) => called = true);
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
@@ -153,14 +153,14 @@ namespace ResgateIO.Service.UnitTests
         {
             int called = 0;
             Service.AddHandler("collection", new DynamicHandler()
-                .SetCall(r =>
+                .Call(r =>
                 {
                     Assert.Equal(0, called);
                     r.AddEvent(value, idx);
                     Assert.Equal(1, called);
                     r.Ok();
                 })
-                .SetApplyAdd((rc, ev) => { }));
+                .ApplyAdd((rc, ev) => { }));
             Service.AddEventListener("collection", (sender, ev) =>
             {
                 called++;
@@ -186,7 +186,7 @@ namespace ResgateIO.Service.UnitTests
         {
             int called = 0;
             Service.AddHandler("collection", new DynamicHandler()
-                .SetCall(r =>
+                .Call(r =>
                 {
                     Assert.Equal(0, called);
                     r.AddEvent(value, idx);
@@ -227,14 +227,14 @@ namespace ResgateIO.Service.UnitTests
         {
             int called = 0;
             Service.AddHandler("collection", new DynamicHandler()
-                .SetCall(r =>
+                .Call(r =>
                 {
                     Assert.Equal(0, called);
                     r.RemoveEvent(idx);
                     Assert.Equal(1, called);
                     r.Ok();
                 })
-                .SetApplyRemove((rc, ev) => ev.SetRevert(Test.IntValue)));
+                .ApplyRemove((rc, ev) => ev.SetRevert(Test.IntValue)));
             Service.AddEventListener("collection", (sender, ev) =>
             {
                 called++;
@@ -260,7 +260,7 @@ namespace ResgateIO.Service.UnitTests
         {
             int called = 0;
             Service.AddHandler("collection", new DynamicHandler()
-                .SetCall(r =>
+                .Call(r =>
                 {
                     Assert.Equal(0, called);
                     r.RemoveEvent(idx);
@@ -293,14 +293,14 @@ namespace ResgateIO.Service.UnitTests
         {
             int called = 0;
             Service.AddHandler("model", new DynamicHandler()
-                .SetCall(r =>
+                .Call(r =>
                 {
                     Assert.Equal(0, called);
                     r.CreateEvent(Test.Model);
                     Assert.Equal(1, called);
                     r.Ok();
                 })
-                .SetApplyCreate((rc, ev) => { }));
+                .ApplyCreate((rc, ev) => { }));
             Service.AddEventListener("model", (sender, ev) =>
             {
                 called++;
@@ -324,7 +324,7 @@ namespace ResgateIO.Service.UnitTests
         {
             int called = 0;
             Service.AddHandler("model", new DynamicHandler()
-                .SetCall(r =>
+                .Call(r =>
                 {
                     Assert.Equal(0, called);
                     r.CreateEvent(Test.Model);
@@ -356,14 +356,14 @@ namespace ResgateIO.Service.UnitTests
         {
             int called = 0;
             Service.AddHandler("model", new DynamicHandler()
-                .SetCall(r =>
+                .Call(r =>
                 {
                     Assert.Equal(0, called);
                     r.DeleteEvent();
                     Assert.Equal(1, called);
                     r.Ok();
                 })
-                .SetApplyDelete((rc, ev) => ev.SetRevert(Test.Model)));
+                .ApplyDelete((rc, ev) => ev.SetRevert(Test.Model)));
             Service.AddEventListener("model", (sender, ev) =>
             {
                 called++;
@@ -387,7 +387,7 @@ namespace ResgateIO.Service.UnitTests
         {
             int called = 0;
             Service.AddHandler("model", new DynamicHandler()
-                .SetCall(r =>
+                .Call(r =>
                 {
                     Assert.Equal(0, called);
                     r.DeleteEvent();

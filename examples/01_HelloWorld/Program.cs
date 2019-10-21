@@ -9,11 +9,11 @@ namespace HelloWorld
         {
             ResService service = new ResService("example");
             service.AddHandler("model", new DynamicHandler()
-                .SetGet(r => r.Model(new
+                .Get(r => r.Model(new
                 {
                     message = "Hello, World!",
                 }))
-                .SetAccess(r => r.AccessGranted()));
+                .Access(r => r.AccessGranted()));
             service.Serve("nats://127.0.0.1:4222");
             Console.ReadLine();
         }

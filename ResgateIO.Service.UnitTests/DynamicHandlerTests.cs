@@ -7,213 +7,213 @@ namespace ResgateIO.Service.UnitTests
     public class DynamicHandlerTests
     {
         [Fact]
-        public void SetAccess_WithHandler_AccessFlagSet()
+        public void Access_WithHandler_AccessFlagSet()
         {
-            var handler = new DynamicHandler().SetAccess(r => { });
+            var handler = new DynamicHandler().Access(r => { });
             Assert.Equal(HandlerTypes.Access, handler.EnabledHandlers);
         }
 
         [Fact]
-        public async Task SetAccess_WithHandler_IsCalled()
+        public async Task Access_WithHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetAccess(r => called++);
+            var handler = new DynamicHandler().Access(r => called++);
             await handler.Handle(new MockRequest { Type = RequestType.Access });
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public async Task SetAccess_WithAsyncHandler_IsCalled()
+        public async Task Access_WithAsyncHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetAccess(async r => await Task.Run(() => called++));
+            var handler = new DynamicHandler().Access(async r => await Task.Run(() => called++));
             await handler.Handle(new MockRequest { Type = RequestType.Access });
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public void SetGet_WithHandler_GetFlagSet()
+        public void Get_WithHandler_GetFlagSet()
         {
-            var handler = new DynamicHandler().SetGet(r => { });
+            var handler = new DynamicHandler().Get(r => { });
             Assert.Equal(HandlerTypes.Get, handler.EnabledHandlers);
         }
 
         [Fact]
-        public void SetGet_WithAsyncHandler_GetFlagSet()
+        public void Get_WithAsyncHandler_GetFlagSet()
         {
-            var handler = new DynamicHandler().SetGet(async r => await Task.Yield());
+            var handler = new DynamicHandler().Get(async r => await Task.Yield());
             Assert.Equal(HandlerTypes.Get, handler.EnabledHandlers);
         }
 
         [Fact]
-        public async Task SetGet_WithHandler_IsCalled()
+        public async Task Get_WithHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetGet(r => called++);
+            var handler = new DynamicHandler().Get(r => called++);
             await handler.Handle(new MockRequest { Type = RequestType.Get });
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public async Task SetGet_WithAsyncHandler_IsCalled()
+        public async Task Get_WithAsyncHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetGet(async r => await Task.Run(() => called++));
+            var handler = new DynamicHandler().Get(async r => await Task.Run(() => called++));
             await handler.Handle(new MockRequest { Type = RequestType.Get });
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public void SetModelGet_WithHandler_ModelGetFlagSet()
+        public void ModelGet_WithHandler_ModelGetFlagSet()
         {
-            var handler = new DynamicHandler().SetModelGet(r => { });
-            Assert.Equal(HandlerTypes.Get, handler.EnabledHandlers);
-            Assert.Equal(ResourceType.Model, handler.Type);
-        }
-
-        [Fact]
-        public void SetModelGet_WithAsyncHandler_ModelGetFlagSet()
-        {
-            var handler = new DynamicHandler().SetModelGet(async r => await Task.Yield());
+            var handler = new DynamicHandler().ModelGet(r => { });
             Assert.Equal(HandlerTypes.Get, handler.EnabledHandlers);
             Assert.Equal(ResourceType.Model, handler.Type);
         }
 
         [Fact]
-        public async Task SetModelGet_WithHandler_IsCalled()
+        public void ModelGet_WithAsyncHandler_ModelGetFlagSet()
+        {
+            var handler = new DynamicHandler().ModelGet(async r => await Task.Yield());
+            Assert.Equal(HandlerTypes.Get, handler.EnabledHandlers);
+            Assert.Equal(ResourceType.Model, handler.Type);
+        }
+
+        [Fact]
+        public async Task ModelGet_WithHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetModelGet(r => called++);
+            var handler = new DynamicHandler().ModelGet(r => called++);
             await handler.Handle(new MockRequest { Type = RequestType.Get });
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public async Task SetModelGet_WithAsyncHandler_IsCalled()
+        public async Task ModelGet_WithAsyncHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetModelGet(async r => await Task.Run(() => called++));
+            var handler = new DynamicHandler().ModelGet(async r => await Task.Run(() => called++));
             await handler.Handle(new MockRequest { Type = RequestType.Get });
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public void SetCollectionGet_WithHandler_CollectionGetFlagSet()
+        public void CollectionGet_WithHandler_CollectionGetFlagSet()
         {
-            var handler = new DynamicHandler().SetCollectionGet(r => { });
+            var handler = new DynamicHandler().CollectionGet(r => { });
             Assert.Equal(HandlerTypes.Get, handler.EnabledHandlers);
             Assert.Equal(ResourceType.Collection, handler.Type);
         }
 
         [Fact]
-        public void SetCollectionGet_WithAsyncHandler_CollectionGetFlagSet()
+        public void CollectionGet_WithAsyncHandler_CollectionGetFlagSet()
         {
-            var handler = new DynamicHandler().SetCollectionGet(async r => await Task.Yield());
+            var handler = new DynamicHandler().CollectionGet(async r => await Task.Yield());
             Assert.Equal(HandlerTypes.Get, handler.EnabledHandlers);
             Assert.Equal(ResourceType.Collection, handler.Type);
         }
 
         [Fact]
-        public async Task SetCollectionGet_WithHandler_IsCalled()
+        public async Task CollectionGet_WithHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetCollectionGet(r => called++);
+            var handler = new DynamicHandler().CollectionGet(r => called++);
             await handler.Handle(new MockRequest { Type = RequestType.Get });
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public async Task SetCollectionGet_WithAsyncHandler_IsCalled()
+        public async Task CollectionGet_WithAsyncHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetCollectionGet(async r => await Task.Run(() => called++));
+            var handler = new DynamicHandler().CollectionGet(async r => await Task.Run(() => called++));
             await handler.Handle(new MockRequest { Type = RequestType.Get });
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public void SetCall_WithHandler_CallFlagSet()
+        public void Call_WithHandler_CallFlagSet()
         {
-            var handler = new DynamicHandler().SetCall(r => { });
+            var handler = new DynamicHandler().Call(r => { });
             Assert.Equal(HandlerTypes.Call, handler.EnabledHandlers);
         }
 
         [Fact]
-        public void SetCall_WithAsyncHandler_CallFlagSet()
+        public void Call_WithAsyncHandler_CallFlagSet()
         {
-            var handler = new DynamicHandler().SetCall(async r => await Task.Yield());
+            var handler = new DynamicHandler().Call(async r => await Task.Yield());
             Assert.Equal(HandlerTypes.Call, handler.EnabledHandlers);
         }
 
         [Fact]
-        public async Task SetCall_WithHandler_IsCalled()
+        public async Task Call_WithHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetCall(r => called++);
+            var handler = new DynamicHandler().Call(r => called++);
             await handler.Handle(new MockRequest { Type = RequestType.Call, Method = "foo" });
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public async Task SetCall_WithAsyncHandler_IsCalled()
+        public async Task Call_WithAsyncHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetCall(async r => await Task.Run(() => called++));
+            var handler = new DynamicHandler().Call(async r => await Task.Run(() => called++));
             await handler.Handle(new MockRequest { Type = RequestType.Call, Method = "foo" });
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public void SetCallMethod_WithHandler_CallFlagSet()
+        public void CallMethod_WithHandler_CallFlagSet()
         {
-            var handler = new DynamicHandler().SetCallMethod("foo", r => { });
+            var handler = new DynamicHandler().CallMethod("foo", r => { });
             Assert.Equal(HandlerTypes.Call, handler.EnabledHandlers);
         }
 
         [Fact]
-        public void SetCallMethod_WithAsyncHandler_CallFlagSet()
+        public void CallMethod_WithAsyncHandler_CallFlagSet()
         {
-            var handler = new DynamicHandler().SetCallMethod("foo", async r => await Task.Yield());
+            var handler = new DynamicHandler().CallMethod("foo", async r => await Task.Yield());
             Assert.Equal(HandlerTypes.Call, handler.EnabledHandlers);
         }
 
         [Fact]
-        public void SetCallMethod_WithTwoHandlers_CallFlagSet()
+        public void CallMethod_WithTwoHandlers_CallFlagSet()
         {
-            var handler = new DynamicHandler().SetCallMethod("foo", r => { }).SetCallMethod("bar", r => { });
+            var handler = new DynamicHandler().CallMethod("foo", r => { }).CallMethod("bar", r => { });
             Assert.Equal(HandlerTypes.Call, handler.EnabledHandlers);
         }
 
         [Fact]
-        public void SetCallMethod_WithTwoAsyncHandlers_CallFlagSet()
+        public void CallMethod_WithTwoAsyncHandlers_CallFlagSet()
         {
-            var handler = new DynamicHandler().SetCallMethod("foo", async r => await Task.Yield()).SetCallMethod("bar", async r => await Task.Yield());
+            var handler = new DynamicHandler().CallMethod("foo", async r => await Task.Yield()).CallMethod("bar", async r => await Task.Yield());
             Assert.Equal(HandlerTypes.Call, handler.EnabledHandlers);
         }
 
         [Fact]
-        public async Task SetCallMethod_WithHandler_IsCalled()
+        public async Task CallMethod_WithHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetCallMethod("foo", r => called++);
+            var handler = new DynamicHandler().CallMethod("foo", r => called++);
             await handler.Handle(new MockRequest { Type = RequestType.Call, Method = "foo" });
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public async Task SetCallMethod_WithAsyncHandler_IsCalled()
+        public async Task CallMethod_WithAsyncHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetCallMethod("foo", async r => await Task.Run(() => called++));
+            var handler = new DynamicHandler().CallMethod("foo", async r => await Task.Run(() => called++));
             await handler.Handle(new MockRequest { Type = RequestType.Call, Method = "foo" });
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public async Task SetCallMethod_MethodWithoutHandler_CallsMethodNotFound()
+        public async Task CallMethod_MethodWithoutHandler_CallsMethodNotFound()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetCallMethod("foo", r => called++);
+            var handler = new DynamicHandler().CallMethod("foo", r => called++);
             var mock = new MockRequest { Type = RequestType.Call, Method = "bar" };
             await handler.Handle(mock);
             Assert.Equal(0, called);
@@ -222,13 +222,13 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Fact]
-        public async Task SetCallMethod_WithMethodWithCallHandler_MethodIsCalled()
+        public async Task CallMethod_WithMethodWithCallHandler_MethodIsCalled()
         {
             int methodCalled = 0;
             int callCalled = 0;
             var handler = new DynamicHandler()
-                .SetCallMethod("foo", r => methodCalled++)
-                .SetCall(r => callCalled++);
+                .CallMethod("foo", r => methodCalled++)
+                .Call(r => callCalled++);
             var mock = new MockRequest { Type = RequestType.Call, Method = "foo" };
             await handler.Handle(mock);
             Assert.Equal(1, methodCalled);
@@ -236,13 +236,13 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Fact]
-        public async Task SetCallMethod_WithoutMethodWithCallHandler_CallHandlerIsCalled()
+        public async Task CallMethod_WithoutMethodWithCallHandler_CallHandlerIsCalled()
         {
             int methodCalled = 0;
             int callCalled = 0;
             var handler = new DynamicHandler()
-                .SetCallMethod("bar", r => methodCalled++)
-                .SetCall(r => callCalled++);
+                .CallMethod("bar", r => methodCalled++)
+                .Call(r => callCalled++);
             var mock = new MockRequest { Type = RequestType.Call, Method = "foo" };
             await handler.Handle(mock);
             Assert.Equal(0, methodCalled);
@@ -250,88 +250,88 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Fact]
-        public void SetAuth_WithHandler_AuthFlagSet()
+        public void Auth_WithHandler_AuthFlagSet()
         {
-            var handler = new DynamicHandler().SetAuth(r => { });
+            var handler = new DynamicHandler().Auth(r => { });
             Assert.Equal(HandlerTypes.Auth, handler.EnabledHandlers);
         }
 
         [Fact]
-        public void SetAuth_WithAsyncHandler_AuthFlagSet()
+        public void Auth_WithAsyncHandler_AuthFlagSet()
         {
-            var handler = new DynamicHandler().SetAuth(async r => await Task.Yield());
+            var handler = new DynamicHandler().Auth(async r => await Task.Yield());
             Assert.Equal(HandlerTypes.Auth, handler.EnabledHandlers);
         }
 
         [Fact]
-        public async Task SetAuth_WithHandler_IsCalled()
+        public async Task Auth_WithHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetAuth(r => called++);
+            var handler = new DynamicHandler().Auth(r => called++);
             await handler.Handle(new MockRequest { Type = RequestType.Auth, Method = "foo" });
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public async Task SetAuth_WithAsyncHandler_IsCalled()
+        public async Task Auth_WithAsyncHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetAuth(async r => await Task.Run(() => called++));
+            var handler = new DynamicHandler().Auth(async r => await Task.Run(() => called++));
             await handler.Handle(new MockRequest { Type = RequestType.Auth, Method = "foo" });
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public void SetAuthMethod_WithHandler_AuthFlagSet()
+        public void AuthMethod_WithHandler_AuthFlagSet()
         {
-            var handler = new DynamicHandler().SetAuthMethod("foo", r => { });
+            var handler = new DynamicHandler().AuthMethod("foo", r => { });
             Assert.Equal(HandlerTypes.Auth, handler.EnabledHandlers);
         }
 
         [Fact]
-        public void SetAuthMethod_WithAsyncHandler_AuthFlagSet()
+        public void AuthMethod_WithAsyncHandler_AuthFlagSet()
         {
-            var handler = new DynamicHandler().SetAuthMethod("foo", async r => await Task.Yield());
+            var handler = new DynamicHandler().AuthMethod("foo", async r => await Task.Yield());
             Assert.Equal(HandlerTypes.Auth, handler.EnabledHandlers);
         }
 
         [Fact]
-        public void SetAuthMethod_WithTwoHandlers_AuthFlagSet()
+        public void AuthMethod_WithTwoHandlers_AuthFlagSet()
         {
-            var handler = new DynamicHandler().SetAuthMethod("foo", r => { }).SetAuthMethod("bar", r => { });
+            var handler = new DynamicHandler().AuthMethod("foo", r => { }).AuthMethod("bar", r => { });
             Assert.Equal(HandlerTypes.Auth, handler.EnabledHandlers);
         }
 
         [Fact]
-        public void SetAuthMethod_WithTwoAsyncHandlers_AuthFlagSet()
+        public void AuthMethod_WithTwoAsyncHandlers_AuthFlagSet()
         {
-            var handler = new DynamicHandler().SetAuthMethod("foo", async r => await Task.Yield()).SetAuthMethod("bar", async r => await Task.Yield());
+            var handler = new DynamicHandler().AuthMethod("foo", async r => await Task.Yield()).AuthMethod("bar", async r => await Task.Yield());
             Assert.Equal(HandlerTypes.Auth, handler.EnabledHandlers);
         }
 
         [Fact]
-        public async Task SetAuthMethod_WithHandler_IsCalled()
+        public async Task AuthMethod_WithHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetAuthMethod("foo", r => called++);
+            var handler = new DynamicHandler().AuthMethod("foo", r => called++);
             await handler.Handle(new MockRequest { Type = RequestType.Auth, Method = "foo" });
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public async Task SetAuthMethod_WithAsyncHandler_IsCalled()
+        public async Task AuthMethod_WithAsyncHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetAuthMethod("foo", async r => await Task.Run(() => called++));
+            var handler = new DynamicHandler().AuthMethod("foo", async r => await Task.Run(() => called++));
             await handler.Handle(new MockRequest { Type = RequestType.Auth, Method = "foo" });
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public async Task SetAuthMethod_MethodWithoutHandler_CallsMethodNotFound()
+        public async Task AuthMethod_MethodWithoutHandler_CallsMethodNotFound()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetAuthMethod("foo", r => called++);
+            var handler = new DynamicHandler().AuthMethod("foo", r => called++);
             var mock = new MockRequest { Type = RequestType.Auth, Method = "bar" };
             await handler.Handle(mock);
             Assert.Equal(0, called);
@@ -340,149 +340,149 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Fact]
-        public async Task SetNew_WithHandler_IsCalled()
+        public async Task New_WithHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetNew(r => called++);
+            var handler = new DynamicHandler().New(r => called++);
             await handler.Handle(new MockRequest { Type = RequestType.Call, Method = "new" });
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public async Task SetNew_WithAsyncHandler_IsCalled()
+        public async Task New_WithAsyncHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetNew(async r => await Task.Run(() => called++));
+            var handler = new DynamicHandler().New(async r => await Task.Run(() => called++));
             await handler.Handle(new MockRequest { Type = RequestType.Call, Method = "new" });
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public async Task SetNew_CallHandlerWithoutNewHandler_IsCalled()
+        public async Task New_CallHandlerWithoutNewHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetCall(r => called++);
+            var handler = new DynamicHandler().Call(r => called++);
             await handler.Handle(new MockRequest { Type = RequestType.Call, Method = "new" });
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public async Task SetNew_CallHandler_IsNotCalled()
+        public async Task New_CallHandler_IsNotCalled()
         {
             int newCalled = 0;
             int callCalled = 0;
             var handler = new DynamicHandler()
-                .SetCall(r => callCalled++)
-                .SetNew(r => newCalled++);
+                .Call(r => callCalled++)
+                .New(r => newCalled++);
             await handler.Handle(new MockRequest { Type = RequestType.Call, Method = "new" });
             Assert.Equal(1, newCalled);
             Assert.Equal(0, callCalled);
         }
 
         [Fact]
-        public async Task SetApplyChange_WithHandler_IsCalled()
+        public async Task ApplyChange_WithHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetApplyChange((r, ev) => called++);
+            var handler = new DynamicHandler().ApplyChange((r, ev) => called++);
             await handler.Apply(null, new ChangeEventArgs(null));
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public async Task SetApplyChange_WithAsyncHandler_IsCalled()
+        public async Task ApplyChange_WithAsyncHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetApplyChange(async (r, ev) => await Task.Run(() => called++));
+            var handler = new DynamicHandler().ApplyChange(async (r, ev) => await Task.Run(() => called++));
             await handler.Apply(null, new ChangeEventArgs(null));
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public async Task SetApplyAdd_WithHandler_IsCalled()
+        public async Task ApplyAdd_WithHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetApplyAdd((r, ev) => called++);
+            var handler = new DynamicHandler().ApplyAdd((r, ev) => called++);
             await handler.Apply(null, new AddEventArgs(null, 0));
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public async Task SetApplyAdd_WithAsyncHandler_IsCalled()
+        public async Task ApplyAdd_WithAsyncHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetApplyAdd(async (r, ev) => await Task.Run(() => called++));
+            var handler = new DynamicHandler().ApplyAdd(async (r, ev) => await Task.Run(() => called++));
             await handler.Apply(null, new AddEventArgs(null, 0));
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public async Task SetApplyRemove_WithHandler_IsCalled()
+        public async Task ApplyRemove_WithHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetApplyRemove((r, ev) => called++);
+            var handler = new DynamicHandler().ApplyRemove((r, ev) => called++);
             await handler.Apply(null, new RemoveEventArgs(0));
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public async Task SetApplyRemove_WithAsyncHandler_IsCalled()
+        public async Task ApplyRemove_WithAsyncHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetApplyRemove(async (r, ev) => await Task.Run(() => called++));
+            var handler = new DynamicHandler().ApplyRemove(async (r, ev) => await Task.Run(() => called++));
             await handler.Apply(null, new RemoveEventArgs(0));
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public async Task SetApplyCreate_WithHandler_IsCalled()
+        public async Task ApplyCreate_WithHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetApplyCreate((r, ev) => called++);
+            var handler = new DynamicHandler().ApplyCreate((r, ev) => called++);
             await handler.Apply(null, new CreateEventArgs(null));
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public async Task SetApplyCreate_WithAsyncHandler_IsCalled()
+        public async Task ApplyCreate_WithAsyncHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetApplyCreate(async (r, ev) => await Task.Run(() => called++));
+            var handler = new DynamicHandler().ApplyCreate(async (r, ev) => await Task.Run(() => called++));
             await handler.Apply(null, new CreateEventArgs(null));
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public async Task SetApplyDelete_WithHandler_IsCalled()
+        public async Task ApplyDelete_WithHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetApplyDelete((r, ev) => called++);
+            var handler = new DynamicHandler().ApplyDelete((r, ev) => called++);
             await handler.Apply(null, new DeleteEventArgs());
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public async Task SetApplyDelete_WithAsyncHandler_IsCalled()
+        public async Task ApplyDelete_WithAsyncHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetApplyDelete(async (r, ev) => await Task.Run(() => called++));
+            var handler = new DynamicHandler().ApplyDelete(async (r, ev) => await Task.Run(() => called++));
             await handler.Apply(null, new DeleteEventArgs());
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public async Task SetApplyCustom_WithHandler_IsCalled()
+        public async Task ApplyCustom_WithHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetApplyCustom((r, ev) => called++);
+            var handler = new DynamicHandler().ApplyCustom((r, ev) => called++);
             await handler.Apply(null, new CustomEventArgs("foo", null));
             Assert.Equal(1, called);
         }
 
         [Fact]
-        public async Task SetApplyCustom_WithAsyncHandler_IsCalled()
+        public async Task ApplyCustom_WithAsyncHandler_IsCalled()
         {
             int called = 0;
-            var handler = new DynamicHandler().SetApplyCustom(async (r, ev) => await Task.Run(() => called++));
+            var handler = new DynamicHandler().ApplyCustom(async (r, ev) => await Task.Run(() => called++));
             await handler.Apply(null, new CustomEventArgs("foo", null));
             Assert.Equal(1, called);
         }
@@ -498,8 +498,8 @@ namespace ResgateIO.Service.UnitTests
         public void EnabledHandlers_WithMultipleHandlers_FlagsAreSet()
         {
             var handler = new DynamicHandler()
-                .SetAccess(r => { })
-                .SetGet(r => { });
+                .Access(r => { })
+                .Get(r => { });
             Assert.Equal(HandlerTypes.Access | HandlerTypes.Get, handler.EnabledHandlers);
         }
     }

@@ -48,9 +48,9 @@ namespace ResgateIO.Service
 
         /// <summary>
         /// Sets the resource type.
-        /// This will overwrite any type set by the <see cref="SetModelGet(Func{IModelRequest, Task})"/>,
-        /// <see cref="SetModelGet(Action{IModelRequest})"/>, <see cref="SetCollectionGet(Func{ICollectionRequest, Task})"/>,
-        /// or <see cref="SetCollectionGet(Action{ICollectionRequest})"/> methods.
+        /// This will overwrite any type set by the <see cref="ModelGet(Func{IModelRequest, Task})"/>,
+        /// <see cref="ModelGet(Action{IModelRequest})"/>, <see cref="CollectionGet(Func{ICollectionRequest, Task})"/>,
+        /// or <see cref="CollectionGet(Action{ICollectionRequest})"/> methods.
         /// </summary>
         /// <param name="type">Resource type.</param>
         /// <returns>This instance.</returns>
@@ -65,7 +65,7 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="accessHandler">Access handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetAccess(Func<IAccessRequest, Task> accessHandler)
+        public DynamicHandler Access(Func<IAccessRequest, Task> accessHandler)
         {
             if (this.accessHandler != null)
             {
@@ -81,32 +81,43 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="accessHandler">Access handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetAccess(Action<IAccessRequest> accessHandler)
+        [Obsolete("SetAccess is deprecated, please use Access instead.")]
+        public DynamicHandler SetAccess(Func<IAccessRequest, Task> accessHandler)
         {
-            return SetAccess(r =>
+            return Access(accessHandler);
+        }
+
+        /// <summary>
+        /// Sets the access handler method, and sets the EnableHandlers bit flag.
+        /// </summary>
+        /// <param name="accessHandler">Access handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler Access(Action<IAccessRequest> accessHandler)
+        {
+            return Access(r =>
             {
                 accessHandler(r);
                 return completedTask;
             });
         }
 
-        ///// <summary>
-        ///// Unsets any previously set access handler method, and unsets the EnableHandlers bit flag.
-        ///// </summary>
-        ///// <returns>This instance.</returns>
-        //public DynamicHandler UnsetAccess()
-        //{
-        //    toggleHandlers(HandlerTypes.Access, false);
-        //    this.accessHandler = null;
-        //    return this;
-        //}
+        /// <summary>
+        /// Sets the access handler method, and sets the EnableHandlers bit flag.
+        /// </summary>
+        /// <param name="accessHandler">Access handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetAccess is deprecated, please use Access instead.")]
+        public DynamicHandler SetAccess(Action<IAccessRequest> accessHandler)
+        {
+            return Access(accessHandler);
+        }
 
         /// <summary>
         /// Sets the get handler method, and sets the EnableHandlers bit flag.
         /// </summary>
         /// <param name="getHandler">Get handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetGet(Func<IGetRequest, Task> getHandler)
+        public DynamicHandler Get(Func<IGetRequest, Task> getHandler)
         {
             if (this.getHandler != null)
             {
@@ -122,25 +133,36 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="getHandler">Get handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetGet(Action<IGetRequest> getHandler)
+        [Obsolete("SetGet is deprecated, please use Get instead.")]
+        public DynamicHandler SetGet(Func<IGetRequest, Task> getHandler)
         {
-            return SetGet(r =>
+            return Get(getHandler);
+        }
+
+        /// <summary>
+        /// Sets the get handler method, and sets the EnableHandlers bit flag.
+        /// </summary>
+        /// <param name="getHandler">Get handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler Get(Action<IGetRequest> getHandler)
+        {
+            return Get(r =>
             {
                 getHandler(r);
                 return completedTask;
             });
         }
 
-        ///// <summary>
-        ///// Unsets any previously set get handler method, and unsets the EnableHandlers bit flag.
-        ///// </summary>
-        ///// <returns>This instance.</returns>
-        //public DynamicHandler UnsetGet()
-        //{
-        //    toggleHandlers(HandlerTypes.Access, false);
-        //    this.getHandler = null;
-        //    return this;
-        //}
+        /// <summary>
+        /// Sets the get handler method, and sets the EnableHandlers bit flag.
+        /// </summary>
+        /// <param name="getHandler">Get handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetGet is deprecated, please use Get instead.")]
+        public DynamicHandler SetGet(Action<IGetRequest> getHandler)
+        {
+            return Get(getHandler);
+        }
 
         /// <summary>
         /// Sets a model get handler method, sets the EnableHandlers bit flag,
@@ -148,9 +170,9 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="getHandler">Model get handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetModelGet(Func<IModelRequest, Task> getHandler)
+        public DynamicHandler ModelGet(Func<IModelRequest, Task> getHandler)
         {
-            SetGet(r => getHandler((IModelRequest)r));
+            Get(r => getHandler((IModelRequest)r));
             resourceType = ResourceType.Model;
             return this;
         }
@@ -161,9 +183,21 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="getHandler">Model get handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetModelGet(Action<IModelRequest> getHandler)
+        [Obsolete("SetModelGet is deprecated, please use ModelGet instead.")]
+        public DynamicHandler SetModelGet(Func<IModelRequest, Task> getHandler)
         {
-            SetGet(r =>
+            return ModelGet(getHandler);
+        }
+
+        /// <summary>
+        /// Sets a model get handler method, sets the EnableHandlers bit flag,
+        /// and sets Type to ResourceType.Model.
+        /// </summary>
+        /// <param name="getHandler">Model get handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler ModelGet(Action<IModelRequest> getHandler)
+        {
+            Get(r =>
             {
                 getHandler((IModelRequest)r);
                 return completedTask;
@@ -173,14 +207,26 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
+        /// Sets a model get handler method, sets the EnableHandlers bit flag,
+        /// and sets Type to ResourceType.Model.
+        /// </summary>
+        /// <param name="getHandler">Model get handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetModelGet is deprecated, please use ModelGet instead.")]
+        public DynamicHandler SetModelGet(Action<IModelRequest> getHandler)
+        {
+            return ModelGet(getHandler);
+        }
+
+        /// <summary>
         /// Sets a collection get handler method, sets the EnableHandlers bit flag,
         /// and sets Type to ResourceType.Collection.
         /// </summary>
         /// <param name="getHandler">Collection get handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetCollectionGet(Func<ICollectionRequest, Task> getHandler)
+        public DynamicHandler CollectionGet(Func<ICollectionRequest, Task> getHandler)
         {
-            SetGet(r => getHandler((ICollectionRequest)r));
+            Get(r => getHandler((ICollectionRequest)r));
             resourceType = ResourceType.Collection;
             return this;
         }
@@ -191,9 +237,21 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="getHandler">Collection get handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetCollectionGet(Action<ICollectionRequest> getHandler)
+        [Obsolete("SetCollectionGet is deprecated, please use CollectionGet instead.")]
+        public DynamicHandler SetCollectionGet(Func<ICollectionRequest, Task> getHandler)
         {
-            SetGet(r =>
+            return CollectionGet(getHandler);
+        }
+
+        /// <summary>
+        /// Sets a collection get handler method, sets the EnableHandlers bit flag,
+        /// and sets Type to ResourceType.Collection.
+        /// </summary>
+        /// <param name="getHandler">Collection get handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler CollectionGet(Action<ICollectionRequest> getHandler)
+        {
+            Get(r =>
             {
                 getHandler((ICollectionRequest)r);
                 return completedTask;
@@ -203,11 +261,23 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
+        /// Sets a collection get handler method, sets the EnableHandlers bit flag,
+        /// and sets Type to ResourceType.Collection.
+        /// </summary>
+        /// <param name="getHandler">Collection get handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetCollectionGet is deprecated, please use CollectionGet instead.")]
+        public DynamicHandler SetCollectionGet(Action<ICollectionRequest> getHandler)
+        {
+            return CollectionGet(getHandler);
+        }
+
+        /// <summary>
         /// Sets the call handler method, and sets the EnableHandlers bit flag.
         /// </summary>
         /// <param name="callHandler">Call handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetCall(Func<ICallRequest, Task> callHandler)
+        public DynamicHandler Call(Func<ICallRequest, Task> callHandler)
         {
             if (this.callHandler != null)
             {
@@ -223,13 +293,35 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="callHandler">Call handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetCall(Action<ICallRequest> callHandler)
+        [Obsolete("SetCall is deprecated, please use Call instead.")]
+        public DynamicHandler SetCall(Func<ICallRequest, Task> callHandler)
         {
-            return SetCall(r =>
+            return Call(callHandler);
+        }
+
+        /// <summary>
+        /// Sets the call handler method, and sets the EnableHandlers bit flag.
+        /// </summary>
+        /// <param name="callHandler">Call handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler Call(Action<ICallRequest> callHandler)
+        {
+            return Call(r =>
             {
                 callHandler(r);
                 return completedTask;
             });
+        }
+
+        /// <summary>
+        /// Sets the call handler method, and sets the EnableHandlers bit flag.
+        /// </summary>
+        /// <param name="callHandler">Call handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetCall is deprecated, please use Call instead.")]
+        public DynamicHandler SetCall(Action<ICallRequest> callHandler)
+        {
+            return Call(callHandler);
         }
 
         /// <summary>
@@ -238,7 +330,7 @@ namespace ResgateIO.Service
         /// <param name="method">Name of the method. Must only contain alpha-numeric characters.</param>
         /// <param name="callHandler">Call method handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetCallMethod(string method, Func<ICallRequest, Task> callHandler)
+        public DynamicHandler CallMethod(string method, Func<ICallRequest, Task> callHandler)
         {
             if (!ResService.IsValidPart(method))
             {
@@ -281,9 +373,21 @@ namespace ResgateIO.Service
         /// <param name="method">Name of the method. Must only contain alpha-numeric characters.</param>
         /// <param name="callHandler">Call method handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetCallMethod(string method, Action<ICallRequest> callHandler)
+        [Obsolete("SetCallMethod is deprecated, please use CallMethod instead.")]
+        public DynamicHandler SetCallMethod(string method, Func<ICallRequest, Task> callHandler)
         {
-            return SetCallMethod(method, r =>
+            return CallMethod(method, callHandler);
+        }
+
+        /// <summary>
+        /// Sets the call handler for a specific method, and sets the EnableHandlers bit flag appropriately.
+        /// </summary>
+        /// <param name="method">Name of the method. Must only contain alpha-numeric characters.</param>
+        /// <param name="callHandler">Call method handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler CallMethod(string method, Action<ICallRequest> callHandler)
+        {
+            return CallMethod(method, r =>
             {
                 callHandler(r);
                 return completedTask;
@@ -291,11 +395,23 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
+        /// Sets the call handler for a specific method, and sets the EnableHandlers bit flag appropriately.
+        /// </summary>
+        /// <param name="method">Name of the method. Must only contain alpha-numeric characters.</param>
+        /// <param name="callHandler">Call method handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetCallMethod is deprecated, please use CallMethod instead.")]
+        public DynamicHandler SetCallMethod(string method, Action<ICallRequest> callHandler)
+        {
+            return CallMethod(method, callHandler);
+        }
+
+        /// <summary>
         /// Sets the auth handler method, and sets the EnableHandlers bit flag.
         /// </summary>
         /// <param name="authHandler">Auth handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetAuth(Func<IAuthRequest, Task> authHandler)
+        public DynamicHandler Auth(Func<IAuthRequest, Task> authHandler)
         {
             if (this.authHandler != null)
             {
@@ -311,13 +427,35 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="authHandler">Auth handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetAuth(Action<IAuthRequest> authHandler)
+        [Obsolete("SetAuth is deprecated, please use Auth instead.")]
+        public DynamicHandler SetAuth(Func<IAuthRequest, Task> authHandler)
         {
-            return SetAuth(r =>
+            return Auth(authHandler);
+        }
+
+        /// <summary>
+        /// Sets the auth handler method, and sets the EnableHandlers bit flag.
+        /// </summary>
+        /// <param name="authHandler">Auth handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler Auth(Action<IAuthRequest> authHandler)
+        {
+            return Auth(r =>
             {
                 authHandler(r);
                 return completedTask;
             });
+        }
+
+        /// <summary>
+        /// Sets the auth handler method, and sets the EnableHandlers bit flag.
+        /// </summary>
+        /// <param name="authHandler">Auth handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetAuth is deprecated, please use Auth instead.")]
+        public DynamicHandler SetAuth(Action<IAuthRequest> authHandler)
+        {
+            return Auth(authHandler);
         }
 
         /// <summary>
@@ -326,7 +464,7 @@ namespace ResgateIO.Service
         /// <param name="method">Name of the method. Must only contain alpha-numeric characters.</param>
         /// <param name="authHandler">Auth method handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetAuthMethod(string method, Func<IAuthRequest, Task> authHandler)
+        public DynamicHandler AuthMethod(string method, Func<IAuthRequest, Task> authHandler)
         {
             if (!ResService.IsValidPart(method))
             {
@@ -365,9 +503,21 @@ namespace ResgateIO.Service
         /// <param name="method">Name of the method. Must only contain alpha-numeric characters.</param>
         /// <param name="authHandler">Auth method handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetAuthMethod(string method, Action<IAuthRequest> authHandler)
+        [Obsolete("SetAuthMethod is deprecated, please use AuthMethod instead.")]
+        public DynamicHandler SetAuthMethod(string method, Func<IAuthRequest, Task> authHandler)
         {
-            return SetAuthMethod(method, r =>
+            return AuthMethod(method, authHandler);
+        }
+
+        /// <summary>
+        /// Sets the auth handler for a specific method, and sets the EnableHandlers bit flag appropriately
+        /// </summary>
+        /// <param name="method">Name of the method. Must only contain alpha-numeric characters.</param>
+        /// <param name="authHandler">Auth method handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler AuthMethod(string method, Action<IAuthRequest> authHandler)
+        {
+            return AuthMethod(method, r =>
             {
                 authHandler(r);
                 return completedTask;
@@ -375,11 +525,23 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
+        /// Sets the auth handler for a specific method, and sets the EnableHandlers bit flag appropriately
+        /// </summary>
+        /// <param name="method">Name of the method. Must only contain alpha-numeric characters.</param>
+        /// <param name="authHandler">Auth method handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetAuthMethod is deprecated, please use AuthMethod instead.")]
+        public DynamicHandler SetAuthMethod(string method, Action<IAuthRequest> authHandler)
+        {
+            return AuthMethod(method, authHandler);
+        }
+
+        /// <summary>
         /// Sets the new call handler method, and sets the EnableHandlers bit flag.
         /// </summary>
         /// <param name="newHandler">New handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetNew(Func<INewRequest, Task> newHandler)
+        public DynamicHandler New(Func<INewRequest, Task> newHandler)
         {
             if (this.newHandler != null)
             {
@@ -395,13 +557,35 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="newHandler">New handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetNew(Action<INewRequest> newHandler)
+        [Obsolete("SetNew is deprecated, please use New instead.")]
+        public DynamicHandler SetNew(Func<INewRequest, Task> newHandler)
         {
-            return SetNew(r =>
+            return New(newHandler);
+        }
+
+        /// <summary>
+        /// Sets the new call handler method, and sets the EnableHandlers bit flag.
+        /// </summary>
+        /// <param name="newHandler">New handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler New(Action<INewRequest> newHandler)
+        {
+            return New(r =>
             {
                 newHandler(r);
                 return completedTask;
             });
+        }
+
+        /// <summary>
+        /// Sets the new call handler method, and sets the EnableHandlers bit flag.
+        /// </summary>
+        /// <param name="newHandler">New handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetNew is deprecated, please use New instead.")]
+        public DynamicHandler SetNew(Action<INewRequest> newHandler)
+        {
+            return New(newHandler);
         }
 
         /// <summary>
@@ -410,7 +594,7 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="applyChangeHandler">Apply change handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetApply(Func<IResourceContext, EventArgs, Task> applyHandler)
+        public DynamicHandler Apply(Func<IResourceContext, EventArgs, Task> applyHandler)
         {
             if (this.applyHandler != null)
             {
@@ -426,9 +610,21 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="applyChangeHandler">Apply change handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetApply(Action<IResourceContext, EventArgs> applyHandler)
+        [Obsolete("SetApply is deprecated, please use Apply instead.")]
+        public DynamicHandler SetApply(Func<IResourceContext, EventArgs, Task> applyHandler)
         {
-            return SetApply((r, ev) =>
+            return Apply(applyHandler);
+        }
+
+        /// <summary>
+        /// Sets the apply handler method for applying any event.
+        /// Will be called after any more specific apply handler.
+        /// </summary>
+        /// <param name="applyChangeHandler">Apply change handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler Apply(Action<IResourceContext, EventArgs> applyHandler)
+        {
+            return Apply((r, ev) =>
             {
                 applyHandler(r, ev);
                 return completedTask;
@@ -436,11 +632,23 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
+        /// Sets the apply handler method for applying any event.
+        /// Will be called after any more specific apply handler.
+        /// </summary>
+        /// <param name="applyChangeHandler">Apply change handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetApply is deprecated, please use Apply instead.")]
+        public DynamicHandler SetApply(Action<IResourceContext, EventArgs> applyHandler)
+        {
+            return Apply(applyHandler);
+        }
+
+        /// <summary>
         /// Sets the apply change handler method.
         /// </summary>
         /// <param name="applyChangeHandler">Apply change handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetApplyChange(Func<IResourceContext, ChangeEventArgs, Task> applyChangeHandler)
+        public DynamicHandler ApplyChange(Func<IResourceContext, ChangeEventArgs, Task> applyChangeHandler)
         {
             if (this.applyChangeHandler != null)
             {
@@ -455,9 +663,20 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="applyChangeHandler">Apply change handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetApplyChange(Action<IResourceContext, ChangeEventArgs> applyChangeHandler)
+        [Obsolete("SetApplyChange is deprecated, please use ApplyChange instead.")]
+        public DynamicHandler SetApplyChange(Func<IResourceContext, ChangeEventArgs, Task> applyChangeHandler)
         {
-            return SetApplyChange((r, ev) =>
+            return ApplyChange(applyChangeHandler);
+        }
+
+        /// <summary>
+        /// Sets the apply change handler method.
+        /// </summary>
+        /// <param name="applyChangeHandler">Apply change handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler ApplyChange(Action<IResourceContext, ChangeEventArgs> applyChangeHandler)
+        {
+            return ApplyChange((r, ev) =>
             {
                 applyChangeHandler(r, ev);
                 return completedTask;
@@ -465,11 +684,22 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
+        /// Sets the apply change handler method.
+        /// </summary>
+        /// <param name="applyChangeHandler">Apply change handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetApplyChange is deprecated, please use ApplyChange instead.")]
+        public DynamicHandler SetApplyChange(Action<IResourceContext, ChangeEventArgs> applyChangeHandler)
+        {
+            return ApplyChange(applyChangeHandler);
+        }
+
+        /// <summary>
         /// Sets the apply add handler method.
         /// </summary>
         /// <param name="applyAddHandler">Apply add handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetApplyAdd(Func<IResourceContext, AddEventArgs, Task> applyAddHandler)
+        public DynamicHandler ApplyAdd(Func<IResourceContext, AddEventArgs, Task> applyAddHandler)
         {
             if (this.applyAddHandler != null)
             {
@@ -484,9 +714,20 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="applyAddHandler">Apply add handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetApplyAdd(Action<IResourceContext, AddEventArgs> applyAddHandler)
+        [Obsolete("SetApplyAdd is deprecated, please use ApplyAdd instead.")]
+        public DynamicHandler SetApplyAdd(Func<IResourceContext, AddEventArgs, Task> applyAddHandler)
         {
-            return SetApplyAdd((r, ev) =>
+            return ApplyAdd(applyAddHandler);
+        }
+
+        /// <summary>
+        /// Sets the apply add handler method.
+        /// </summary>
+        /// <param name="applyAddHandler">Apply add handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler ApplyAdd(Action<IResourceContext, AddEventArgs> applyAddHandler)
+        {
+            return ApplyAdd((r, ev) =>
             {
                 applyAddHandler(r, ev);
                 return completedTask;
@@ -494,11 +735,22 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
+        /// Sets the apply add handler method.
+        /// </summary>
+        /// <param name="applyAddHandler">Apply add handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetApplyAdd is deprecated, please use ApplyAdd instead.")]
+        public DynamicHandler SetApplyAdd(Action<IResourceContext, AddEventArgs> applyAddHandler)
+        {
+            return ApplyAdd(applyAddHandler);
+        }
+
+        /// <summary>
         /// Sets the apply remove handler method.
         /// </summary>
         /// <param name="applyRemoveHandler">Apply remove handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetApplyRemove(Func<IResourceContext, RemoveEventArgs, Task> applyRemoveHandler)
+        public DynamicHandler ApplyRemove(Func<IResourceContext, RemoveEventArgs, Task> applyRemoveHandler)
         {
             if (this.applyRemoveHandler != null)
             {
@@ -513,9 +765,20 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="applyRemoveHandler">Apply remove handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetApplyRemove(Action<IResourceContext, RemoveEventArgs> applyRemoveHandler)
+        [Obsolete("SetApplyRemove is deprecated, please use ApplyRemove instead.")]
+        public DynamicHandler SetApplyRemove(Func<IResourceContext, RemoveEventArgs, Task> applyRemoveHandler)
         {
-            return SetApplyRemove((r, ev) =>
+            return ApplyRemove(applyRemoveHandler);
+        }
+
+        /// <summary>
+        /// Sets the apply remove handler method.
+        /// </summary>
+        /// <param name="applyRemoveHandler">Apply remove handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler ApplyRemove(Action<IResourceContext, RemoveEventArgs> applyRemoveHandler)
+        {
+            return ApplyRemove((r, ev) =>
             {
                 applyRemoveHandler(r, ev);
                 return completedTask;
@@ -523,11 +786,22 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
+        /// Sets the apply remove handler method.
+        /// </summary>
+        /// <param name="applyRemoveHandler">Apply remove handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetApplyRemove is deprecated, please use ApplyRemove instead.")]
+        public DynamicHandler SetApplyRemove(Action<IResourceContext, RemoveEventArgs> applyRemoveHandler)
+        {
+            return ApplyRemove(applyRemoveHandler);
+        }
+
+        /// <summary>
         /// Sets the apply create handler method.
         /// </summary>
         /// <param name="applyCreateHandler">Apply create handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetApplyCreate(Func<IResourceContext, CreateEventArgs, Task> applyCreateHandler)
+        public DynamicHandler ApplyCreate(Func<IResourceContext, CreateEventArgs, Task> applyCreateHandler)
         {
             if (this.applyCreateHandler != null)
             {
@@ -542,9 +816,20 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="applyCreateHandler">Apply create handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetApplyCreate(Action<IResourceContext, CreateEventArgs> applyCreateHandler)
+        [Obsolete("SetApplyCreate is deprecated, please use ApplyCreate instead.")]
+        public DynamicHandler SetApplyCreate(Func<IResourceContext, CreateEventArgs, Task> applyCreateHandler)
         {
-            return SetApplyCreate((r, ev) =>
+            return ApplyCreate(applyCreateHandler);
+        }
+
+        /// <summary>
+        /// Sets the apply create handler method.
+        /// </summary>
+        /// <param name="applyCreateHandler">Apply create handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler ApplyCreate(Action<IResourceContext, CreateEventArgs> applyCreateHandler)
+        {
+            return ApplyCreate((r, ev) =>
             {
                 applyCreateHandler(r, ev);
                 return completedTask;
@@ -552,11 +837,22 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
+        /// Sets the apply create handler method.
+        /// </summary>
+        /// <param name="applyCreateHandler">Apply create handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetApplyCreate is deprecated, please use ApplyCreate instead.")]
+        public DynamicHandler SetApplyCreate(Action<IResourceContext, CreateEventArgs> applyCreateHandler)
+        {
+            return ApplyCreate(applyCreateHandler);
+        }
+
+        /// <summary>
         /// Sets the apply delete handler method.
         /// </summary>
         /// <param name="applyDeleteHandler">Apply delete handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetApplyDelete(Func<IResourceContext, DeleteEventArgs, Task> applyDeleteHandler)
+        public DynamicHandler ApplyDelete(Func<IResourceContext, DeleteEventArgs, Task> applyDeleteHandler)
         {
             if (this.applyDeleteHandler != null)
             {
@@ -571,9 +867,20 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="applyDeleteHandler">Apply delete handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetApplyDelete(Action<IResourceContext, DeleteEventArgs> applyDeleteHandler)
+        [Obsolete("SetApplyDelete is deprecated, please use ApplyDelete instead.")]
+        public DynamicHandler SetApplyDelete(Func<IResourceContext, DeleteEventArgs, Task> applyDeleteHandler)
         {
-            return SetApplyDelete((r, ev) =>
+            return ApplyDelete(applyDeleteHandler);
+        }
+
+        /// <summary>
+        /// Sets the apply delete handler method.
+        /// </summary>
+        /// <param name="applyDeleteHandler">Apply delete handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler ApplyDelete(Action<IResourceContext, DeleteEventArgs> applyDeleteHandler)
+        {
+            return ApplyDelete((r, ev) =>
             {
                 applyDeleteHandler(r, ev);
                 return completedTask;
@@ -581,11 +888,22 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
+        /// Sets the apply delete handler method.
+        /// </summary>
+        /// <param name="applyDeleteHandler">Apply delete handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetApplyDelete is deprecated, please use ApplyDelete instead.")]
+        public DynamicHandler SetApplyDelete(Action<IResourceContext, DeleteEventArgs> applyDeleteHandler)
+        {
+            return ApplyDelete(applyDeleteHandler);
+        }
+
+        /// <summary>
         /// Sets the apply custom handler method.
         /// </summary>
         /// <param name="applyCustomHandler">Apply custom handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetApplyCustom(Func<IResourceContext, CustomEventArgs, Task> applyCustomHandler)
+        public DynamicHandler ApplyCustom(Func<IResourceContext, CustomEventArgs, Task> applyCustomHandler)
         {
             if (this.applyCustomHandler != null)
             {
@@ -600,13 +918,35 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="applyCustomHandler">Apply custom handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetApplyCustom(Action<IResourceContext, CustomEventArgs> applyCustomHandler)
+        [Obsolete("SetApplyCustom is deprecated, please use ApplyCustom instead.")]
+        public DynamicHandler SetApplyCustom(Func<IResourceContext, CustomEventArgs, Task> applyCustomHandler)
         {
-            return SetApplyCustom((r, ev) =>
+            return ApplyCustom(applyCustomHandler);
+        }
+
+        /// <summary>
+        /// Sets the apply custom handler method.
+        /// </summary>
+        /// <param name="applyCustomHandler">Apply custom handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler ApplyCustom(Action<IResourceContext, CustomEventArgs> applyCustomHandler)
+        {
+            return ApplyCustom((r, ev) =>
             {
                 applyCustomHandler(r, ev);
                 return completedTask;
             });
+        }
+
+        /// <summary>
+        /// Sets the apply custom handler method.
+        /// </summary>
+        /// <param name="applyCustomHandler">Apply custom handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetApplyCustom is deprecated, please use ApplyCustom instead.")]
+        public DynamicHandler SetApplyCustom(Action<IResourceContext, CustomEventArgs> applyCustomHandler)
+        {
+            return ApplyCustom(applyCustomHandler);
         }
 
         public async Task Handle(IRequest r)

@@ -20,10 +20,10 @@ Visit [Resgate.io](https://resgate.io) for more information.
 ```csharp
 ResService service = new ResService("example");
 service.AddHandler("model", new DynamicHandler()
-    .SetGet(r => r.Model(new {
-        message = "Hello, World!",
+    .Get(r => r.Model(new {
+        message = "Hello, World!"
     }))
-    .SetAccess(r => r.AccessGranted()));
+    .Access(r => r.AccessGranted()));
 service.Serve("nats://127.0.0.1:4222");
 ```
 
@@ -102,8 +102,8 @@ service.AddHandler(new MyResourceHandler());
 
 ```csharp
 service.AddHandler("article.$id", new DynamicHandler()
-    .SetAccess(r => r.AccessGranted())
-    .SetModelGet(r =>
+    .Access(r => r.AccessGranted())
+    .ModelGet(r =>
     {
         if (DB.TryGetArticle(r.PathParams["id"], out Article article))
             r.Model(article);
@@ -143,7 +143,7 @@ service.With("example.mycollection", resource =>
 
 ```csharp
 service.AddHandler("myauth", new DynamicHandler()
-    .SetAuthMethod("login", r =>
+    .AuthMethod("login", r =>
     {
         if ((string)r.Params["password"] == "mysecret")
         {
@@ -161,7 +161,7 @@ service.AddHandler("myauth", new DynamicHandler()
 
 ```csharp
 service.AddHandler(">", new DynamicHandler()
-    .SetAccess(r =>
+    .Access(r =>
     {
         if (r.Token != null && (string)r.Token["user"] == "admin")
             r.AccessGranted();
@@ -173,7 +173,7 @@ service.AddHandler(">", new DynamicHandler()
 #### Add async handler
 ```csharp
 service.AddHandler("store.users", new DynamicHandler()
-    .SetGet(async r =>
+    .Get(async r =>
     {
         var users = await DB.QueryAsync("SELECT id FROM users");
         r.Collection(users.Select(u => new Ref("store.user." + u.Id)));

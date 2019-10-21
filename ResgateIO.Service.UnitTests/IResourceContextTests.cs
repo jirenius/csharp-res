@@ -45,7 +45,7 @@ namespace ResgateIO.Service.UnitTests
         public void Properties_WithValidRID_ReturnsCorrectValue(string pattern, string resourceName, string query, string expectedPathParams)
         {
             var handler = new DynamicHandler();
-            Service.AddHandler(pattern, handler.SetCall(r =>
+            Service.AddHandler(pattern, handler.Call(r =>
             {
                 Assert.Equal(Service, r.Service);
                 Assert.Equal(resourceName, r.ResourceName);
@@ -70,7 +70,7 @@ namespace ResgateIO.Service.UnitTests
         {
             AutoResetEvent ev = new AutoResetEvent(false);
             var handler = new DynamicHandler();
-            Service.AddHandler(pattern, handler.SetCall(r => r.Ok()));
+            Service.AddHandler(pattern, handler.Call(r => r.Ok()));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
             string rid = resourceName + (String.IsNullOrEmpty(query) ? "" : "?" + query);
@@ -109,7 +109,7 @@ namespace ResgateIO.Service.UnitTests
         [MemberData(nameof(GetPropertyGroupTestData))]
         public void PropertyGroup_WithValidGroup_ReturnsCorrectValue(string pattern, string resourceName, string group, string expectedGroup)
         {
-            Service.AddHandler(pattern, group, new DynamicHandler().SetCall(r =>
+            Service.AddHandler(pattern, group, new DynamicHandler().Call(r =>
             {
                 Assert.Equal(expectedGroup, r.Group);
                 r.Ok();
@@ -127,7 +127,7 @@ namespace ResgateIO.Service.UnitTests
         public void PropertyGroup_WithValidGroupUsingWith_ReturnsCorrectValue(string pattern, string resourceName, string group, string expectedGroup)
         {
             AutoResetEvent ev = new AutoResetEvent(false);
-            Service.AddHandler(pattern, group, new DynamicHandler().SetCall(r => r.Ok()));
+            Service.AddHandler(pattern, group, new DynamicHandler().Call(r => r.Ok()));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
             Service.With(resourceName, r =>
@@ -155,7 +155,7 @@ namespace ResgateIO.Service.UnitTests
         [MemberData(nameof(GetPathParamTestData))]
         public void PathParam_WithValidRID_ReturnsCorrectValue(string pattern, string resourceName, string key, string expected)
         {
-            Service.AddHandler(pattern, new DynamicHandler().SetCall(r =>
+            Service.AddHandler(pattern, new DynamicHandler().Call(r =>
             {
                 Assert.Equal(expected, r.PathParam(key));
                 r.Ok();
@@ -173,7 +173,7 @@ namespace ResgateIO.Service.UnitTests
         public void PathParam_WithValidRIDUsingWith_ReturnsCorrectValue(string pattern, string resourceName, string key, string expected)
         {
             AutoResetEvent ev = new AutoResetEvent(false);
-            Service.AddHandler(pattern, new DynamicHandler().SetCall(r => r.Ok()));
+            Service.AddHandler(pattern, new DynamicHandler().Call(r => r.Ok()));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
             Service.With(resourceName, r =>
@@ -187,7 +187,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void PathParam_WithInvalidPlaceholderKey_ThrowsException()
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            Service.AddHandler("model", new DynamicHandler().Call(r =>
             {
                 r.PathParam("foo");
                 r.Ok();
@@ -205,7 +205,7 @@ namespace ResgateIO.Service.UnitTests
         {
             AutoResetEvent ev = new AutoResetEvent(false);
             bool hasException = false;
-            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            Service.AddHandler("model", new DynamicHandler().Call(r =>
             {
                 r.Ok();
             }));
@@ -338,12 +338,12 @@ namespace ResgateIO.Service.UnitTests
         public void Value_UsingCall_ReturnsCorrectValue(string resourceName, Action<IGetRequest> getHandler, Action<IResourceContext> assertion)
         {
             Service.AddHandler(resourceName, new DynamicHandler()
-                .SetCall(r =>
+                .Call(r =>
                 {
                     assertion(r);
                     r.Ok();
                 })
-                .SetGet(getHandler)
+                .Get(getHandler)
            );
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
@@ -358,7 +358,7 @@ namespace ResgateIO.Service.UnitTests
         public void Value_UsingWith_ReturnsCorrectValue(string resourceName, Action<IGetRequest> getHandler, Action<IResourceContext> assertion)
         {
             AutoResetEvent ev = new AutoResetEvent(false);
-            Service.AddHandler(resourceName, new DynamicHandler().SetGet(getHandler));
+            Service.AddHandler(resourceName, new DynamicHandler().Get(getHandler));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
             Service.With("test."+resourceName, r =>
@@ -484,12 +484,12 @@ namespace ResgateIO.Service.UnitTests
         public void ValueAsync_UsingCall_ReturnsCorrectValue(string resourceName, Func<IGetRequest, Task> getHandler, Func<IResourceContext, Task> assertion)
         {
             Service.AddHandler(resourceName, new DynamicHandler()
-                .SetCall(async r =>
+                .Call(async r =>
                 {
                     await assertion(r);
                     r.Ok();
                 })
-                .SetGet(getHandler)
+                .Get(getHandler)
            );
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
@@ -504,7 +504,7 @@ namespace ResgateIO.Service.UnitTests
         public void ValueAsync_UsingWith_ReturnsCorrectValue(string resourceName, Func<IGetRequest, Task> getHandler, Func<IResourceContext, Task> assertion)
         {
             AutoResetEvent ev = new AutoResetEvent(false);
-            Service.AddHandler(resourceName, new DynamicHandler().SetGet(getHandler));
+            Service.AddHandler(resourceName, new DynamicHandler().Get(getHandler));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
             Service.With("test." + resourceName, async r =>
@@ -623,12 +623,12 @@ namespace ResgateIO.Service.UnitTests
         public void RequireValue_UsingCall_ReturnsCorrectValue(string resourceName, Action<IGetRequest> getHandler, Action<IResourceContext> assertion)
         {
             Service.AddHandler(resourceName, new DynamicHandler()
-                .SetCall(r =>
+                .Call(r =>
                 {
                     assertion(r);
                     r.Ok();
                 })
-                .SetGet(getHandler)
+                .Get(getHandler)
            );
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
@@ -643,7 +643,7 @@ namespace ResgateIO.Service.UnitTests
         public void RequireValue_UsingWith_ReturnsCorrectValue(string resourceName, Action<IGetRequest> getHandler, Action<IResourceContext> assertion)
         {
             AutoResetEvent ev = new AutoResetEvent(false);
-            Service.AddHandler(resourceName, new DynamicHandler().SetGet(getHandler));
+            Service.AddHandler(resourceName, new DynamicHandler().Get(getHandler));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
             Service.With("test."+ resourceName, r =>
@@ -769,12 +769,12 @@ namespace ResgateIO.Service.UnitTests
         public void RequireValueAsync_UsingCall_ReturnsCorrectValue(string resourceName, Func<IGetRequest, Task> getHandler, Func<IResourceContext, Task> assertion)
         {
             Service.AddHandler(resourceName, new DynamicHandler()
-                .SetCall(async r =>
+                .Call(async r =>
                 {
                     await assertion(r);
                     r.Ok();
                 })
-                .SetGet(getHandler)
+                .Get(getHandler)
            );
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
@@ -789,7 +789,7 @@ namespace ResgateIO.Service.UnitTests
         public void RequireValueAsync_UsingWith_ReturnsCorrectValue(string resourceName, Func<IGetRequest, Task> getHandler, Func<IResourceContext, Task> assertion)
         {
             AutoResetEvent ev = new AutoResetEvent(false);
-            Service.AddHandler(resourceName, new DynamicHandler().SetGet(getHandler));
+            Service.AddHandler(resourceName, new DynamicHandler().Get(getHandler));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
             Service.With("test." + resourceName, r =>
@@ -819,7 +819,7 @@ namespace ResgateIO.Service.UnitTests
         [MemberData(nameof(GetEventTestData))]
         public void Event_ValidEvent_SendsEvent(string eventName, string payload)
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            Service.AddHandler("model", new DynamicHandler().Call(r =>
             {
                 if (payload == null)
                     r.Event(eventName);
@@ -913,7 +913,7 @@ namespace ResgateIO.Service.UnitTests
         [MemberData(nameof(GetEventTestData))]
         public void EventAsync_ValidEvent_SendsEvent(string eventName, string payload)
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(async r =>
+            Service.AddHandler("model", new DynamicHandler().Call(async r =>
             {
                 if (payload == null)
                     await r.EventAsync(eventName);
@@ -1017,7 +1017,7 @@ namespace ResgateIO.Service.UnitTests
         [MemberData(nameof(GetChangeEventTestData))]
         public void ChangeEvent_ValidEvent_SendsChangeEvent(Dictionary<string, object> changed)
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            Service.AddHandler("model", new DynamicHandler().Call(r =>
             {
                 r.ChangeEvent(changed);
                 r.Ok();
@@ -1054,7 +1054,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void ChangeEvent_NoChanges_NoChangeEventSent()
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            Service.AddHandler("model", new DynamicHandler().Call(r =>
             {
                 r.ChangeEvent(new Dictionary<string, object>());
                 r.ChangeEvent(null);
@@ -1090,7 +1090,7 @@ namespace ResgateIO.Service.UnitTests
         {
             Service.AddHandler("collection", new DynamicHandler()
                 .SetType(ResourceType.Collection)
-                .SetCall(r =>
+                .Call(r =>
                 {
                     Assert.Throws<InvalidOperationException>(() => r.ChangeEvent(new Dictionary<string, object>()));
                     r.Ok();
@@ -1125,7 +1125,7 @@ namespace ResgateIO.Service.UnitTests
         [MemberData(nameof(GetChangeEventTestData))]
         public void ChangeEventAsync_ValidEvent_SendsChangeEvent(Dictionary<string, object> changed)
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(async r =>
+            Service.AddHandler("model", new DynamicHandler().Call(async r =>
             {
                 await r.ChangeEventAsync(changed);
                 r.Ok();
@@ -1162,7 +1162,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void ChangeEventAsync_NoChanges_NoChangeEventSent()
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(async r =>
+            Service.AddHandler("model", new DynamicHandler().Call(async r =>
             {
                 await r.ChangeEventAsync(new Dictionary<string, object>());
                 await r.ChangeEventAsync(null);
@@ -1198,7 +1198,7 @@ namespace ResgateIO.Service.UnitTests
         {
             Service.AddHandler("collection", new DynamicHandler()
                 .SetType(ResourceType.Collection)
-                .SetCall(async r =>
+                .Call(async r =>
                 {
                     await Assert.ThrowsAsync<InvalidOperationException>(async () => await r.ChangeEventAsync(new Dictionary<string, object>()));
                     r.Ok();
@@ -1242,7 +1242,7 @@ namespace ResgateIO.Service.UnitTests
         [MemberData(nameof(GetAddEventTestData))]
         public void AddEvent_ValidEvent_SendsAddEvent(object value, int idx, object expected)
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            Service.AddHandler("model", new DynamicHandler().Call(r =>
             {
                 r.AddEvent(value, idx);
                 r.Ok();
@@ -1279,7 +1279,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void AddEvent_NegativeIdx_ThrowsArgumentException()
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            Service.AddHandler("model", new DynamicHandler().Call(r =>
             {
                 Assert.Throws<ArgumentException>(() => r.AddEvent("foo", -1));
                 r.Ok();
@@ -1313,7 +1313,7 @@ namespace ResgateIO.Service.UnitTests
         {
             Service.AddHandler("model", new DynamicHandler()
                 .SetType(ResourceType.Model)
-                .SetCall(r =>
+                .Call(r =>
                 {
                     Assert.Throws<InvalidOperationException>(() => r.AddEvent("foo", 0));
                     r.Ok();
@@ -1348,7 +1348,7 @@ namespace ResgateIO.Service.UnitTests
         [MemberData(nameof(GetAddEventTestData))]
         public void AddEventAsync_ValidEvent_SendsAddEvent(object value, int idx, object expected)
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(async r =>
+            Service.AddHandler("model", new DynamicHandler().Call(async r =>
             {
                 await r.AddEventAsync(value, idx);
                 r.Ok();
@@ -1385,7 +1385,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void AddEventAsync_NegativeIdx_ThrowsArgumentException()
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(async r =>
+            Service.AddHandler("model", new DynamicHandler().Call(async r =>
             {
                 await Assert.ThrowsAsync<ArgumentException>(async () => await r.AddEventAsync("foo", -1));
                 r.Ok();
@@ -1419,7 +1419,7 @@ namespace ResgateIO.Service.UnitTests
         {
             Service.AddHandler("model", new DynamicHandler()
                 .SetType(ResourceType.Model)
-                .SetCall(async r =>
+                .Call(async r =>
                 {
                     await Assert.ThrowsAsync<InvalidOperationException>(async () => await r.AddEventAsync("foo", 0));
                     r.Ok();
@@ -1461,7 +1461,7 @@ namespace ResgateIO.Service.UnitTests
         [MemberData(nameof(GetRemoveEventTestData))]
         public void RemoveEvent_ValidEvent_SendsRemoveEvent(int idx, object expected)
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            Service.AddHandler("model", new DynamicHandler().Call(r =>
             {
                 r.RemoveEvent(idx);
                 r.Ok();
@@ -1498,7 +1498,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void RemoveEvent_NegativeIdx_ThrowsArgumentException()
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            Service.AddHandler("model", new DynamicHandler().Call(r =>
             {
                 Assert.Throws<ArgumentException>(() => r.RemoveEvent(-1));
                 r.Ok();
@@ -1532,7 +1532,7 @@ namespace ResgateIO.Service.UnitTests
         {
             Service.AddHandler("model", new DynamicHandler()
                 .SetType(ResourceType.Model)
-                .SetCall(r =>
+                .Call(r =>
                 {
                     Assert.Throws<InvalidOperationException>(() => r.RemoveEvent(0));
                     r.Ok();
@@ -1567,7 +1567,7 @@ namespace ResgateIO.Service.UnitTests
         [MemberData(nameof(GetRemoveEventTestData))]
         public void RemoveEventAsync_ValidEvent_SendsRemoveEvent(int idx, object expected)
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(async r =>
+            Service.AddHandler("model", new DynamicHandler().Call(async r =>
             {
                 await r.RemoveEventAsync(idx);
                 r.Ok();
@@ -1604,7 +1604,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void RemoveEventAsync_NegativeIdx_ThrowsArgumentException()
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(async r =>
+            Service.AddHandler("model", new DynamicHandler().Call(async r =>
             {
                 await Assert.ThrowsAsync<ArgumentException>(async () => await r.RemoveEventAsync(-1));
                 r.Ok();
@@ -1638,7 +1638,7 @@ namespace ResgateIO.Service.UnitTests
         {
             Service.AddHandler("model", new DynamicHandler()
                 .SetType(ResourceType.Model)
-                .SetCall(async r =>
+                .Call(async r =>
                 {
                     await Assert.ThrowsAsync<InvalidOperationException>(async () => await r.RemoveEventAsync(0));
                     r.Ok();
@@ -1672,7 +1672,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void CreateEvent_UsingRequest_SendsCreateEvent()
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            Service.AddHandler("model", new DynamicHandler().Call(r =>
             {
                 r.CreateEvent(Test.Model);
                 r.Ok();
@@ -1710,7 +1710,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void CreateEventAsync_UsingRequest_SendsCreateEvent()
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(async r =>
+            Service.AddHandler("model", new DynamicHandler().Call(async r =>
             {
                 await r.CreateEventAsync(Test.Model);
                 r.Ok();
@@ -1748,7 +1748,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void DeleteEvent_UsingRequest_SendsDeleteEvent()
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            Service.AddHandler("model", new DynamicHandler().Call(r =>
             {
                 r.DeleteEvent();
                 r.Ok();
@@ -1786,7 +1786,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void DeleteEventAsync_UsingRequest_SendsDeleteEvent()
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(async r =>
+            Service.AddHandler("model", new DynamicHandler().Call(async r =>
             {
                 await r.DeleteEventAsync();
                 r.Ok();
@@ -1824,7 +1824,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void ReaccessEvent_UsingRequest_SendsReaccessEvent()
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            Service.AddHandler("model", new DynamicHandler().Call(r =>
             {
                 r.ReaccessEvent();
                 r.Ok();
@@ -1862,7 +1862,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void ResetEvent_UsingRequest_SendsSystemResetEvent()
         {
-            Service.AddHandler("model", new DynamicHandler().SetCall(r =>
+            Service.AddHandler("model", new DynamicHandler().Call(r =>
             {
                 r.ResetEvent();
                 r.Ok();
