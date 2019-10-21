@@ -7,64 +7,83 @@ namespace ResgateIO.Service
     /// </summary>
     public class ConsoleLogger: ILogger
     {
-        private readonly bool info = true;
-        private readonly bool error = true;
-        private readonly bool trace = true;
+        private readonly bool info;
+        private readonly bool debug;
+        private readonly bool error;
+        private readonly bool trace;
 
         /// <summary>
-        /// Initializes a new instance of the ConsoleLogger class, set to log all message.
+        /// Initializes a new instance of the ConsoleLogger class, set to log all message except Debug.
         /// </summary>
-        public ConsoleLogger()
-        {
-        }
+        public ConsoleLogger() : this(LogLevels.Default) { }
 
         /// <summary>
         /// Initializes a new instance of the ConsoleLogger class.
         /// </summary>
-        /// <param name="info">Flag determining if info messages should be logged.</param>
-        /// <param name="error">Flag determining if error messages should be logged.</param>
-        /// <param name="trace">Flag determining if trace messages should be logged.</param>
-        public ConsoleLogger(bool info, bool error, bool trace)
+        /// <param name="lvls">Flags determining what levels should be logged.</param>
+        public ConsoleLogger(LogLevels lvls)
         {
-            this.info = info;
-            this.error = error;
-            this.trace = trace;
+            this.info = lvls.HasFlag(LogLevels.Info);
+            this.debug = lvls.HasFlag(LogLevels.Debug);
+            this.error = lvls.HasFlag(LogLevels.Error);
+            this.trace = lvls.HasFlag(LogLevels.Trace);
         }
 
         /// <summary>
         /// Logs info message.
         /// </summary>
-        /// <param name="message">Message to log.</param>
-        public void Info(string message)
+        /// <param name="format">A composite format string.</param>
+        /// <param name="args">An object array that contains zero or more objects to format.</param>
+        public void Info(string format, params object[] args)
         {
             if (info)
             {
-                Console.WriteLine("[INFO ] " + message);
+                Console.WriteLine(timestamp() + " [INF] " + format, args);
+            }
+        }
+
+        /// <summary>
+        /// Logs debug message.
+        /// </summary>
+        /// <param name="format">A composite format string.</param>
+        /// <param name="args">An object array that contains zero or more objects to format.</param>
+        public void Debug(string format, params object[] args)
+        {
+            if (debug)
+            {
+                Console.WriteLine(timestamp() + " [DBG] " + format, args);
             }
         }
 
         /// <summary>
         /// Logs error message.
         /// </summary>
-        /// <param name="message">Message to log.</param>
-        public void Error(string message)
+        /// <param name="format">A composite format string.</param>
+        /// <param name="args">An object array that contains zero or more objects to format.</param>
+        public void Error(string format, params object[] args)
         {
             if (error)
             {
-                Console.WriteLine("[ERROR] " + message);
+                Console.WriteLine(timestamp() + " [ERR] " + format, args);
             }
         }
 
         /// <summary>
         /// Logs trace message.
         /// </summary>
-        /// <param name="message">Message to log.</param>
-        public void Trace(string message)
+        /// <param name="format">A composite format string.</param>
+        /// <param name="args">An object array that contains zero or more objects to format.</param>
+        public void Trace(string format, params object[] args)
         {
             if (trace)
             {
-                Console.WriteLine("[TRACE] " + message);
+                Console.WriteLine(timestamp() + " [TRC] " + format, args);
             }
+        }
+
+        private string timestamp()
+        {
+            return DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.ffffff");
         }
     }
 }

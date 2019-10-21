@@ -12,7 +12,7 @@
 
 ---
 
-Library for .NET used to create REST, real time, and RPC APIs, where all your reactive web clients are synchronized seamlessly through [Resgate](https://github.com/resgateio/resgate).
+Library for .NET used to create next generation REST, real time, and RPC APIs, where all your reactive web clients are synchronized seamlessly through [Resgate](https://github.com/resgateio/resgate).
 
 Visit [Resgate.io](https://resgate.io) for more information.
 
@@ -20,10 +20,10 @@ Visit [Resgate.io](https://resgate.io) for more information.
 ```csharp
 ResService service = new ResService("example");
 service.AddHandler("model", new DynamicHandler()
-    .SetGet(r => r.Model(new {
-        message = "Hello, World!",
+    .Get(r => r.Model(new {
+        message = "Hello, World!"
     }))
-    .SetAccess(r => r.AccessGranted()));
+    .Access(r => r.AccessGranted()));
 service.Serve("nats://127.0.0.1:4222");
 ```
 
@@ -31,12 +31,10 @@ service.Serve("nats://127.0.0.1:4222");
 
 | Example | Description
 | --- | ---
-| [Hello World](examples/HelloWorld/) | Single text field that is updated in real time.
-| [Book Collection](examples/BookCollection/) | List of book titles & authors that can be edited by many.
-
-> **Note**
->
-> Above examples are complete with both service and client.
+| [Hello World](examples/01_HelloWorld/) | Smallest of services serving a static message.
+| [Edit Text](examples/02_EditText/) | Single text field that is updated in real time.
+| [Book Collection](examples/03_BookCollection/) | List of book titles & authors that can be edited by many.
+| [Search](examples/04_Search/) | Make live queries against a large customer database.
 
 ## Basic usage
 
@@ -49,13 +47,15 @@ ResService service = new ResService("myservice");
 #### Define a handler class for a model resource
 
 ```csharp
-class MyModelHandler : ModelHandler
+[ResourcePattern("mymodel")]
+class MyModelHandler : BaseHandler
 {
-    private readonly object model = new {
+    private readonly object model = new
+    {
         message = "Hello, .NET World!"
-    }
+    };
 
-    public override void Get(IModelRequest request)
+    public void Get(IModelRequest request)
     {
         request.Model(model);
     }
@@ -65,41 +65,45 @@ class MyModelHandler : ModelHandler
 #### Define a handler class for a collection resource
 
 ```csharp
-class MyModelHandler : CollectionHandler
+[ResourcePattern("mycollection")]
+class MyCollectionHandler : BaseHandler
 {
     private readonly object[] collection = new object[]{
         "first", "second", "third"
-    }
+    };
 
-    public override void Get(ICollectionRequest request)
+    public void Get(ICollectionRequest request)
     {
         request.Collection(collection);
     }
 }
 ```
-#### Add handler for a resource
+
+#### Define methods on a handler class
+
 ```csharp
-service.AddHandler("model", new MyResourceHandler());
+[ResourcePattern("math")]
+class MyResourceHandler : BaseHandler
+{
+    [CallMethod("double")]
+    public void Double(ICallRequest r)
+    {
+        r.Ok(2 * (double)r.Params["value"]);
+    }
+}
 ```
 
-#### Add handlers for a collection resource
-
+#### Add/register handler for a resource
 ```csharp
-mycollection := []string{"first", "second", "third"}
-s.Handle("mycollection",
-   res.Access(res.AccessGranted),
-   res.GetCollection(func(r res.CollectionRequest) {
-      r.Collection(mycollection)
-   }),
-)
+service.AddHandler(new MyResourceHandler());
 ```
 
 #### Add handlers for parameterized resources
 
 ```csharp
 service.AddHandler("article.$id", new DynamicHandler()
-    .SetAccess(r => r.AccessGranted())
-    .SetModelGet(r =>
+    .Access(r => r.AccessGranted())
+    .ModelGet(r =>
     {
         if (DB.TryGetArticle(r.PathParams["id"], out Article article))
             r.Model(article);
@@ -108,25 +112,18 @@ service.AddHandler("article.$id", new DynamicHandler()
     }));
 ```
 
-#### Add handlers for method calls
-
-```csharp
-service.AddHandler("math", new DynamicHandler()
-    .SetCallMethod("double", r =>
-    {
-        r.Ok(2 * (double)r.Params["value"]);
-    }));
-```
-
 #### Send change event on model update
 A change event will update the model on all subscribing clients.
 
 ```csharp
 MyModel mymodel = new MyModel { Name = "foo" };
+MyModel mymodel = new MyModel { Name = "foo" };
 service.With("example.mymodel", resource =>
 {
     mymodel.Name = "bar";
-    resource.ChangeEvent(new Dictionary<string, object> { { "name", "bar" } });
+    resource.ChangeEvent(new Dictionary<string, object> {
+        { "name", "bar" }
+    });
 });
 ```
 
@@ -146,7 +143,7 @@ service.With("example.mycollection", resource =>
 
 ```csharp
 service.AddHandler("myauth", new DynamicHandler()
-    .SetAuthMethod("login", r =>
+    .AuthMethod("login", r =>
     {
         if ((string)r.Params["password"] == "mysecret")
         {
@@ -164,12 +161,22 @@ service.AddHandler("myauth", new DynamicHandler()
 
 ```csharp
 service.AddHandler(">", new DynamicHandler()
-    .SetAccess(r =>
+    .Access(r =>
     {
         if (r.Token != null && (string)r.Token["user"] == "admin")
             r.AccessGranted();
         else
             r.AccessDenied();
+    }));
+```
+
+#### Add async handler
+```csharp
+service.AddHandler("store.users", new DynamicHandler()
+    .Get(async r =>
+    {
+        var users = await DB.QueryAsync("SELECT id FROM users");
+        r.Collection(users.Select(u => new Ref("store.user." + u.Id)));
     }));
 ```
 

@@ -5,14 +5,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using NATS.Client;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace ResgateIO.Service
 {
-    public class ResService: Router
+    public class ResService: Router, IDisposable
     {
         // Public read-only values
-        public static readonly JRaw DeleteAction = new JRaw("{\"action\":\"delete\"}");
         public static readonly TimeSpan DefaultQueryDuration = new TimeSpan(0, 0, 3);
 
         // Properties
@@ -60,12 +58,14 @@ namespace ResgateIO.Service
         private string[] resetResources = null;
         private string[] resetAccess = null;
         private CountdownEvent activeWorkers = null;
+        private Stack<Action> cleanupActions = new Stack<Action>();
 
         // Internal logger
         internal ILogger Log { get; private set; }
         
         // Constants and readonly
         private const int shutdownTimeout = 5000; // milliseconds
+        private static readonly Task completedTask = Task.FromResult(false);
         internal static readonly byte[] EmptyData = new byte[] { };
         internal static readonly ServeEventArgs EmptyServeEventArgs = new ServeEventArgs();
 
@@ -76,6 +76,7 @@ namespace ResgateIO.Service
         internal static readonly byte[] ResponseNotFound = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.notFound\",\"message\":\"Not found\"}}");
         internal static readonly byte[] ResponseMethodNotFound = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.methodNotFound\",\"message\":\"Method not found\"}}");
         internal static readonly byte[] ResponseInvalidParams = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.invalidParams\",\"message\":\"Invalid parameters\"}}");
+        internal static readonly byte[] ResponseInvalidQuery = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.invalidQuery\",\"message\":\"Invalid query\"}}");
         internal static readonly byte[] ResponseMissingResponse = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.internalError\",\"message\":\"Internal error: missing response\"}}");
         internal static readonly byte[] ResponseBadRequest = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.internalError\",\"message\":\"Internal error: bad request\"}}");
         internal static readonly byte[] ResponseMissingQuery = Encoding.UTF8.GetBytes("{\"error\":{\"code\":\"system.internalError\",\"message\":\"Internal error: missing query\"}}");
@@ -150,7 +151,7 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
-        /// Sets the resource patterns matching the resources owned by the service.
+        /// Sets the resource patterns matching the resources owned and handled by the service.
         /// If set to null, the service will default to set ownership of all resources
         /// starting with its own name if one was provided (eg. "serviceName.>") to the
         /// constructor, or to all resources if no name was provided.
@@ -181,14 +182,15 @@ namespace ResgateIO.Service
         public void Serve(IConnection conn) {
             lock (stateLock)
             {
-                if (state != State.Stopped)
-                {
-                    throw new Exception("Service is not stopped.");
-                }
+                assertStopped();
                 state = State.Starting;
             }
+            cleanupActions.Push(() => state = State.Stopped);
 
-            serve(conn);
+            Connection = conn;
+            cleanupActions.Push(() => Connection = null);
+
+            serve();
         }
 
         /// <summary>
@@ -207,21 +209,36 @@ namespace ResgateIO.Service
                 assertStopped();
                 state = State.Starting;
             }
+            cleanupActions.Push(() => state = State.Stopped);
 
-            Options opts = ConnectionFactory.GetDefaultOptions();
-            opts.Url = url;
-            opts.AllowReconnect = true;
-            opts.MaxReconnect = Options.ReconnectForever;
-            opts.ReconnectedEventHandler += onReconnect;
-            opts.DisconnectedEventHandler += onDisconnect;
-            opts.ClosedEventHandler += onClosed;
-            if (Pattern != "")
+            try
             {
-                opts.Name = Pattern;
+                Options opts = ConnectionFactory.GetDefaultOptions();
+                opts.Url = url;
+                opts.AllowReconnect = true;
+                opts.MaxReconnect = Options.ReconnectForever;
+                if (Pattern != "")
+                {
+                    opts.Name = Pattern;
+                }
+
+                Log.Info("Connecting to NATS server at {0}", url);
+                Connection = new ConnectionFactory().CreateConnection(opts);
+                cleanupActions.Push(() =>
+                {
+                    Log.Debug("Disposing NATS connection");
+                    Connection.Dispose();
+                    Connection = null;
+                });
+            }
+            catch (Exception ex)
+            {
+                OnError("Failed to connect to NATS ({0}): {1}", url, ex.Message);
+                cleanup();
+                throw ex;
             }
 
-            IConnection conn = new ConnectionFactory().CreateConnection(opts);
-            serve(conn);
+            serve();
         }
 
         /// <summary>
@@ -240,18 +257,8 @@ namespace ResgateIO.Service
             }
             Log.Info("Stopping service...");
 
-            close();
-            activeWorkers.Signal();
-            if (!activeWorkers.Wait(shutdownTimeout))
-            {
-                OnError("Timed out waiting for {0} worker thread(s) to finish.", activeWorkers.CurrentCount);
-            }
-
-            activeWorkers.Dispose();
-            queryTimerQueue.Dispose();
-            Connection.Dispose();
-
-            state = State.Stopped;
+            cleanup();
+            
             Log.Info("Stopped");
             Stopped?.Invoke(this, EmptyServeEventArgs);
         }
@@ -263,7 +270,7 @@ namespace ResgateIO.Service
         /// </summary>
         /// <remarks>
         /// Should only be called from within the resource's group callback.
-        /// Using the returned value from another goroutine may cause race conditions.
+        /// Using the returned value from another thread may cause race conditions.
         /// </remarks>
         /// <param name="rid">Resource ID.</param>
         /// <returns>Resource context matching the resource ID, or null if no match is found.</returns>
@@ -280,7 +287,26 @@ namespace ResgateIO.Service
             Router.Match match = GetHandler(rname);
             return match == null
                 ? null
-                : new ResourceContext(this, rname, match.Handler, match.Params, query);
+                : new ResourceContext(this, rname, match.Handler, match.EventHandler, match.Params, query, match.Group);
+        }
+
+        /// <summary>
+        /// Matches the resource ID, rid, with the registered resource handlers,
+        /// before calling the callback on the resource's worker thread.
+        /// It will throw an ArgumentException if there is no handler matching
+        /// the resource ID, rid.
+        /// </summary>
+        /// <param name="rid">Resource ID.</param>
+        /// <param name="callback">Callback to be called on the resource's worker thread.</param>
+        public void With(string rid, Func<IResourceContext, Task> callback)
+        {
+            IResourceContext resource = Resource(rid);
+            if (resource == null)
+            {
+                throw new ArgumentException("No matching handler found for resource ID: " + rid);
+            }
+
+            runWith(resource.Group, () => callback(resource));
         }
 
         /// <summary>
@@ -293,13 +319,21 @@ namespace ResgateIO.Service
         /// <param name="callback">Callback to be called on the resource's worker thread.</param>
         public void With(string rid, Action<IResourceContext> callback)
         {
-            IResourceContext resource = Resource(rid);
-            if (resource == null)
+            With(rid, r =>
             {
-                throw new ArgumentException("No matching handler found for resource ID: " + rid);
-            }
+                callback(r);
+                return completedTask;
+            });
+        }
 
-            runWith(resource.ResourceName, () => callback(resource));
+        /// <summary>
+        /// Calls the callback on the resource's worker thread.
+        /// </summary>
+        /// <param name="resource">Resource context.</param>
+        /// <param name="callback">Callback to be called on the resource's worker thread.</param>
+        public void With(IResourceContext resource, Func<Task> callback)
+        {
+            runWith(resource.Group, callback);
         }
 
         /// <summary>
@@ -309,15 +343,126 @@ namespace ResgateIO.Service
         /// <param name="callback">Callback to be called on the resource's worker thread.</param>
         public void With(IResourceContext resource, Action callback)
         {
-            runWith(resource.ResourceName, callback);
+            runWith(resource.Group, () =>
+            {
+                callback();
+                return completedTask;
+            });
         }
 
-        private void serve(IConnection conn)
+        /// <summary>
+        /// Calls the callback on the resource's worker thread.
+        /// </summary>
+        /// <param name="resource">Resource context.</param>
+        /// <param name="callback">Callback to be called on the resource's worker thread.</param>
+        public void With(IResourceContext resource, Func<IResourceContext, Task> callback)
         {
-            Connection = conn;
+            runWith(resource.Group, () => callback(resource));
+        }
+
+        /// <summary>
+        /// Calls the callback on the resource's worker thread.
+        /// </summary>
+        /// <param name="resource">Resource context.</param>
+        /// <param name="callback">Callback to be called on the resource's worker thread.</param>
+        public void With(IResourceContext resource, Action<IResourceContext> callback)
+        {
+            runWith(resource.Group, () =>
+            {
+                callback(resource);
+                return completedTask;
+            });
+        }
+
+        /// <summary>
+        /// Calls the callback on the specified group's worker thread.
+        /// </summary>
+        /// <param name="group">Group ID.</param>
+        /// <param name="callback">Callback to be called on the group's worker thread.</param>
+        public void WithGroup(string group, Func<Task> callback)
+        {
+            runWith(group, callback);
+        }
+
+        /// <summary>
+        /// Calls the callback on the specified group's worker thread.
+        /// </summary>
+        /// <param name="group">Group ID.</param>
+        /// <param name="callback">Callback to be called on the group's worker thread.</param>
+        public void WithGroup(string group, Action callback)
+        {
+            runWith(group, () =>
+            {
+                callback();
+                return completedTask;
+            });
+        }
+
+        /// <summary>
+        /// Calls the callback on the specified group's worker thread.
+        /// </summary>
+        /// <param name="group">Group ID.</param>
+        /// <param name="callback">Callback to be called on the group's worker thread.</param>
+        public void WithGroup(string group, Func<ResService, Task> callback)
+        {
+            runWith(group, () => callback(this));
+        }
+
+        /// <summary>
+        /// Calls the callback on the specified group's worker thread.
+        /// </summary>
+        /// <param name="group">Group ID.</param>
+        /// <param name="callback">Callback to be called on the group's worker thread.</param>
+        public void WithGroup(string group, Action<ResService> callback)
+        {
+            runWith(group, () =>
+            {
+                callback(this);
+                return completedTask;
+            });
+        }
+
+        private void serve()
+        {
+            Log.Info("Starting service");
+
+            Log.Debug("Registering NATS event handlers");
+            Connection.Opts.ReconnectedEventHandler += onReconnect;
+            Connection.Opts.DisconnectedEventHandler += onDisconnect;
+            Connection.Opts.ClosedEventHandler += onClosed;
+            cleanupActions.Push(() =>
+            {
+                Log.Debug("Unregistering NATS event handlers");
+                Connection.Opts.ReconnectedEventHandler -= onReconnect;
+                Connection.Opts.DisconnectedEventHandler -= onDisconnect;
+                Connection.Opts.ClosedEventHandler -= onClosed;
+            });
+
+            try
+            {
+                ValidateEventListeners();
+            }
+            catch (Exception ex)
+            {
+                OnError("Failed event listener validation: {0}", ex.Message);
+                cleanup();
+                throw ex;
+            }
+
             rwork = new Dictionary<string, Work>();
             queryTimerQueue = new TimerQueue<QueryEvent>(onQueryEventExpire, queryDuration);
             activeWorkers = new CountdownEvent(1);
+            cleanupActions.Push(() =>
+            {
+                Log.Debug("Waiting for {0} task worker(s)", activeWorkers.CurrentCount - 1);
+                activeWorkers.Signal();
+                if (!activeWorkers.Wait(shutdownTimeout))
+                    OnError("Timed out waiting for {0} task worker(s) to finish", activeWorkers.CurrentCount);
+                
+                activeWorkers.Dispose();
+                queryTimerQueue.Dispose();
+                rwork = null;
+            });
 
             lock (stateLock)
             {
@@ -335,13 +480,9 @@ namespace ResgateIO.Service
             catch (Exception ex)
             {
                 OnError("Failed to subscribe: {0}", ex.Message);
-                close();
+                cleanup();
+                throw ex;
             }
-        }
-
-        private void close()
-        {
-            Connection.Close();
         }
 
         private void subscribe()
@@ -352,12 +493,26 @@ namespace ResgateIO.Service
             {
                 foreach (string p in resetResources)
                 {
-                    Connection.SubscribeAsync(type + "." + p, handleMessage);
+                    var subject = type + "." + p;
+                    Log.Debug("Subscribing to {0}", subject);
+                    var sub = Connection.SubscribeAsync(subject, handleMessage);
+                    cleanupActions.Push(() =>
+                    {
+                        Log.Debug("Unsubscribing to {0}", sub.Subject);
+                        sub.Unsubscribe();
+                    });
                 }
             }
             foreach (string p in resetAccess)
             {
-                Connection.SubscribeAsync("access." + p, handleMessage);
+                var subject = "access." + p;
+                Log.Debug("Subscribing to {0}", subject);
+                var sub = Connection.SubscribeAsync(subject, handleMessage);
+                cleanupActions.Push(() =>
+                {
+                    Log.Debug("Unsubscribing to {0}", sub.Subject);
+                    sub.Unsubscribe();
+                });
             }
         }
 
@@ -366,7 +521,7 @@ namespace ResgateIO.Service
             Msg msg = e.Message;
             String subj = msg.Subject;
 
-            Log.Trace(String.Format("==> {0}: {1}", subj, msg.Data == null ? "<null>" : Encoding.UTF8.GetString(msg.Data)));
+            Log.Trace("==> {0}: {1}", subj, msg.Data == null ? "<null>" : Encoding.UTF8.GetString(msg.Data));
 
             // Assert there is a reply subject
             if (String.IsNullOrEmpty(msg.Reply))
@@ -403,24 +558,6 @@ namespace ResgateIO.Service
 
             runWith(match == null ? rname : match.Group, () => processRequest(msg, rtype, rname, method, match));
         }
-
-private void runWith(string workId, Action callback)
-{
-    lock (stateLock)
-    { 
-        if (rwork.TryGetValue(workId, out Work work))
-        {
-            work.AddTask(callback);
-        }
-        else
-        {
-            work = new Work(workId, callback);
-            rwork.Add(workId, work);
-            activeWorkers.AddCount();
-            Task.Run(() => processWork(work));
-        }
-    }
-}
 
         /// <summary>
         /// Sends a connection token event that sets the connection's access token,
@@ -503,12 +640,12 @@ private void runWith(string workId, Action callback)
                 {
                     string json = JsonConvert.SerializeObject(payload);
                     byte[] data = Encoding.UTF8.GetBytes(json);
-                    Log.Trace(String.Format("<-- {0}: {1}", subject, json));
+                    Log.Trace("<-- {0}: {1}", subject, json);
                     RawSend(subject, data);
                 }
                 else
                 {
-                    Log.Trace(String.Format("<-- {0}", subject));
+                    Log.Trace("<-- {0}", subject);
                     RawSend(subject, EmptyData);
                 }
             }
@@ -548,9 +685,11 @@ private void runWith(string workId, Action callback)
 
         internal void OnError(string format, params object[] args)
         {
-            var msg = String.Format(format, args);
-            Log.Error(msg);
-            Error?.Invoke(this, new ErrorEventArgs(msg));
+            Log.Error(format, args);
+            if (Error != null)
+            {
+                Error.Invoke(this, new ErrorEventArgs(String.Format(format, args)));
+            }
         }
 
         private void onQueryEventExpire(QueryEvent queryEvent)
@@ -558,36 +697,65 @@ private void runWith(string workId, Action callback)
             queryEvent.Stop();
         }
 
-        private void processWork(Work work)
+        private void runWith(string groupId, Func<Task> callback)
         {
-            Action task;
-
-            try
+            Work work;
+            lock (stateLock)
             {
-                while (true)
+                if (rwork.TryGetValue(groupId, out work))
                 {
-                    lock (stateLock)
-                    {
-                        task = work.NextTask();
-                        // Check if work tasks are exhausted
-                        if (task == null)
-                        {
-                            // Work completed
-                            rwork.Remove(work.ResourceName);
-                            return;
-                        }
-                    }
-
-                    task();
+                    work.AddTask(callback);
+                    return;
                 }
+
+                work = new Work(groupId, callback);
+                rwork.Add(groupId, work);
+                activeWorkers.AddCount();
             }
-            finally
+
+            Task.Run(async () =>
             {
-                activeWorkers.Signal();
+                try
+                {
+                    await processWork(work);
+                }
+                finally
+                {
+                    activeWorkers.Signal();
+                }
+            });
+        }
+
+        private async Task processWork(Work work)
+        {
+            Func<Task> task;
+
+            while (true)
+            {
+                lock (stateLock)
+                {
+                    task = work.NextTask();
+                    // Check if work tasks are exhausted
+                    if (task == null)
+                    {
+                        // Work completed
+                        rwork.Remove(work.ResourceName);
+                        return;
+                    }
+                }
+
+                try
+                {
+                    await task();
+                }
+                catch(Exception ex)
+                {
+                    OnError("Exception encountered running resource task:\n{0}", ex.ToString());
+                }
             }
         }
         
-        private void processRequest(Msg msg, String rtype, String rname, String method, Router.Match match)
+        private Task processRequest(Msg msg, String rtype, String rname, String method, Router.Match match)
         {
             Request req;
 
@@ -597,7 +765,7 @@ private void runWith(string workId, Action callback)
                 // [TODO] Allow for a default handler
                 req = new Request(this, msg);
                 req.NotFound();
-                return;
+                return completedTask;
             }
 
             try
@@ -614,7 +782,9 @@ private void runWith(string workId, Action callback)
                     rname,
                     method,
                     match.Handler,
+                    match.EventHandler,
                     match.Params,
+                    match.Group,
                     reqInput.CID,
                     reqInput.RawParams,
                     reqInput.RawToken,
@@ -629,10 +799,11 @@ private void runWith(string workId, Action callback)
                 OnError("Error deserializing incoming request: {0}", msg.Data == null ? "<null>" : Encoding.UTF8.GetString(msg.Data));
                 req = new Request(this, msg);
                 req.Error(new ResError(ex));
-                return;
+                return completedTask;
             }
 
-            req.ExecuteHandler();
+
+            return req.ExecuteHandler();
         }
 
         private void onReconnect(object sender, ConnEventArgs args)
@@ -677,5 +848,24 @@ private void runWith(string workId, Action callback)
             }
         }
 
+        private void cleanup()
+        {
+            while (cleanupActions.Count > 0)
+            {
+                try
+                {
+                    cleanupActions.Pop()();
+                }
+                catch (Exception ex)
+                {
+                    OnError("Error cleaning up: {0}", ex.Message);
+                }                
+            }
+        }
+
+        public void Dispose()
+        {
+            cleanup();
+        }
     }
 }

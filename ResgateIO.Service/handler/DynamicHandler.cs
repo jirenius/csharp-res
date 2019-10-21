@@ -1,29 +1,33 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace ResgateIO.Service
 {
     /// <summary>
     /// Provides a handler whose handler methods can be set dynamically.
     /// </summary>
-    public class DynamicHandler: IResourceHandler
+    public class DynamicHandler: IAsyncHandler
     {
+        private static readonly Task completedTask = Task.FromResult(false);
         private ResourceType resourceType = ResourceType.Unknown;
         private HandlerTypes enabledHandlers = HandlerTypes.None;
 
-        private Action<IAccessRequest> accessHandler = null;
-        private Action<IGetRequest> getHandler = null;
-        private Action<ICallRequest> callHandler = null;
-        private Action<IAuthRequest> authHandler = null;
-        private Action<INewRequest> newHandler = null;
-        private Func<IResourceContext, IDictionary<string, object>, Dictionary<string, object>> applyChangeHandler = null;
-        private Action<IResourceContext, object, int> applyAddHandler = null;
-        private Func<IResourceContext, int, object> applyRemoveHandler = null;
-        private Action<IResourceContext, object> applyCreateHandler = null;
-        private Func<IResourceContext, object> applyDeleteHandler = null;
-        private Dictionary<string, Action<ICallRequest>> callMethods = null;
-        private Dictionary<string, Action<IAuthRequest>> authMethods = null;
+        private Func<IAccessRequest, Task> accessHandler = null;
+        private Func<IGetRequest, Task> getHandler = null;
+        private Func<ICallRequest, Task> callHandler = null;
+        private Func<IAuthRequest, Task> authHandler = null;
+        private Func<INewRequest, Task> newHandler = null;
+        private Func<IResourceContext, EventArgs, Task> applyHandler = null;
+        private Func<IResourceContext, ChangeEventArgs, Task> applyChangeHandler = null;
+        private Func<IResourceContext, AddEventArgs, Task> applyAddHandler = null;
+        private Func<IResourceContext, RemoveEventArgs, Task> applyRemoveHandler = null;
+        private Func<IResourceContext, CreateEventArgs, Task> applyCreateHandler = null;
+        private Func<IResourceContext, DeleteEventArgs, Task> applyDeleteHandler = null;
+        private Func<IResourceContext, CustomEventArgs, Task> applyCustomHandler = null;
+        private Dictionary<string, Func<ICallRequest, Task>> callMethods = null;
+        private Dictionary<string, Func<IAuthRequest, Task>> authMethods = null;
 
         /// <summary>
         /// Initializes a new instance of the DynamicHandler class.
@@ -31,7 +35,6 @@ namespace ResgateIO.Service
         public DynamicHandler()
         {
         }
-
 
         /// <summary>
         /// Gets the resource type associated with the resource handler.
@@ -45,7 +48,9 @@ namespace ResgateIO.Service
 
         /// <summary>
         /// Sets the resource type.
-        /// This will overwrite any type set by the SetModelGet or SetCollectionGet methods.
+        /// This will overwrite any type set by the <see cref="ModelGet(Func{IModelRequest, Task})"/>,
+        /// <see cref="ModelGet(Action{IModelRequest})"/>, <see cref="CollectionGet(Func{ICollectionRequest, Task})"/>,
+        /// or <see cref="CollectionGet(Action{ICollectionRequest})"/> methods.
         /// </summary>
         /// <param name="type">Resource type.</param>
         /// <returns>This instance.</returns>
@@ -56,99 +61,276 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
-        /// Sets the access handler method, and sets the EnableHandlers bit flag
-        /// if the handler is not null, otherwise it unsets the flag.
+        /// Sets the access handler method, and sets the EnableHandlers bit flag.
         /// </summary>
         /// <param name="accessHandler">Access handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetAccess(Action<IAccessRequest> accessHandler)
+        public DynamicHandler Access(Func<IAccessRequest, Task> accessHandler)
         {
-            toggleHandlers(HandlerTypes.Access, accessHandler != null);
+            if (this.accessHandler != null)
+            {
+                throw new InvalidOperationException("Access handler already set.");
+            }
+            toggleHandlers(HandlerTypes.Access, true);
             this.accessHandler = accessHandler;
             return this;
         }
 
         /// <summary>
-        /// Sets the get handler method, and sets the EnableHandlers bit flag
-        /// if the handler is not null, otherwise it unsets the flag.
+        /// Sets the access handler method, and sets the EnableHandlers bit flag.
+        /// </summary>
+        /// <param name="accessHandler">Access handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetAccess is deprecated, please use Access instead.")]
+        public DynamicHandler SetAccess(Func<IAccessRequest, Task> accessHandler)
+        {
+            return Access(accessHandler);
+        }
+
+        /// <summary>
+        /// Sets the access handler method, and sets the EnableHandlers bit flag.
+        /// </summary>
+        /// <param name="accessHandler">Access handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler Access(Action<IAccessRequest> accessHandler)
+        {
+            return Access(r =>
+            {
+                accessHandler(r);
+                return completedTask;
+            });
+        }
+
+        /// <summary>
+        /// Sets the access handler method, and sets the EnableHandlers bit flag.
+        /// </summary>
+        /// <param name="accessHandler">Access handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetAccess is deprecated, please use Access instead.")]
+        public DynamicHandler SetAccess(Action<IAccessRequest> accessHandler)
+        {
+            return Access(accessHandler);
+        }
+
+        /// <summary>
+        /// Sets the get handler method, and sets the EnableHandlers bit flag.
         /// </summary>
         /// <param name="getHandler">Get handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetGet(Action<IGetRequest> getHandler)
+        public DynamicHandler Get(Func<IGetRequest, Task> getHandler)
         {
-            toggleHandlers(HandlerTypes.Get, getHandler != null);
+            if (this.getHandler != null)
+            {
+                throw new InvalidOperationException("Get handler already set.");
+            }
+            toggleHandlers(HandlerTypes.Get, true);
             this.getHandler = getHandler;
             return this;
         }
 
         /// <summary>
+        /// Sets the get handler method, and sets the EnableHandlers bit flag.
+        /// </summary>
+        /// <param name="getHandler">Get handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetGet is deprecated, please use Get instead.")]
+        public DynamicHandler SetGet(Func<IGetRequest, Task> getHandler)
+        {
+            return Get(getHandler);
+        }
+
+        /// <summary>
+        /// Sets the get handler method, and sets the EnableHandlers bit flag.
+        /// </summary>
+        /// <param name="getHandler">Get handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler Get(Action<IGetRequest> getHandler)
+        {
+            return Get(r =>
+            {
+                getHandler(r);
+                return completedTask;
+            });
+        }
+
+        /// <summary>
+        /// Sets the get handler method, and sets the EnableHandlers bit flag.
+        /// </summary>
+        /// <param name="getHandler">Get handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetGet is deprecated, please use Get instead.")]
+        public DynamicHandler SetGet(Action<IGetRequest> getHandler)
+        {
+            return Get(getHandler);
+        }
+
+        /// <summary>
         /// Sets a model get handler method, sets the EnableHandlers bit flag,
-        /// and sets Type to ResourceType.Model, if getHandler is not null.
-        /// Otherwise it unsets the EnableHandlers bit flag, and sets Type
-        /// to ResourceType.Unknown.
+        /// and sets Type to ResourceType.Model.
         /// </summary>
         /// <param name="getHandler">Model get handler.</param>
         /// <returns>This instance.</returns>
+        public DynamicHandler ModelGet(Func<IModelRequest, Task> getHandler)
+        {
+            Get(r => getHandler((IModelRequest)r));
+            resourceType = ResourceType.Model;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets a model get handler method, sets the EnableHandlers bit flag,
+        /// and sets Type to ResourceType.Model.
+        /// </summary>
+        /// <param name="getHandler">Model get handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetModelGet is deprecated, please use ModelGet instead.")]
+        public DynamicHandler SetModelGet(Func<IModelRequest, Task> getHandler)
+        {
+            return ModelGet(getHandler);
+        }
+
+        /// <summary>
+        /// Sets a model get handler method, sets the EnableHandlers bit flag,
+        /// and sets Type to ResourceType.Model.
+        /// </summary>
+        /// <param name="getHandler">Model get handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler ModelGet(Action<IModelRequest> getHandler)
+        {
+            Get(r =>
+            {
+                getHandler((IModelRequest)r);
+                return completedTask;
+            });
+            resourceType = ResourceType.Model;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets a model get handler method, sets the EnableHandlers bit flag,
+        /// and sets Type to ResourceType.Model.
+        /// </summary>
+        /// <param name="getHandler">Model get handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetModelGet is deprecated, please use ModelGet instead.")]
         public DynamicHandler SetModelGet(Action<IModelRequest> getHandler)
         {
-            toggleHandlers(HandlerTypes.Get, getHandler != null);
-            if (getHandler != null)
-            {
-                this.getHandler = r => getHandler((IModelRequest)r);
-                resourceType = ResourceType.Model;
-            }
-            else
-            {
-                this.getHandler = null;
-                resourceType = ResourceType.Unknown;
-            }
+            return ModelGet(getHandler);
+        }
+
+        /// <summary>
+        /// Sets a collection get handler method, sets the EnableHandlers bit flag,
+        /// and sets Type to ResourceType.Collection.
+        /// </summary>
+        /// <param name="getHandler">Collection get handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler CollectionGet(Func<ICollectionRequest, Task> getHandler)
+        {
+            Get(r => getHandler((ICollectionRequest)r));
+            resourceType = ResourceType.Collection;
             return this;
         }
 
         /// <summary>
         /// Sets a collection get handler method, sets the EnableHandlers bit flag,
-        /// and sets Type to ResourceType.Collection, if getHandler is not null.
-        /// Otherwise it unsets the EnableHandlers bit flag, and sets Type
-        /// to ResourceType.Unknown.
+        /// and sets Type to ResourceType.Collection.
         /// </summary>
         /// <param name="getHandler">Collection get handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetCollectionGet(Action<ICollectionRequest> getHandler)
+        [Obsolete("SetCollectionGet is deprecated, please use CollectionGet instead.")]
+        public DynamicHandler SetCollectionGet(Func<ICollectionRequest, Task> getHandler)
         {
-            toggleHandlers(HandlerTypes.Get, getHandler != null);
-            if (getHandler != null)
+            return CollectionGet(getHandler);
+        }
+
+        /// <summary>
+        /// Sets a collection get handler method, sets the EnableHandlers bit flag,
+        /// and sets Type to ResourceType.Collection.
+        /// </summary>
+        /// <param name="getHandler">Collection get handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler CollectionGet(Action<ICollectionRequest> getHandler)
+        {
+            Get(r =>
             {
-                this.getHandler = r => getHandler((ICollectionRequest)r);
-                resourceType = ResourceType.Collection;
-            }
-            else
-            {
-                this.getHandler = null;
-                resourceType = ResourceType.Unknown;
-            }
+                getHandler((ICollectionRequest)r);
+                return completedTask;
+            });
+            resourceType = ResourceType.Collection;
             return this;
         }
 
         /// <summary>
-        /// Sets the call handler method, and sets the EnableHandlers bit flag
-        /// if the handler is not null, otherwise it unsets the flag.
+        /// Sets a collection get handler method, sets the EnableHandlers bit flag,
+        /// and sets Type to ResourceType.Collection.
+        /// </summary>
+        /// <param name="getHandler">Collection get handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetCollectionGet is deprecated, please use CollectionGet instead.")]
+        public DynamicHandler SetCollectionGet(Action<ICollectionRequest> getHandler)
+        {
+            return CollectionGet(getHandler);
+        }
+
+        /// <summary>
+        /// Sets the call handler method, and sets the EnableHandlers bit flag.
         /// </summary>
         /// <param name="callHandler">Call handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetCall(Action<ICallRequest> callHandler)
+        public DynamicHandler Call(Func<ICallRequest, Task> callHandler)
         {
-            toggleHandlers(HandlerTypes.Call, callHandler != null || callMethods != null);
+            if (this.callHandler != null)
+            {
+                throw new InvalidOperationException("Call handler already set.");
+            }
+            toggleHandlers(HandlerTypes.Call, true);
             this.callHandler = callHandler;
             return this;
+        }
+
+        /// <summary>
+        /// Sets the call handler method, and sets the EnableHandlers bit flag.
+        /// </summary>
+        /// <param name="callHandler">Call handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetCall is deprecated, please use Call instead.")]
+        public DynamicHandler SetCall(Func<ICallRequest, Task> callHandler)
+        {
+            return Call(callHandler);
+        }
+
+        /// <summary>
+        /// Sets the call handler method, and sets the EnableHandlers bit flag.
+        /// </summary>
+        /// <param name="callHandler">Call handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler Call(Action<ICallRequest> callHandler)
+        {
+            return Call(r =>
+            {
+                callHandler(r);
+                return completedTask;
+            });
+        }
+
+        /// <summary>
+        /// Sets the call handler method, and sets the EnableHandlers bit flag.
+        /// </summary>
+        /// <param name="callHandler">Call handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetCall is deprecated, please use Call instead.")]
+        public DynamicHandler SetCall(Action<ICallRequest> callHandler)
+        {
+            return Call(callHandler);
         }
 
         /// <summary>
         /// Sets the call handler for a specific method, and sets the EnableHandlers bit flag appropriately.
         /// </summary>
         /// <param name="method">Name of the method. Must only contain alpha-numeric characters.</param>
-        /// <param name="callHandler">Call method handler. Null removes any previously registered handler.</param>
+        /// <param name="callHandler">Call method handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetCallMethod(string method, Action<ICallRequest> callHandler)
+        public DynamicHandler CallMethod(string method, Func<ICallRequest, Task> callHandler)
         {
             if (!ResService.IsValidPart(method))
             {
@@ -173,7 +355,11 @@ namespace ResgateIO.Service
             {
                 if (callMethods == null)
                 {
-                    callMethods = new Dictionary<string, Action<ICallRequest>>();
+                    callMethods = new Dictionary<string, Func<ICallRequest, Task>>();
+                }
+                else if (callMethods.ContainsKey(method))
+                {
+                    throw new InvalidOperationException(String.Format("Call method {0} already set.", method));
                 }
                 callMethods[method] = callHandler;
             }
@@ -182,25 +368,103 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
-        /// Sets the auth handler method, and sets the EnableHandlers bit flag
-        /// if the handler is not null, otherwise it unsets the flag.
+        /// Sets the call handler for a specific method, and sets the EnableHandlers bit flag appropriately.
+        /// </summary>
+        /// <param name="method">Name of the method. Must only contain alpha-numeric characters.</param>
+        /// <param name="callHandler">Call method handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetCallMethod is deprecated, please use CallMethod instead.")]
+        public DynamicHandler SetCallMethod(string method, Func<ICallRequest, Task> callHandler)
+        {
+            return CallMethod(method, callHandler);
+        }
+
+        /// <summary>
+        /// Sets the call handler for a specific method, and sets the EnableHandlers bit flag appropriately.
+        /// </summary>
+        /// <param name="method">Name of the method. Must only contain alpha-numeric characters.</param>
+        /// <param name="callHandler">Call method handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler CallMethod(string method, Action<ICallRequest> callHandler)
+        {
+            return CallMethod(method, r =>
+            {
+                callHandler(r);
+                return completedTask;
+            });
+        }
+
+        /// <summary>
+        /// Sets the call handler for a specific method, and sets the EnableHandlers bit flag appropriately.
+        /// </summary>
+        /// <param name="method">Name of the method. Must only contain alpha-numeric characters.</param>
+        /// <param name="callHandler">Call method handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetCallMethod is deprecated, please use CallMethod instead.")]
+        public DynamicHandler SetCallMethod(string method, Action<ICallRequest> callHandler)
+        {
+            return CallMethod(method, callHandler);
+        }
+
+        /// <summary>
+        /// Sets the auth handler method, and sets the EnableHandlers bit flag.
         /// </summary>
         /// <param name="authHandler">Auth handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetAuth(Action<IAuthRequest> authHandler)
+        public DynamicHandler Auth(Func<IAuthRequest, Task> authHandler)
         {
-            toggleHandlers(HandlerTypes.Auth, authHandler != null || authMethods != null);
+            if (this.authHandler != null)
+            {
+                throw new InvalidOperationException("Auth handler already set.");
+            }
+            toggleHandlers(HandlerTypes.Auth, true);
             this.authHandler = authHandler;
             return this;
+        }
+
+        /// <summary>
+        /// Sets the auth handler method, and sets the EnableHandlers bit flag.
+        /// </summary>
+        /// <param name="authHandler">Auth handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetAuth is deprecated, please use Auth instead.")]
+        public DynamicHandler SetAuth(Func<IAuthRequest, Task> authHandler)
+        {
+            return Auth(authHandler);
+        }
+
+        /// <summary>
+        /// Sets the auth handler method, and sets the EnableHandlers bit flag.
+        /// </summary>
+        /// <param name="authHandler">Auth handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler Auth(Action<IAuthRequest> authHandler)
+        {
+            return Auth(r =>
+            {
+                authHandler(r);
+                return completedTask;
+            });
+        }
+
+        /// <summary>
+        /// Sets the auth handler method, and sets the EnableHandlers bit flag.
+        /// </summary>
+        /// <param name="authHandler">Auth handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetAuth is deprecated, please use Auth instead.")]
+        public DynamicHandler SetAuth(Action<IAuthRequest> authHandler)
+        {
+            return Auth(authHandler);
         }
 
         /// <summary>
         /// Sets the auth handler for a specific method, and sets the EnableHandlers bit flag appropriately
         /// </summary>
         /// <param name="method">Name of the method. Must only contain alpha-numeric characters.</param>
-        /// <param name="authHandler">Auth method handler. Null removes any previously registered handler.</param>
+        /// <param name="authHandler">Auth method handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetAuthMethod(string method, Action<IAuthRequest> authHandler)
+        public DynamicHandler AuthMethod(string method, Func<IAuthRequest, Task> authHandler)
         {
             if (!ResService.IsValidPart(method))
             {
@@ -221,7 +485,11 @@ namespace ResgateIO.Service
             {
                 if (authMethods == null)
                 {
-                    authMethods = new Dictionary<string, Action<IAuthRequest>>();
+                    authMethods = new Dictionary<string, Func<IAuthRequest, Task>>();
+                }
+                else if (authMethods.ContainsKey(method))
+                {
+                    throw new InvalidOperationException(String.Format("Auth method {0} already set.", method));
                 }
                 authMethods[method] = authHandler;
             }
@@ -230,205 +498,580 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
-        /// Sets the new call handler method, and sets the EnableHandlers bit flag
-        /// if the handler is not null, otherwise it unsets the flag.
+        /// Sets the auth handler for a specific method, and sets the EnableHandlers bit flag appropriately
+        /// </summary>
+        /// <param name="method">Name of the method. Must only contain alpha-numeric characters.</param>
+        /// <param name="authHandler">Auth method handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetAuthMethod is deprecated, please use AuthMethod instead.")]
+        public DynamicHandler SetAuthMethod(string method, Func<IAuthRequest, Task> authHandler)
+        {
+            return AuthMethod(method, authHandler);
+        }
+
+        /// <summary>
+        /// Sets the auth handler for a specific method, and sets the EnableHandlers bit flag appropriately
+        /// </summary>
+        /// <param name="method">Name of the method. Must only contain alpha-numeric characters.</param>
+        /// <param name="authHandler">Auth method handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler AuthMethod(string method, Action<IAuthRequest> authHandler)
+        {
+            return AuthMethod(method, r =>
+            {
+                authHandler(r);
+                return completedTask;
+            });
+        }
+
+        /// <summary>
+        /// Sets the auth handler for a specific method, and sets the EnableHandlers bit flag appropriately
+        /// </summary>
+        /// <param name="method">Name of the method. Must only contain alpha-numeric characters.</param>
+        /// <param name="authHandler">Auth method handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetAuthMethod is deprecated, please use AuthMethod instead.")]
+        public DynamicHandler SetAuthMethod(string method, Action<IAuthRequest> authHandler)
+        {
+            return AuthMethod(method, authHandler);
+        }
+
+        /// <summary>
+        /// Sets the new call handler method, and sets the EnableHandlers bit flag.
         /// </summary>
         /// <param name="newHandler">New handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetNew(Action<INewRequest> newHandler)
+        public DynamicHandler New(Func<INewRequest, Task> newHandler)
         {
-            toggleHandlers(HandlerTypes.New, newHandler != null);
+            if (this.newHandler != null)
+            {
+                throw new InvalidOperationException("New handler already set.");
+            }
+            toggleHandlers(HandlerTypes.New, true);
             this.newHandler = newHandler;
             return this;
         }
 
         /// <summary>
-        /// Sets the apply change handler method, and sets the EnableHandlers bit flag
-        /// if the handler is not null, otherwise it unsets the flag.
+        /// Sets the new call handler method, and sets the EnableHandlers bit flag.
+        /// </summary>
+        /// <param name="newHandler">New handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetNew is deprecated, please use New instead.")]
+        public DynamicHandler SetNew(Func<INewRequest, Task> newHandler)
+        {
+            return New(newHandler);
+        }
+
+        /// <summary>
+        /// Sets the new call handler method, and sets the EnableHandlers bit flag.
+        /// </summary>
+        /// <param name="newHandler">New handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler New(Action<INewRequest> newHandler)
+        {
+            return New(r =>
+            {
+                newHandler(r);
+                return completedTask;
+            });
+        }
+
+        /// <summary>
+        /// Sets the new call handler method, and sets the EnableHandlers bit flag.
+        /// </summary>
+        /// <param name="newHandler">New handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetNew is deprecated, please use New instead.")]
+        public DynamicHandler SetNew(Action<INewRequest> newHandler)
+        {
+            return New(newHandler);
+        }
+
+        /// <summary>
+        /// Sets the apply handler method for applying any event.
+        /// Will be called after any more specific apply handler.
         /// </summary>
         /// <param name="applyChangeHandler">Apply change handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetApplyChange(Func<IResourceContext, IDictionary<string, object>, Dictionary<string, object>> applyChangeHandler)
+        public DynamicHandler Apply(Func<IResourceContext, EventArgs, Task> applyHandler)
         {
-            toggleHandlers(HandlerTypes.ApplyChange, applyChangeHandler != null);
+            if (this.applyHandler != null)
+            {
+                throw new InvalidOperationException("Apply handler already set.");
+            }
+            this.applyHandler = applyHandler;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the apply handler method for applying any event.
+        /// Will be called after any more specific apply handler.
+        /// </summary>
+        /// <param name="applyChangeHandler">Apply change handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetApply is deprecated, please use Apply instead.")]
+        public DynamicHandler SetApply(Func<IResourceContext, EventArgs, Task> applyHandler)
+        {
+            return Apply(applyHandler);
+        }
+
+        /// <summary>
+        /// Sets the apply handler method for applying any event.
+        /// Will be called after any more specific apply handler.
+        /// </summary>
+        /// <param name="applyChangeHandler">Apply change handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler Apply(Action<IResourceContext, EventArgs> applyHandler)
+        {
+            return Apply((r, ev) =>
+            {
+                applyHandler(r, ev);
+                return completedTask;
+            });
+        }
+
+        /// <summary>
+        /// Sets the apply handler method for applying any event.
+        /// Will be called after any more specific apply handler.
+        /// </summary>
+        /// <param name="applyChangeHandler">Apply change handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetApply is deprecated, please use Apply instead.")]
+        public DynamicHandler SetApply(Action<IResourceContext, EventArgs> applyHandler)
+        {
+            return Apply(applyHandler);
+        }
+
+        /// <summary>
+        /// Sets the apply change handler method.
+        /// </summary>
+        /// <param name="applyChangeHandler">Apply change handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler ApplyChange(Func<IResourceContext, ChangeEventArgs, Task> applyChangeHandler)
+        {
+            if (this.applyChangeHandler != null)
+            {
+                throw new InvalidOperationException("Apply change handler already set.");
+            }
             this.applyChangeHandler = applyChangeHandler;
             return this;
         }
 
         /// <summary>
-        /// Sets the apply add handler method, and sets the EnableHandlers bit flag
-        /// if the handler is not null, otherwise it unsets the flag.
+        /// Sets the apply change handler method.
+        /// </summary>
+        /// <param name="applyChangeHandler">Apply change handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetApplyChange is deprecated, please use ApplyChange instead.")]
+        public DynamicHandler SetApplyChange(Func<IResourceContext, ChangeEventArgs, Task> applyChangeHandler)
+        {
+            return ApplyChange(applyChangeHandler);
+        }
+
+        /// <summary>
+        /// Sets the apply change handler method.
+        /// </summary>
+        /// <param name="applyChangeHandler">Apply change handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler ApplyChange(Action<IResourceContext, ChangeEventArgs> applyChangeHandler)
+        {
+            return ApplyChange((r, ev) =>
+            {
+                applyChangeHandler(r, ev);
+                return completedTask;
+            });
+        }
+
+        /// <summary>
+        /// Sets the apply change handler method.
+        /// </summary>
+        /// <param name="applyChangeHandler">Apply change handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetApplyChange is deprecated, please use ApplyChange instead.")]
+        public DynamicHandler SetApplyChange(Action<IResourceContext, ChangeEventArgs> applyChangeHandler)
+        {
+            return ApplyChange(applyChangeHandler);
+        }
+
+        /// <summary>
+        /// Sets the apply add handler method.
         /// </summary>
         /// <param name="applyAddHandler">Apply add handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetApplyAdd(Action<IResourceContext, object, int> applyAddHandler)
+        public DynamicHandler ApplyAdd(Func<IResourceContext, AddEventArgs, Task> applyAddHandler)
         {
-            toggleHandlers(HandlerTypes.ApplyAdd, applyAddHandler != null);
+            if (this.applyAddHandler != null)
+            {
+                throw new InvalidOperationException("Apply add handler already set.");
+            }
             this.applyAddHandler = applyAddHandler;
             return this;
         }
 
         /// <summary>
-        /// Sets the apply remove handler method, and sets the EnableHandlers bit flag
-        /// if the handler is not null, otherwise it unsets the flag.
+        /// Sets the apply add handler method.
+        /// </summary>
+        /// <param name="applyAddHandler">Apply add handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetApplyAdd is deprecated, please use ApplyAdd instead.")]
+        public DynamicHandler SetApplyAdd(Func<IResourceContext, AddEventArgs, Task> applyAddHandler)
+        {
+            return ApplyAdd(applyAddHandler);
+        }
+
+        /// <summary>
+        /// Sets the apply add handler method.
+        /// </summary>
+        /// <param name="applyAddHandler">Apply add handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler ApplyAdd(Action<IResourceContext, AddEventArgs> applyAddHandler)
+        {
+            return ApplyAdd((r, ev) =>
+            {
+                applyAddHandler(r, ev);
+                return completedTask;
+            });
+        }
+
+        /// <summary>
+        /// Sets the apply add handler method.
+        /// </summary>
+        /// <param name="applyAddHandler">Apply add handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetApplyAdd is deprecated, please use ApplyAdd instead.")]
+        public DynamicHandler SetApplyAdd(Action<IResourceContext, AddEventArgs> applyAddHandler)
+        {
+            return ApplyAdd(applyAddHandler);
+        }
+
+        /// <summary>
+        /// Sets the apply remove handler method.
         /// </summary>
         /// <param name="applyRemoveHandler">Apply remove handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetApplyRemove(Func<IResourceContext, int, object> applyRemoveHandler)
+        public DynamicHandler ApplyRemove(Func<IResourceContext, RemoveEventArgs, Task> applyRemoveHandler)
         {
-            toggleHandlers(HandlerTypes.ApplyRemove, applyRemoveHandler != null);
+            if (this.applyRemoveHandler != null)
+            {
+                throw new InvalidOperationException("Apply remove handler already set.");
+            }
             this.applyRemoveHandler = applyRemoveHandler;
             return this;
         }
 
         /// <summary>
-        /// Sets the apply create handler method, and sets the EnableHandlers bit flag
-        /// if the handler is not null, otherwise it unsets the flag.
+        /// Sets the apply remove handler method.
+        /// </summary>
+        /// <param name="applyRemoveHandler">Apply remove handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetApplyRemove is deprecated, please use ApplyRemove instead.")]
+        public DynamicHandler SetApplyRemove(Func<IResourceContext, RemoveEventArgs, Task> applyRemoveHandler)
+        {
+            return ApplyRemove(applyRemoveHandler);
+        }
+
+        /// <summary>
+        /// Sets the apply remove handler method.
+        /// </summary>
+        /// <param name="applyRemoveHandler">Apply remove handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler ApplyRemove(Action<IResourceContext, RemoveEventArgs> applyRemoveHandler)
+        {
+            return ApplyRemove((r, ev) =>
+            {
+                applyRemoveHandler(r, ev);
+                return completedTask;
+            });
+        }
+
+        /// <summary>
+        /// Sets the apply remove handler method.
+        /// </summary>
+        /// <param name="applyRemoveHandler">Apply remove handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetApplyRemove is deprecated, please use ApplyRemove instead.")]
+        public DynamicHandler SetApplyRemove(Action<IResourceContext, RemoveEventArgs> applyRemoveHandler)
+        {
+            return ApplyRemove(applyRemoveHandler);
+        }
+
+        /// <summary>
+        /// Sets the apply create handler method.
         /// </summary>
         /// <param name="applyCreateHandler">Apply create handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetApplyCreate(Action<IResourceContext, object> applyCreateHandler)
+        public DynamicHandler ApplyCreate(Func<IResourceContext, CreateEventArgs, Task> applyCreateHandler)
         {
-            toggleHandlers(HandlerTypes.ApplyCreate, applyCreateHandler != null);
+            if (this.applyCreateHandler != null)
+            {
+                throw new InvalidOperationException("Apply create handler already set.");
+            }
             this.applyCreateHandler = applyCreateHandler;
             return this;
         }
 
         /// <summary>
-        /// Sets the apply delete handler method, and sets the EnableHandlers bit flag
-        /// if the handler is not null, otherwise it unsets the flag.
+        /// Sets the apply create handler method.
+        /// </summary>
+        /// <param name="applyCreateHandler">Apply create handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetApplyCreate is deprecated, please use ApplyCreate instead.")]
+        public DynamicHandler SetApplyCreate(Func<IResourceContext, CreateEventArgs, Task> applyCreateHandler)
+        {
+            return ApplyCreate(applyCreateHandler);
+        }
+
+        /// <summary>
+        /// Sets the apply create handler method.
+        /// </summary>
+        /// <param name="applyCreateHandler">Apply create handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler ApplyCreate(Action<IResourceContext, CreateEventArgs> applyCreateHandler)
+        {
+            return ApplyCreate((r, ev) =>
+            {
+                applyCreateHandler(r, ev);
+                return completedTask;
+            });
+        }
+
+        /// <summary>
+        /// Sets the apply create handler method.
+        /// </summary>
+        /// <param name="applyCreateHandler">Apply create handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetApplyCreate is deprecated, please use ApplyCreate instead.")]
+        public DynamicHandler SetApplyCreate(Action<IResourceContext, CreateEventArgs> applyCreateHandler)
+        {
+            return ApplyCreate(applyCreateHandler);
+        }
+
+        /// <summary>
+        /// Sets the apply delete handler method.
         /// </summary>
         /// <param name="applyDeleteHandler">Apply delete handler.</param>
         /// <returns>This instance.</returns>
-        public DynamicHandler SetApplyDelete(Func<IResourceContext, object> applyDeleteHandler)
+        public DynamicHandler ApplyDelete(Func<IResourceContext, DeleteEventArgs, Task> applyDeleteHandler)
         {
-            toggleHandlers(HandlerTypes.ApplyDelete, applyDeleteHandler != null);
+            if (this.applyDeleteHandler != null)
+            {
+                throw new InvalidOperationException("Apply delete handler already set.");
+            }
             this.applyDeleteHandler = applyDeleteHandler;
             return this;
         }
 
         /// <summary>
-        /// Method called on a get request.
+        /// Sets the apply delete handler method.
         /// </summary>
-        /// <param name="request">Get request context.</param>
-        public virtual void Get(IGetRequest request)
+        /// <param name="applyDeleteHandler">Apply delete handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetApplyDelete is deprecated, please use ApplyDelete instead.")]
+        public DynamicHandler SetApplyDelete(Func<IResourceContext, DeleteEventArgs, Task> applyDeleteHandler)
         {
-            getHandler?.Invoke(request);
+            return ApplyDelete(applyDeleteHandler);
         }
 
         /// <summary>
-        /// Method called on an access request.
+        /// Sets the apply delete handler method.
         /// </summary>
-        /// <param name="request">Access request context.</param>
-        public virtual void Access(IAccessRequest request)
+        /// <param name="applyDeleteHandler">Apply delete handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler ApplyDelete(Action<IResourceContext, DeleteEventArgs> applyDeleteHandler)
         {
-            accessHandler?.Invoke(request);
+            return ApplyDelete((r, ev) =>
+            {
+                applyDeleteHandler(r, ev);
+                return completedTask;
+            });
+        }
+
+        /// <summary>
+        /// Sets the apply delete handler method.
+        /// </summary>
+        /// <param name="applyDeleteHandler">Apply delete handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetApplyDelete is deprecated, please use ApplyDelete instead.")]
+        public DynamicHandler SetApplyDelete(Action<IResourceContext, DeleteEventArgs> applyDeleteHandler)
+        {
+            return ApplyDelete(applyDeleteHandler);
+        }
+
+        /// <summary>
+        /// Sets the apply custom handler method.
+        /// </summary>
+        /// <param name="applyCustomHandler">Apply custom handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler ApplyCustom(Func<IResourceContext, CustomEventArgs, Task> applyCustomHandler)
+        {
+            if (this.applyCustomHandler != null)
+            {
+                throw new InvalidOperationException("Apply custom handler already set.");
+            }
+            this.applyCustomHandler = applyCustomHandler;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the apply custom handler method.
+        /// </summary>
+        /// <param name="applyCustomHandler">Apply custom handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetApplyCustom is deprecated, please use ApplyCustom instead.")]
+        public DynamicHandler SetApplyCustom(Func<IResourceContext, CustomEventArgs, Task> applyCustomHandler)
+        {
+            return ApplyCustom(applyCustomHandler);
+        }
+
+        /// <summary>
+        /// Sets the apply custom handler method.
+        /// </summary>
+        /// <param name="applyCustomHandler">Apply custom handler.</param>
+        /// <returns>This instance.</returns>
+        public DynamicHandler ApplyCustom(Action<IResourceContext, CustomEventArgs> applyCustomHandler)
+        {
+            return ApplyCustom((r, ev) =>
+            {
+                applyCustomHandler(r, ev);
+                return completedTask;
+            });
+        }
+
+        /// <summary>
+        /// Sets the apply custom handler method.
+        /// </summary>
+        /// <param name="applyCustomHandler">Apply custom handler.</param>
+        /// <returns>This instance.</returns>
+        [Obsolete("SetApplyCustom is deprecated, please use ApplyCustom instead.")]
+        public DynamicHandler SetApplyCustom(Action<IResourceContext, CustomEventArgs> applyCustomHandler)
+        {
+            return ApplyCustom(applyCustomHandler);
+        }
+
+        public async Task Handle(IRequest r)
+        {
+            switch (r.Type)
+            {
+                case RequestType.Access:
+                    if (accessHandler != null)
+                    {
+                        await accessHandler.Invoke((IAccessRequest)r);
+                    }
+                    break;
+                case RequestType.Get:
+                    if (getHandler != null)
+                    {
+                        await getHandler.Invoke((IGetRequest)r);
+                    }
+                    break;
+                case RequestType.Call:
+                    if (r.Method == "new")
+                    {
+                        if (newHandler != null)
+                        {
+                            await newHandler.Invoke((INewRequest)r);
+                            break;
+                        }
+                    }
+                    await handleCall((ICallRequest)r);
+                    break;
+                case RequestType.Auth:
+                    await handleAuth((IAuthRequest)r);
+                    break;
+            }
+        }
+
+        public async Task Apply(IResourceContext r, EventArgs ev)
+        {
+            switch (ev)
+            {
+                case ChangeEventArgs change:
+                    if (applyChangeHandler != null)
+                    {
+                        await applyChangeHandler(r, change);
+                    }
+                    break;
+                case AddEventArgs add:
+                    if (applyAddHandler != null)
+                    {
+                        await applyAddHandler(r, add);
+                    }
+                    break;
+                case RemoveEventArgs remove:
+                    if (applyRemoveHandler != null)
+                    {
+                        await applyRemoveHandler(r, remove);
+                    }
+                    break;
+                case CreateEventArgs create:
+                    if (applyCreateHandler != null)
+                    {
+                        await applyCreateHandler(r, create);
+                    }
+                    break;
+                case DeleteEventArgs delete:
+                    if (applyDeleteHandler != null)
+                    {
+                        await applyDeleteHandler(r, delete);
+                    }
+                    break;
+                case CustomEventArgs custom:
+                    if (applyCustomHandler != null)
+                    {
+                        await applyCustomHandler(r, custom);
+                    }
+                    break;
+            }
+            applyHandler?.Invoke(r, ev);
         }
 
         /// <summary>
         /// Method called on an auth request.
         /// </summary>
         /// <param name="request">Auth request context.</param>
-        public virtual void Auth(IAuthRequest request)
+        private async Task handleAuth(IAuthRequest request)
         {
             if (authMethods != null)
             {
-                if (authMethods.TryGetValue(request.Method, out Action<IAuthRequest> handler))
+                if (authMethods.TryGetValue(request.Method, out Func<IAuthRequest, Task> handler))
                 {
-                    handler(request);
-                    return;
-                }
-                else if (authHandler == null)
-                {
-                    request.MethodNotFound();
+                    await handler(request);
                     return;
                 }
             }
-            authHandler?.Invoke(request);
+            if (authHandler != null)
+            {
+                await authHandler.Invoke(request);
+            }
+            else
+            {
+                request.MethodNotFound();
+            }
         }
 
         /// <summary>
         /// Method called on a call request.
         /// </summary>
         /// <param name="request">Call request context.</param>
-        public virtual void Call(ICallRequest request)
+        private async Task handleCall(ICallRequest request)
         {
             if (callMethods != null)
             {
-                if (callMethods.TryGetValue(request.Method, out Action<ICallRequest> handler))
+                if (callMethods.TryGetValue(request.Method, out Func<ICallRequest, Task> handler))
                 {
-                    handler(request);
-                    return;
-                }
-                else if (callHandler == null)
-                {
-                    request.MethodNotFound();
+                    await handler(request);
                     return;
                 }
             }
-            callHandler?.Invoke(request);
-        }
-
-        /// <summary>
-        /// Method called on a new call request.
-        /// </summary>
-        /// <param name="request">New call request context.</param>
-        public virtual void New(INewRequest request)
-        {
-            newHandler?.Invoke(request);
-        }
-
-        /// <summary>
-        /// Method called to apply a model change event.
-        /// </summary>
-        /// <param name="resource">Resource to apply the change to.</param>
-        /// <param name="changes">Property values to apply to model.</param>
-        /// <returns>A dictionary with the values to apply to revert the changes.</returns>
-        public virtual Dictionary<string, object> ApplyChange(IResourceContext resource, IDictionary<string, object> changes)
-        {
-            return applyChangeHandler?.Invoke(resource, changes);
-        }
-        
-        /// <summary>
-        /// Method called to apply a collection add event.
-        /// </summary>
-        /// <param name="resource">Resource to add the value to.</param>
-        /// <param name="value">Value to add.</param>
-        /// <param name="idx">Index position where to add the value.</param>
-        public virtual void ApplyAdd(IResourceContext resource, object value, int idx)
-        {
-            applyAddHandler?.Invoke(resource, value, idx);
-        }
-
-        /// <summary>
-        /// Method called to apply a collection remove event.
-        /// </summary>
-        /// <param name="resource">Resource to remove the value from.</param>
-        /// <param name="idx">Index position of the value to remove.</param>
-        /// <returns>The removed value.</returns>
-        public virtual object ApplyRemove(IResourceContext resource, int idx)
-        {
-            return applyRemoveHandler?.Invoke(resource, idx);
-        }
-
-        /// <summary>
-        /// Method called to apply a resource create event.
-        /// </summary>
-        /// <param name="resource">Resource to create.</param>
-        /// <param name="data">The resource data object.</param>
-        public virtual void ApplyCreate(IResourceContext resource, object data)
-        {
-            applyCreateHandler?.Invoke(resource, data);
-        }
-        
-        /// <summary>
-        /// Method called to apply a resource delete event.
-        /// </summary>
-        /// <param name="resource">Resource to delete.</param>
-        /// <returns>The deleted resource data object.</returns>
-        public virtual object ApplyDelete(IResourceContext resource)
-        {
-            return applyDeleteHandler?.Invoke(resource);
+            if (callHandler != null)
+            {
+                await callHandler.Invoke(request);
+            }
+            else
+            {
+                request.MethodNotFound();
+            }
         }
 
         private void toggleHandlers(HandlerTypes type, bool setFlag)

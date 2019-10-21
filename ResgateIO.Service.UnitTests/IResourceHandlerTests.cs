@@ -18,7 +18,7 @@ namespace ResgateIO.Service.UnitTests
             yield return new object[] { new Dictionary<string, object> { { "foo", "bar" } } };
             yield return new object[] { new Dictionary<string, object> { { "foo", null } } };
             yield return new object[] { new Dictionary<string, object> { { "foo", 12 }, { "bar", true } } };
-            yield return new object[] { new Dictionary<string, object> { { "foo", ResService.DeleteAction } } };
+            yield return new object[] { new Dictionary<string, object> { { "foo", ResAction.Delete } } };
             yield return new object[] { new Dictionary<string, object> { { "foo", new Ref("test.model.bar") } } };
         }
 
@@ -28,18 +28,18 @@ namespace ResgateIO.Service.UnitTests
         {
             bool called = false;
             Service.AddHandler("model", new DynamicHandler()
-                .SetCall(r =>
+                .Call(r =>
                 {
                     r.ChangeEvent(changed);
                     Assert.True(called, "apply callback was not called");
                     r.Ok();
                 })
-                .SetApplyChange((rc, changes) =>
+                .ApplyChange((rc, ev) =>
                 {
                     called = true;
-                    Assert.Equal(changed, changes);
+                    Assert.Equal(changed, ev.ChangedProperties);
                     Assert.Equal("test.model", rc.ResourceName);
-                    return new Dictionary<string, object> { { "foo", "baz" } };
+                    ev.SetRevert(new Dictionary<string, object> { { "foo", "baz" } });
                 }));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
@@ -56,16 +56,16 @@ namespace ResgateIO.Service.UnitTests
         [MemberData(nameof(GetApplyChangeTestData))]
         public void ApplyChange_WithChangedPropertyUsingWith_CallsApplyChangeAndSendsChangeEvent(Dictionary<string, object> changed)
         {
-            AutoResetEvent ev = new AutoResetEvent(false);
+            AutoResetEvent re = new AutoResetEvent(false);
             bool called = false;
             Service.AddHandler("model", new DynamicHandler()
-                .SetGet(r => r.Model(Test.Model))
-                .SetApplyChange((rc, changes) =>
+                .Get(r => r.Model(Test.Model))
+                .ApplyChange((rc, ev) =>
                 {
                     called = true;
-                    Assert.Equal(changed, changes);
+                    Assert.Equal(changed, ev.ChangedProperties);
                     Assert.Equal("test.model", rc.ResourceName);
-                    return new Dictionary<string, object> { { "foo", "baz" } };
+                    ev.SetRevert(new Dictionary<string, object> { { "foo", "baz" } });
                 }));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
@@ -73,9 +73,9 @@ namespace ResgateIO.Service.UnitTests
             {
                 r.ChangeEvent(changed);
                 Assert.True(called, "apply callback was not called");
-                ev.Set();
+                re.Set();
             });
-            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+            Assert.True(re.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
             Conn.GetMsg()
                 .AssertSubject("event.test.model.change")
                 .AssertPayload(new { values = new { foo = changed["foo"] } });
@@ -87,18 +87,18 @@ namespace ResgateIO.Service.UnitTests
         {
             bool called = false;
             Service.AddHandler("model", new DynamicHandler()
-                .SetCall(r =>
+                .Call(r =>
                 {
                     r.ChangeEvent(changed);
                     Assert.True(called, "apply callback was not called");
                     r.Ok();
                 })
-                .SetApplyChange((rc, changes) =>
+                .ApplyChange((rc, ev) =>
                 {
                     called = true;
-                    Assert.Equal(changed, changes);
+                    Assert.Equal(changed, ev.ChangedProperties);
                     Assert.Equal("test.model", rc.ResourceName);
-                    return new Dictionary<string, object> {};
+                    ev.SetRevert(new Dictionary<string, object> {});
                 }));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
@@ -110,24 +110,23 @@ namespace ResgateIO.Service.UnitTests
 
         [Theory]
         [MemberData(nameof(GetApplyChangeTestData))]
-        public void ApplyChange_NullRevertDictionaryUsingWith_NoChangeEvent(Dictionary<string, object> changed)
+        public void ApplyChange_NullRevertDictionaryUsingWith_ChangeEvent(Dictionary<string, object> changed)
         {
-            AutoResetEvent ev = new AutoResetEvent(false);
+            AutoResetEvent re = new AutoResetEvent(false);
             bool called = false;
             Service.AddHandler("model", new DynamicHandler()
-                .SetGet(r => r.Model(Test.Model))
-                .SetCall(r =>
+                .Get(r => r.Model(Test.Model))
+                .Call(r =>
                 {
                     r.ChangeEvent(changed);
                     Assert.True(called, "apply callback was not called");
                     r.Ok();
                 })
-                .SetApplyChange((rc, changes) =>
+                .ApplyChange((rc, ev) =>
                 {
                     called = true;
-                    Assert.Equal(changed, changes);
+                    Assert.Equal(changed, ev.ChangedProperties);
                     Assert.Equal("test.model", rc.ResourceName);
-                    return null;
                 }));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
@@ -135,11 +134,12 @@ namespace ResgateIO.Service.UnitTests
             {
                 r.ChangeEvent(changed);
                 Assert.True(called, "apply callback was not called");
-                r.Event("foo");
-                ev.Set();
+                re.Set();
             });
-            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
-            Conn.GetMsg().AssertSubject("event.test.model.foo");
+            Assert.True(re.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+            Conn.GetMsg()
+                .AssertSubject("event.test.model.change")
+                .AssertPayload(new { values = changed });
         }
         #endregion
 
@@ -159,18 +159,18 @@ namespace ResgateIO.Service.UnitTests
         {
             bool called = false;
             Service.AddHandler("collection", new DynamicHandler()
-                .SetCall(r =>
+                .Call(r =>
                 {
                     r.AddEvent(value, idx);
                     Assert.True(called, "apply callback was not called");
                     r.Ok();
                 })
-                .SetApplyAdd((rc, v, i) =>
+                .ApplyAdd((rc, ev) =>
                 {
                     called = true;
                     Assert.Equal("test.collection", rc.ResourceName);
-                    Assert.Equal(value, v);
-                    Assert.Equal(idx, i);
+                    Assert.Equal(value, ev.Value);
+                    Assert.Equal(idx, ev.Idx);
                 }));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
@@ -187,16 +187,16 @@ namespace ResgateIO.Service.UnitTests
         [MemberData(nameof(GetApplyAddTestData))]
         public void ApplyAdd_UsingWith_CallsApplyAddAndSendsAddEvent(object value, int idx, object expected)
         {
-            AutoResetEvent ev = new AutoResetEvent(false);
+            AutoResetEvent re = new AutoResetEvent(false);
             bool called = false;
             Service.AddHandler("collection", new DynamicHandler()
-                .SetGet(r => r.Collection(Test.Collection))
-                .SetApplyAdd((rc, v, i) =>
+                .Get(r => r.Collection(Test.Collection))
+                .ApplyAdd((rc, ev) =>
                 {
                     called = true;
                     Assert.Equal("test.collection", rc.ResourceName);
-                    Assert.Equal(value, v);
-                    Assert.Equal(idx, i);
+                    Assert.Equal(value, ev.Value);
+                    Assert.Equal(idx, ev.Idx);
                 }));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
@@ -204,9 +204,9 @@ namespace ResgateIO.Service.UnitTests
             {
                 r.AddEvent(value, idx);
                 Assert.True(called, "apply callback was not called");
-                ev.Set();
+                re.Set();
             });
-            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+            Assert.True(re.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
             Conn.GetMsg()
                 .AssertSubject("event.test.collection.add")
                 .AssertPayload(expected);
@@ -227,18 +227,18 @@ namespace ResgateIO.Service.UnitTests
         {
             bool called = false;
             Service.AddHandler("collection", new DynamicHandler()
-                .SetCall(r =>
+                .Call(r =>
                 {
                     r.RemoveEvent(idx);
                     Assert.True(called, "apply callback was not called");
                     r.Ok();
                 })
-                .SetApplyRemove((rc, i) =>
+                .ApplyRemove((rc, ev) =>
                 {
                     called = true;
                     Assert.Equal("test.collection", rc.ResourceName);
-                    Assert.Equal(idx, i);
-                    return "foo";
+                    Assert.Equal(idx, ev.Idx);
+                    ev.SetRevert("foo");
                 }));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
@@ -255,16 +255,16 @@ namespace ResgateIO.Service.UnitTests
         [MemberData(nameof(GetApplyRemoveTestData))]
         public void ApplyRemove_UsingWith_CallsApplyRemoveAndSendsRemoveEvent(int idx, object expected)
         {
-            AutoResetEvent ev = new AutoResetEvent(false);
+            AutoResetEvent re = new AutoResetEvent(false);
             bool called = false;
             Service.AddHandler("collection", new DynamicHandler()
-                .SetGet(r => r.Collection(Test.Collection))
-                .SetApplyRemove((rc, i) =>
+                .Get(r => r.Collection(Test.Collection))
+                .ApplyRemove((rc, ev) =>
                 {
                     called = true;
                     Assert.Equal("test.collection", rc.ResourceName);
-                    Assert.Equal(idx, i);
-                    return "foo";
+                    Assert.Equal(idx, ev.Idx);
+                    ev.SetRevert("foo");
                 }));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
@@ -272,9 +272,9 @@ namespace ResgateIO.Service.UnitTests
             {
                 r.RemoveEvent(idx);
                 Assert.True(called, "apply callback was not called");
-                ev.Set();
+                re.Set();
             });
-            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+            Assert.True(re.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
             Conn.GetMsg()
                 .AssertSubject("event.test.collection.remove")
                 .AssertPayload(expected);
@@ -287,17 +287,17 @@ namespace ResgateIO.Service.UnitTests
         {
             bool called = false;
             Service.AddHandler("model", new DynamicHandler()
-                .SetCall(r =>
+                .Call(r =>
                 {
                     r.CreateEvent(Test.Model);
                     Assert.True(called, "apply callback was not called");
                     r.Ok();
                 })
-                .SetApplyCreate((rc, v) =>
+                .ApplyCreate((rc, ev) =>
                 {
                     called = true;
                     Assert.Equal("test.model", rc.ResourceName);
-                    Assert.Equal(Test.Model, v);
+                    Assert.Equal(Test.Model, ev.Data);
                 }));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
@@ -313,23 +313,23 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void ApplyCreate_UsingWith_CallsApplyCreateAndSendsCreateEvent()
         {
-            AutoResetEvent ev = new AutoResetEvent(false);
+            AutoResetEvent re = new AutoResetEvent(false);
             bool called = false;
             Service.AddHandler("model", new DynamicHandler()
-                .SetApplyCreate((rc, v) =>
+                .ApplyCreate((rc, ev) =>
                 {
                     called = true;
                     Assert.Equal("test.model", rc.ResourceName);
-                    Assert.Equal(Test.Model, v);
+                    Assert.Equal(Test.Model, ev.Data);
                 }));
             Service.Serve(Conn);
             Service.With("test.model", r =>
             {
                 r.CreateEvent(Test.Model);
                 Assert.True(called, "apply callback was not called");
-                ev.Set();
+                re.Set();
             });
-            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+            Assert.True(re.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
             Conn.GetMsg()
                 .AssertSubject("event.test.model.create")
                 .AssertNoPayload();
@@ -342,17 +342,17 @@ namespace ResgateIO.Service.UnitTests
         {
             bool called = false;
             Service.AddHandler("model", new DynamicHandler()
-                .SetCall(r =>
+                .Call(r =>
                 {
                     r.DeleteEvent();
                     Assert.True(called, "apply callback was not called");
                     r.Ok();
                 })
-                .SetApplyDelete(rc =>
+                .ApplyDelete((rc, ev) =>
                 {
                     called = true;
                     Assert.Equal("test.model", rc.ResourceName);
-                    return Test.Model;
+                    ev.SetRevert(Test.Model);
                 }));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
@@ -368,23 +368,23 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void ApplyDelete_UsingWith_CallsApplyDeleteAndSendsDeleteEvent()
         {
-            AutoResetEvent ev = new AutoResetEvent(false);
+            AutoResetEvent re = new AutoResetEvent(false);
             bool called = false;
             Service.AddHandler("model", new DynamicHandler()
-                .SetApplyDelete(rc =>
+                .ApplyDelete((rc, ev) =>
                 {
                     called = true;
                     Assert.Equal("test.model", rc.ResourceName);
-                    return Test.Model;
+                    ev.SetRevert(Test.Model);
                 }));
             Service.Serve(Conn);
             Service.With("test.model", r =>
             {
                 r.DeleteEvent();
                 Assert.True(called, "apply callback was not called");
-                ev.Set();
+                re.Set();
             });
-            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+            Assert.True(re.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
             Conn.GetMsg()
                 .AssertSubject("event.test.model.delete")
                 .AssertNoPayload();

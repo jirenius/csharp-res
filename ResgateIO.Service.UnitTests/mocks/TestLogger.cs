@@ -12,19 +12,45 @@ namespace ResgateIO.Service.UnitTests
             log = output;
         }
 
-        public void Info(string message)
+
+        /// <summary>
+        /// Logs info message.
+        /// </summary>
+        /// <param name="format">A composite format string.</param>
+        /// <param name="args">An object array that contains zero or more objects to format.</param>
+        public void Info(string format, params object[] args)
         {
-            log.WriteLine("[INFO ] " + message);
+            log.WriteLine("[INF] " + format, args);
         }
 
-        public void Error(string message)
+        /// <summary>
+        /// Logs debug message.
+        /// </summary>
+        /// <param name="format">A composite format string.</param>
+        /// <param name="args">An object array that contains zero or more objects to format.</param>
+        public void Debug(string format, params object[] args)
         {
-            log.WriteLine("[ERROR] " + message);
+            log.WriteLine("[DBG] " + format, args);
         }
 
-        public void Trace(string message)
+        /// <summary>
+        /// Logs error message.
+        /// </summary>
+        /// <param name="format">A composite format string.</param>
+        /// <param name="args">An object array that contains zero or more objects to format.</param>
+        public void Error(string format, params object[] args)
         {
-            log.WriteLine("[TRACE] " + message);
+            log.WriteLine("[ERR] " + format, args);
+        }
+
+        /// <summary>
+        /// Logs trace message.
+        /// </summary>
+        /// <param name="format">A composite format string.</param>
+        /// <param name="args">An object array that contains zero or more objects to format.</param>
+        public void Trace(string format, params object[] args)
+        {
+            log.WriteLine("[TRC] " + format, args);
         }
     }
 }

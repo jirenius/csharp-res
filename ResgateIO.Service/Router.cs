@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 
 namespace ResgateIO.Service
 {
@@ -11,7 +13,7 @@ namespace ResgateIO.Service
         /// <summary>
         /// Represent a parameter part of the resource name.
         /// </summary>
-        private class PathParam
+        internal class PathParam
         {
             public string Name { get; }
             public int Idx { get;  }
@@ -21,9 +23,19 @@ namespace ResgateIO.Service
                 Name = name;
                 Idx = idx;
             }
+
+            public bool Equals(PathParam pp)
+            {
+                return pp != null && pp.Name == Name && pp.Idx == Idx;
+            }
+
+            public override string ToString()
+            {
+                return String.Format("{0} (idx {1})", Name, Idx);
+            }
         }
 
-        private class Group
+        internal class Group
         {
             public bool UseResourceName = false;
             public string[] Parts = null;
@@ -41,26 +53,24 @@ namespace ResgateIO.Service
                 }
             }
 
-            public string ToString(string resourceName)
+            public string ToString(string rname, string[] tokens, int offset)
             {
                 if (UseResourceName)
                 {
-                    return resourceName;
+                    return rname;
                 }
-
                 int len = Parts.Length;
                 if (len == 1 && Parts[0] != String.Empty)
                 {
                     return Parts[0];
                 }
 
-                string[] tokens = resourceName.Split(BTSEP);
                 string[] strs = new string[len];
                 for (int i = 0; i < len; i++)
                 {
                     if (Parts[i] == String.Empty)
                     {
-                        strs[i] = tokens[PartIdx[i]];
+                        strs[i] = tokens[PartIdx[i]+offset];
                     }
                     else
                     {
@@ -75,7 +85,7 @@ namespace ResgateIO.Service
                 List<string> parts = new List<string>();
                 List<int> partIdx = new List<int>();
 
-                string[] tokens = p.Split(BTSEP);
+                string[] tokens = String.IsNullOrEmpty(p) ? new string[] { } : p.Split(BTSEP);
                 int len = g.Length;
                 int offset = 0;
                 while (offset < len)
@@ -143,15 +153,39 @@ namespace ResgateIO.Service
         /// to the next nodes, including wildcards.
         /// Only one Handler may exist per node.
         /// </summary>
-        private class Node
+        internal class Node
         {
-            public IResourceHandler Handler;
+            public IAsyncHandler Handler;
             public Group Group;
             public List<PathParam> Params;
             public Dictionary<string, Node> Nodes;
             public Node Param;
             public Node Wild;
             public bool IsMounted;
+            public EventHandler EventHandler;
+
+            public void SetAndValidateParams(List<PathParam> pps)
+            {
+                if (Params == null)
+                {
+                    Params = pps;
+                    return;
+                }
+
+                if (Params.Count != pps.Count)
+                {
+                    throw new InvalidOperationException("Path param count mismatches those previously set.");
+                }
+
+                // Assert the params being set equals those previously set
+                for (var i = 0; i < pps.Count; i++)
+                {
+                    if (!pps[i].Equals(Params[i]))
+                    {
+                        throw new InvalidOperationException(String.Format("Part param tokens (%s) mismatch those previously set (%).", String.Join(", ", pps), String.Join(", ", Params)));
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -163,7 +197,12 @@ namespace ResgateIO.Service
             /// <summary>
             /// Registered handler.
             /// </summary>
-            public IResourceHandler Handler { get; }
+            public IAsyncHandler Handler { get; }
+
+            /// <summary>
+            /// Multicast delegate handler for registered event listeners.
+            /// </summary>
+            public EventHandler EventHandler { get; }
 
             /// <summary>
             /// Path parameters derived from the resource name. Null if no parameters are defined.
@@ -175,9 +214,12 @@ namespace ResgateIO.Service
             /// </summary>
             public string Group { get; }
 
-            public Match(IResourceHandler handler, Dictionary<string, string> pathParams, string group)
+            private Node node;
+
+            internal Match(IAsyncHandler handler, EventHandler eventHandler, Dictionary<string, string> pathParams, string group)
             {
                 Handler = handler;
+                EventHandler = eventHandler;
                 Params = pathParams;
                 Group = group;
             }
@@ -187,10 +229,11 @@ namespace ResgateIO.Service
         {
             public Node Node = null;
             public Dictionary<string, string> Params = null;
+            public int MountIdx = 0;
         }
 
         /// <summary>
-        /// Gets the subpattern that prefix all resources, not including the pattern of any parent Router.
+        /// Gets the pattern that prefix all resources, not including the pattern of any parent Router.
         /// </summary>
         public string Pattern { get; private set; }
 
@@ -229,6 +272,23 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
+        /// Registers a handler.
+        /// If a <see cref="ResourcePatternAttribute"/> is defined, the method will register
+        /// the handler on that subpattern, otherwise it will be set as root handler.
+        /// If a <see cref="ResourceGroupAttribute"/> is defined, the method will register
+        /// the handler to that group.
+        /// </summary>
+        /// <remarks>The resource uses its own pattern as group pattern.</remarks>
+        /// <param name="handler">Resource handler.</param>
+        public void AddHandler(IAsyncHandler handler)
+        {
+            AddHandler(
+                GetHandlerAttribute<ResourcePatternAttribute>(handler)?.Pattern,
+                GetHandlerAttribute<ResourceGroupAttribute>(handler)?.Group,
+                handler);
+        }
+
+        /// <summary>
         /// Registers a handler for the given resource pattern.
         ///
         /// A pattern may contain placeholders that acts as wildcards, and will be
@@ -243,14 +303,18 @@ namespace ResgateIO.Service
         /// If the pattern is already registered, or if there are conflicts among
         /// the handlers, an exception will be thrown.
         /// 
-        /// All handling of the resource will be done in order on a single worker thread.
+        /// If a <see cref="ResourceGroupAttribute"/> is defined, the method will register
+        /// the handler to that group.
         /// </summary>
         /// <remarks>The resource uses its own pattern as group pattern.</remarks>
         /// <param name="subpattern">Resource pattern.</param>
         /// <param name="handler">Resource handler.</param>
-        public void AddHandler(string subpattern, IResourceHandler handler)
+        public void AddHandler(string subpattern, IAsyncHandler handler)
         {
-            AddHandler(subpattern, null, handler);
+            AddHandler(
+                subpattern,
+                GetHandlerAttribute<ResourceGroupAttribute>(handler)?.Group,
+                handler);
         }
 
         /// <summary>
@@ -268,14 +332,14 @@ namespace ResgateIO.Service
         /// If the pattern is already registered, or if there are conflicts among
         /// the handlers, an exception will be thrown.
         /// 
-        /// All resources of the same group will be handled in order on a single worker thread.
+        /// All resources of the same group will be handled in order on a single worker task.
         /// The group may contain tags, ${tagName}, where the tag name matches a parameter
         /// placeholder name in the resource pattern.
         /// </summary>
         /// <param name="subpattern">Resource subpattern.</param>
         /// <param name="group">Group pattern. Null or empty means using the resource name as group.</param>
         /// <param name="handler">Resource handler.</param>
-        public void AddHandler(string subpattern, string group, IResourceHandler handler)
+        public void AddHandler(string subpattern, string group, IAsyncHandler handler)
         {
             handler = handler ?? throw new ArgumentNullException("handler must not be null.");            
 
@@ -287,8 +351,54 @@ namespace ResgateIO.Service
             }
             Node n = tuple.Item1;
             n.Group = new Group(group, subpattern);
-            n.Params = tuple.Item2;
+            n.SetAndValidateParams(tuple.Item2);
             n.Handler = handler;
+
+            registerEventHandlers(handler);
+        }
+
+        /// <summary>
+        /// Adds a listener to events for the resource with the registered subpattern.
+        /// The subpattern must be an exact match of the registered resource, including any placeholder tags.
+        /// 
+        /// The sender will always implement the IResourceContext, and the EventArgs may be any
+        /// of the following, based on type of event:
+        /// <list type="bullet">
+        /// <item><description><see cref="ChangeEventArgs"/></description></item>
+        /// <item><description><see cref="AddEventArgs"/></description></item>
+        /// <item><description><see cref="RemoveEventArgs"/></description></item>
+        /// <item><description><see cref="CreateEventArgs"/></description></item>
+        /// <item><description><see cref="DeleteEventArgs"/></description></item>
+        /// <item><description><see cref="CustomEventArgs"/></description></item>
+        /// </list> 
+        /// </summary>
+        /// <example><code>
+        /// router.AddEventListener("foo.$id", (sender, ev) => {
+        ///     var resource = (IResourceContext)sender;
+        ///     switch (ev)
+        ///     {
+        ///         case ChangeEventArgs change:
+        ///             // Handle change event
+        ///             break;
+        ///         case CustomEventArgs custom:
+        ///             // Handle custom event
+        ///             break;
+        ///         default:
+        ///             // Default handling
+        ///     }
+        /// });
+        /// </code></example>
+        /// <param name="subpattern">Resource subpattern.</param>
+        /// <param name="handler">Event handler invoked on any resource event.</param>
+        public void AddEventListener(string subpattern, EventHandler handler)
+        {
+            handler = handler ?? throw new ArgumentNullException("action must not be null.");
+
+            Tuple<Node, List<PathParam>> tuple = fetch(subpattern, null);
+
+            Node n = tuple.Item1;
+            n.SetAndValidateParams(tuple.Item2);
+            n.EventHandler += handler;
         }
 
         /// <summary>
@@ -327,12 +437,34 @@ namespace ResgateIO.Service
             child.parent = this;
         }
 
+        /// <summary>
+        /// Validates that all patterns with event listeners, added explicitly with <see cref="AddEventListener(string, EventHandler)"/>,
+        /// or implicitly through the <see cref="EventListenerAttribute"/> has registered handlers.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown if an event listener is registered for a handler that does not exist.</exception>
+        public void ValidateEventListeners()
+        {
+            var path = new List<string>(32);
+            if (!String.IsNullOrEmpty(Pattern))
+            {
+                path.Add(Pattern);
+            }
+            if (contains(root, path, n => n.Handler == null && n.EventHandler != null))
+            {
+                throw new InvalidOperationException("No handler registered for pattern " + String.Join(".", path));
+            }
+        }
+
         private Tuple<Node, List<PathParam>> fetch(string subpattern, Node mount)
         {
+            List<PathParam> pathParams = new List<PathParam>();
+            if (String.IsNullOrEmpty(subpattern))
+            {
+                return new Tuple<Node, List<PathParam>>(root, pathParams);
+            }
             string[] tokens = subpattern.Split(BTSEP);
             Node current = root;
             Node next;
-            List<PathParam> pathParams = new List<PathParam>();
             bool doMount = false;
             int tokenCount = tokens.Length;
             int mountIdx = 0;
@@ -460,23 +592,25 @@ namespace ResgateIO.Service
         {
             InternalMatch match = new InternalMatch();
             string subrname = resourceName;
-            if (Pattern.Length > 0)
+            int pl = Pattern.Length;
+            if (pl > 0)
             {
-                if (!resourceName.StartsWith(Pattern))
+                int rl = resourceName.Length;
+                if (pl == rl)
                 {
-                    return null;
-                }
-                if (resourceName.Length > Pattern.Length)
-                {
-                    if (resourceName[Pattern.Length] != '.')
+                    if (Pattern != resourceName)
                     {
                         return null;
                     }
-                    subrname = resourceName.Substring(Pattern.Length + 1);
+                    subrname = "";
                 }
                 else
                 {
-                    subrname = "";
+                    if (pl > rl || !resourceName.StartsWith(Pattern) || resourceName[pl] != '.')
+                    {
+                        return null;
+                    }
+                    subrname = resourceName.Substring(pl + 1);
                 }
             }
 
@@ -487,13 +621,18 @@ namespace ResgateIO.Service
                     return null;
                 }
 
-                return new Match(root.Handler, null, root.Group.ToString(resourceName));
+                return new Match(root.Handler, root.EventHandler, null, root.Group.ToString(resourceName, null, 0));
             }
 
             string[] tokens = subrname.Split(BTSEP);
             matchNode(root, tokens, 0, 0, match);
-
-            return match.Node == null ? null : new Match(match.Node.Handler, match.Params, match.Node.Group.ToString(resourceName));            
+            return match.Node == null
+                ? null
+                : new Match(
+                    match.Node.Handler,
+                    match.Node.EventHandler,
+                    match.Params,
+                    match.Node.Group.ToString(resourceName, tokens, match.MountIdx));
         }
 
         /// <summary>
@@ -501,9 +640,9 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="predicate">Predicate to match.</param>
         /// <returns>True if a handler matching the predicate is found, otherwise false.</returns>
-        public bool Contains(Predicate<IResourceHandler> predicate)
+        public bool Contains(Predicate<IAsyncHandler> predicate)
         {
-            return contains(root, predicate);
+            return contains(root, null, n => n.Handler != null && predicate(n.Handler));
         }
 
         private bool matchNode(Node current, string[] tokens, int tokenIdx, int mountIdx, InternalMatch nodeMatch)
@@ -532,6 +671,7 @@ namespace ResgateIO.Service
                         if (next.Handler != null)
                         {
                             nodeMatch.Node = next;
+                            nodeMatch.MountIdx = mountIdx;
                             // Check if we have path parameters for the handlers
                             if (next.Params != null) {
                                 // Create a map with path parameter values
@@ -565,6 +705,7 @@ namespace ResgateIO.Service
             {
                 next = current.Wild;
                 nodeMatch.Node = next;
+                nodeMatch.MountIdx = mountIdx;
                 if (next.Params != null)
                 {
                     // Create a map with path parameter values
@@ -600,39 +741,74 @@ namespace ResgateIO.Service
             return a + "." + b;
         }
 
-        private bool contains(Node n, Predicate<IResourceHandler> predicate)
+        private bool contains(Node n, List<string> path, Predicate<Node> predicate)
         {
-            if (n.Wild != null && n.Wild.Handler != null && predicate(n.Wild.Handler))
+            // Full wildcard path
+            if (n.Wild != null && predicate(n.Wild))
             {
+                path?.Add(">");
                 return true;
             }
+
+            // Wildcard path
+            path?.Add("*");
             if (
                 n.Param != null &&
                 (
-                    (n.Param.Handler != null && predicate(n.Param.Handler)) ||
-                    contains(n.Param, predicate)
+                    predicate(n.Param) ||
+                    contains(n.Param, path, predicate)
                 )
             )
             {
                 return true;
             }
+            path?.RemoveAt(path.Count - 1);
+
+            // Named path
             if (n.Nodes != null)
             {
                 foreach (KeyValuePair<string, Node> pair in n.Nodes)
                 {
                     Node nn = pair.Value;
+                    path?.Add(pair.Key);
                     if (
-
-                        (nn.Handler != null && predicate(nn.Handler)) ||
-                        contains(nn, predicate)
+                        predicate(nn) ||
+                        contains(nn, path, predicate)
                     )
                     {
                         return true;
                     }
+                    path?.RemoveAt(path.Count - 1);
                 }
             }
 
             return false;
+        }
+
+        private static TAttribute GetHandlerAttribute<TAttribute>(IAsyncHandler h) where TAttribute : Attribute
+        {
+            if (h != null)
+            {
+                var attr = h.GetType().GetTypeInfo().GetCustomAttribute<TAttribute>();
+                if (attr is TAttribute)
+                {
+                    return attr;
+                }
+            }
+            return null;
+        }
+
+        private void registerEventHandlers(IAsyncHandler h)
+        {
+            MethodInfo[] methods = h.GetType().GetTypeInfo().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            foreach (MethodInfo method in methods)
+            {
+                var attrs = method.GetCustomAttributes<EventListenerAttribute>();
+                foreach (var attr in attrs)
+                {
+                    AddEventListener(attr.Pattern, (EventHandler)method.CreateDelegate(typeof(EventHandler), h));
+                }
+            }
         }
     }
 }

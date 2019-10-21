@@ -7,10 +7,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ResgateIO.Service", "Resgat
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ResgateIO.Service.UnitTests", "ResgateIO.Service.UnitTests\ResgateIO.Service.UnitTests.csproj", "{1820FEF4-53AE-4541-8592-2309293C5242}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HelloWorld", "examples\HelloWorld\HelloWorld.csproj", "{B0C17113-0EF1-431C-AC38-495E6FEA9DE5}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BookCollection", "examples\BookCollection\BookCollection.csproj", "{CEEE43F2-361C-4D1A-911F-57C56B09FF60}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -25,14 +21,6 @@ Global
 		{1820FEF4-53AE-4541-8592-2309293C5242}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1820FEF4-53AE-4541-8592-2309293C5242}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1820FEF4-53AE-4541-8592-2309293C5242}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B0C17113-0EF1-431C-AC38-495E6FEA9DE5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B0C17113-0EF1-431C-AC38-495E6FEA9DE5}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B0C17113-0EF1-431C-AC38-495E6FEA9DE5}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B0C17113-0EF1-431C-AC38-495E6FEA9DE5}.Release|Any CPU.Build.0 = Release|Any CPU
-		{CEEE43F2-361C-4D1A-911F-57C56B09FF60}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{CEEE43F2-361C-4D1A-911F-57C56B09FF60}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{CEEE43F2-361C-4D1A-911F-57C56B09FF60}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{CEEE43F2-361C-4D1A-911F-57C56B09FF60}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

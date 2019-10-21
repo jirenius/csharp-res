@@ -61,6 +61,33 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
+        /// Sends a system.invalidQuery response with a default error message.
+        /// </summary>
+        public void InvalidQuery()
+        {
+            RawResponse(ResService.ResponseInvalidQuery);
+        }
+
+        /// <summary>
+        /// Sends a system.invalidQuery response with a custom error message.
+        /// </summary>
+        /// <param name="message">Error message.</param>
+        public void InvalidQuery(string message)
+        {
+            Error(new ResError(ResError.CodeInvalidQuery, message));
+        }
+
+        /// <summary>
+        /// Sends a system.invalidQuery response with a custom error message and data.
+        /// </summary>
+        /// <param name="message">Error message.</param>
+        /// <param name="data">Additional data. Must be JSON serializable.</param>
+        public void InvalidQuery(string message, object data)
+        {
+            Error(new ResError(ResError.CodeInvalidQuery, message, data));
+        }
+
+        /// <summary>
         /// Adds a change event to the query response.
         /// If properties is null or empty, no event is added.
         /// </summary>
@@ -115,7 +142,7 @@ namespace ResgateIO.Service
             }
 
             var str = "timeout:\"" + milliseconds.ToString() + "\"";
-            Log.Trace(String.Format("<-- {0}: {1}", msg.Subject, str));
+            Log.Trace("<-- {0}: {1}", msg.Subject, str);
             Service.RawSend(msg.Reply, Encoding.UTF8.GetBytes(str));
         }
 
@@ -146,7 +173,7 @@ namespace ResgateIO.Service
                 throw new InvalidOperationException("Response already sent on query request");
             }
             Replied = true;
-            Log.Trace(String.Format("<=Q {0}: {1}", ResourceName, Encoding.UTF8.GetString(data)));
+            Log.Trace("<=Q {0}: {1}", ResourceName, Encoding.UTF8.GetString(data));
             try
             {
                 Service.RawSend(msg.Reply, data);

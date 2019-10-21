@@ -12,7 +12,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void Properties_ReturnsCorrectValue()
         {
-            Service.AddHandler("model", new DynamicHandler().SetAuth(r =>
+            Service.AddHandler("model", new DynamicHandler().Auth(r =>
             {
                 Assert.Equal("method", r.Method);
                 Assert.Equal(Test.CID, r.CID);
@@ -38,7 +38,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void PropertiesTokenAndParams_WithNoTokenOrParams_ReturnsNull()
         {
-            Service.AddHandler("model", new DynamicHandler().SetAuth(r =>
+            Service.AddHandler("model", new DynamicHandler().Auth(r =>
             {
                 Assert.Equal("method", r.Method);
                 Assert.Equal(Test.CID, r.CID);
@@ -57,7 +57,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void Ok_WithNoResult_SendsNullResponse()
         {
-            Service.AddHandler("model", new DynamicHandler().SetAuth(r => r.Ok()));
+            Service.AddHandler("model", new DynamicHandler().Auth(r => r.Ok()));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
             string inbox = Conn.NATSRequest("auth.test.model.method", Test.Request);
@@ -69,7 +69,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void Ok_WithResult_SendsResultInResponse()
         {
-            Service.AddHandler("model", new DynamicHandler().SetAuth(r => r.Ok(Test.Result)));
+            Service.AddHandler("model", new DynamicHandler().Auth(r => r.Ok(Test.Result)));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
             string inbox = Conn.NATSRequest("auth.test.model.method", Test.Request);
@@ -81,7 +81,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void Ok_WithNullResult_SendsNullResponse()
         {
-            Service.AddHandler("model", new DynamicHandler().SetAuth(r => r.Ok(null)));
+            Service.AddHandler("model", new DynamicHandler().Auth(r => r.Ok(null)));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
             string inbox = Conn.NATSRequest("auth.test.model.method", Test.Request);
@@ -93,7 +93,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void Error_SendsErrorResponse()
         {
-            Service.AddHandler("model", new DynamicHandler().SetAuth(r => r.Error(Test.CustomError)));
+            Service.AddHandler("model", new DynamicHandler().Auth(r => r.Error(Test.CustomError)));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
             string inbox = Conn.NATSRequest("auth.test.model.method", Test.Request);
@@ -105,7 +105,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void NotFound_SendsNotFoundErrorResponse()
         {
-            Service.AddHandler("model", new DynamicHandler().SetAuth(r => r.NotFound()));
+            Service.AddHandler("model", new DynamicHandler().Auth(r => r.NotFound()));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
             string inbox = Conn.NATSRequest("auth.test.model.method", Test.Request);
@@ -117,7 +117,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void MethodNotFound_SendsMethodNotFoundErrorResponse()
         {
-            Service.AddHandler("model", new DynamicHandler().SetAuth(r => r.MethodNotFound()));
+            Service.AddHandler("model", new DynamicHandler().Auth(r => r.MethodNotFound()));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
             string inbox = Conn.NATSRequest("auth.test.model.method", Test.Request);
@@ -129,7 +129,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void InvalidParams_WithoutMessage_SendsInvalidParamsErrorResponse()
         {
-            Service.AddHandler("model", new DynamicHandler().SetAuth(r => r.InvalidParams()));
+            Service.AddHandler("model", new DynamicHandler().Auth(r => r.InvalidParams()));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
             string inbox = Conn.NATSRequest("auth.test.model.method", Test.RequestWithParams);
@@ -141,7 +141,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void InvalidParams_WithMessage_SendsInvalidParamsErrorWithMessageResponse()
         {
-            Service.AddHandler("model", new DynamicHandler().SetAuth(r => r.InvalidParams(Test.ErrorMessage)));
+            Service.AddHandler("model", new DynamicHandler().Auth(r => r.InvalidParams(Test.ErrorMessage)));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
             string inbox = Conn.NATSRequest("auth.test.model.method", Test.RequestWithParams);
@@ -153,7 +153,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void InvalidParams_WithMessageAndData_SendsInvalidParamsErrorWithMessageAndDataResponse()
         {
-            Service.AddHandler("model", new DynamicHandler().SetAuth(r => r.InvalidParams(Test.ErrorMessage, Test.ErrorData)));
+            Service.AddHandler("model", new DynamicHandler().Auth(r => r.InvalidParams(Test.ErrorMessage, Test.ErrorData)));
             Service.Serve(Conn);
             Conn.GetMsg().AssertSubject("system.reset");
             string inbox = Conn.NATSRequest("auth.test.model.method", Test.RequestWithParams);
@@ -163,9 +163,45 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Fact]
+        public void InvalidQuery_WithoutMessage_SendsInvalidQueryErrorResponse()
+        {
+            Service.AddHandler("model", new DynamicHandler().Auth(r => r.InvalidQuery()));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("auth.test.model.method", Test.RequestWithParams);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertError(ResError.InvalidQuery);
+        }
+
+        [Fact]
+        public void InvalidQuery_WithMessage_SendsInvalidQueryErrorWithMessageResponse()
+        {
+            Service.AddHandler("model", new DynamicHandler().Auth(r => r.InvalidQuery(Test.ErrorMessage)));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("auth.test.model.method", Test.RequestWithParams);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertError(ResError.CodeInvalidQuery, Test.ErrorMessage);
+        }
+
+        [Fact]
+        public void InvalidQuery_WithMessageAndData_SendsInvalidQueryErrorWithMessageAndDataResponse()
+        {
+            Service.AddHandler("model", new DynamicHandler().Auth(r => r.InvalidQuery(Test.ErrorMessage, Test.ErrorData)));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("auth.test.model.method", Test.RequestWithParams);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertError(ResError.CodeInvalidQuery, Test.ErrorMessage, Test.ErrorData);
+        }
+
+        [Fact]
         public void ParseParams_WithParams_ReturnsParsedParams()
         {
-            Service.AddHandler("model", new DynamicHandler().SetAuth(r =>
+            Service.AddHandler("model", new DynamicHandler().Auth(r =>
             {
                 ParamsDto p = r.ParseParams<ParamsDto>();
                 Assert.Equal(Test.ParamNumber, p.Number);
@@ -183,7 +219,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void ParseParams_WithoutParams_ReturnsNull()
         {
-            Service.AddHandler("model", new DynamicHandler().SetAuth(r =>
+            Service.AddHandler("model", new DynamicHandler().Auth(r =>
             {
                 Assert.Null(r.ParseParams<ParamsDto>());
                 r.Ok(Test.Result);
@@ -199,7 +235,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void ParseToken_WithToken_ReturnsParsedToken()
         {
-            Service.AddHandler("model", new DynamicHandler().SetAuth(r =>
+            Service.AddHandler("model", new DynamicHandler().Auth(r =>
             {
                 TokenDto p = r.ParseToken<TokenDto>();
                 Assert.Equal(Test.TokenId, p.Id);
@@ -217,7 +253,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void ParseToken_WithoutToken_ReturnsNull()
         {
-            Service.AddHandler("model", new DynamicHandler().SetAuth(r =>
+            Service.AddHandler("model", new DynamicHandler().Auth(r =>
             {
                 Assert.Null(r.ParseToken<TokenDto>());
                 r.Ok(Test.Result);
@@ -233,7 +269,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void TokenEvent_WithToken_SendsTokenEvent()
         {
-            Service.AddHandler("model", new DynamicHandler().SetAuth(r =>
+            Service.AddHandler("model", new DynamicHandler().Auth(r =>
             {
                 r.TokenEvent(Test.Token);
                 r.Ok(Test.Result);
@@ -252,7 +288,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void TokenEvent_WithNullToken_SendsNullTokenEvent()
         {
-            Service.AddHandler("model", new DynamicHandler().SetAuth(r =>
+            Service.AddHandler("model", new DynamicHandler().Auth(r =>
             {
                 r.TokenEvent(null);
                 r.Ok(Test.Result);
@@ -271,7 +307,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void Timeout_WithMilliseconds_SendsPreresponse()
         {
-            Service.AddHandler("model", new DynamicHandler().SetAuth(r =>
+            Service.AddHandler("model", new DynamicHandler().Auth(r =>
             {
                 r.Timeout(3000);
                 r.Ok(Test.Result);
@@ -290,7 +326,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void Timeout_WithTimespan_SendsPreresponse()
         {
-            Service.AddHandler("model", new DynamicHandler().SetAuth(r =>
+            Service.AddHandler("model", new DynamicHandler().Auth(r =>
             {
                 r.Timeout(new TimeSpan(0, 0, 4));
                 r.Ok(Test.Result);
@@ -309,7 +345,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void Timeout_WithNegativeDuration_ThrowsException()
         {
-            Service.AddHandler("model", new DynamicHandler().SetAuth(r =>
+            Service.AddHandler("model", new DynamicHandler().Auth(r =>
             {
                 r.Timeout(-1);
                 r.Ok();

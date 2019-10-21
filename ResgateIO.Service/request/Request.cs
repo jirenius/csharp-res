@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 using NATS.Client;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -10,7 +11,7 @@ namespace ResgateIO.Service
     /// <summary>
     /// Provides context information and methods for responding to a request.
     /// </summary>
-    public class Request: ResourceContext, IAccessRequest, IGetRequest, ICallRequest, IAuthRequest, IModelRequest, ICollectionRequest, INewRequest
+    public class Request: ResourceContext, IRequest, IAccessRequest, IGetRequest, ICallRequest, IAuthRequest, IModelRequest, ICollectionRequest, INewRequest
     {
         private readonly Msg msg;
 
@@ -92,8 +93,10 @@ namespace ResgateIO.Service
             string rtype,
             string rname,
             string method,
-            IResourceHandler handler,
+            IAsyncHandler handler,
+            EventHandler eventHandler,
             Dictionary<string, string> pathParams,
+            string group,
             string cid,
             JToken rawParams,
             JToken rawToken,
@@ -102,7 +105,7 @@ namespace ResgateIO.Service
             string remoteAddr,
             string uri,
             string query)
-            : base(service, rname, handler, pathParams, query)
+            : base(service, rname, handler, eventHandler, pathParams, query, group)
         {
             this.msg = msg;
             Type = RequestTypeHelper.FromString(rtype);
@@ -132,7 +135,7 @@ namespace ResgateIO.Service
                 throw new InvalidOperationException("Response already sent on request");
             }
             replied = true;
-            Log.Trace(String.Format("<== {0}: {1}", msg.Subject, Encoding.UTF8.GetString(data)));
+            Log.Trace("<== {0}: {1}", msg.Subject, Encoding.UTF8.GetString(data));
             Service.RawSend(msg.Reply, data);
         }
 
@@ -230,7 +233,7 @@ namespace ResgateIO.Service
         {
             RawResponse(ResService.ResponseInvalidParams);
         }
-        
+
         /// <summary>
         /// Sends a system.invalidParams response with a custom error message.
         /// </summary>
@@ -254,6 +257,33 @@ namespace ResgateIO.Service
         public void InvalidParams(string message, object data)
         {
             Error(new ResError(ResError.CodeInvalidParams, message, data));
+        }
+
+        /// <summary>
+        /// Sends a system.invalidQuery response with a default error message.
+        /// </summary>
+        public void InvalidQuery()
+        {
+            RawResponse(ResService.ResponseInvalidQuery);
+        }
+
+        /// <summary>
+        /// Sends a system.invalidQuery response with a custom error message.
+        /// </summary>
+        /// <param name="message">Error message.</param>
+        public void InvalidQuery(string message)
+        {
+            Error(new ResError(ResError.CodeInvalidQuery, message));
+        }
+
+        /// <summary>
+        /// Sends a system.invalidQuery response with a custom error message and data.
+        /// </summary>
+        /// <param name="message">Error message.</param>
+        /// <param name="data">Additional data. Must be JSON serializable.</param>
+        public void InvalidQuery(string message, object data)
+        {
+            Error(new ResError(ResError.CodeInvalidQuery, message, data));
         }
 
         /// <summary>
@@ -295,7 +325,6 @@ namespace ResgateIO.Service
                 }
             }
         }
-                    
 
         /// <summary>
         /// Sends a system.accessDenied response.
@@ -331,16 +360,11 @@ namespace ResgateIO.Service
         /// Sends a successful query model response for the get request.
         /// The model must be serializable into a JSON object.
         /// </summary>
-        /// <remarks>Only valid for RequestType.Get requests for a query model resource.</remarks>
+        /// <remarks>Only valid for RequestType.Get requests for a model resource.</remarks>
         /// <param name="model">Model data</param>
         /// <param name="query">Normalized query</param>
         public void Model(object model, string query)
         {
-            if (!String.IsNullOrEmpty(query) && String.IsNullOrEmpty(Query))
-            {
-                throw new ArgumentException("Query model response on non-query request");
-            }
-
             Ok(new ModelDto(model, query));
         }
 
@@ -359,81 +383,19 @@ namespace ResgateIO.Service
         /// Sends a successful query collection response for the get request.
         /// The collection must be serializable into a JSON array.
         /// </summary>
-        /// <remarks>Only valid for RequestType.Get requests for a query collection resource.</remarks>
+        /// <remarks>Only valid for RequestType.Get requests for a collection resource.</remarks>
         /// <param name="collection">Collection data</param>
         /// <param name="query">Normalized query</param>
         public void Collection(object collection, string query)
         {
-            if (!String.IsNullOrEmpty(query) && String.IsNullOrEmpty(Query))
-            {
-                throw new ArgumentException("Query collection response on non-query request");
-            }
-
             Ok(new CollectionDto(collection, query));
         }
 
-        internal void ExecuteHandler()
+        internal async Task ExecuteHandler()
         {
             try
             {
-                switch (Type)
-                {
-                    case RequestType.Access:
-                        if (Handler.EnabledHandlers.HasFlag(HandlerTypes.Access))
-                        {
-                            Handler.Access(this);
-                        }
-                        // No additional handling. Assume the access request is handled by another service.
-                        break;
-
-                    case RequestType.Get:
-                        if (Handler.EnabledHandlers.HasFlag(HandlerTypes.Get))
-                        {
-                            Handler.Get(this);
-                        }
-                        else
-                        {
-                            NotFound();
-                        }
-                        break;
-
-                    case RequestType.Call:
-                        if (Method == "new")
-                        {
-                            if (Handler.EnabledHandlers.HasFlag(HandlerTypes.New))
-                            {
-                                Handler.New(this);
-                            }
-                            else
-                            {
-                                MethodNotFound();
-                            }
-                        }
-                        else if (Handler.EnabledHandlers.HasFlag(HandlerTypes.Call))
-                        {
-                            Handler.Call(this);
-                        }
-                        else
-                        {
-                            MethodNotFound();
-                        }
-                        break;
-
-                    case RequestType.Auth:
-                        if (Handler.EnabledHandlers.HasFlag(HandlerTypes.Auth))
-                        {
-                            Handler.Auth(this);
-                        }
-                        else
-                        {
-                            MethodNotFound();
-                        }
-                        break;
-
-                    default:
-                        Service.OnError("Unknown request type: {0}", msg.Subject);
-                        return;
-                }
+                await Handler.Handle(this);
             }
             catch(ResException ex)
             {
@@ -457,7 +419,10 @@ namespace ResgateIO.Service
 
                 // Write to log as only ResExceptions are considered valid behaviour.
                 Service.OnError("Error handling request {0}: {1}", msg.Subject, ex.Message);
+                return;
             }
+            
+            // [TODO] Try next matching handler
         }
 
         /// <summary>
@@ -517,7 +482,7 @@ namespace ResgateIO.Service
             }
 
             var str = "timeout:\"" + milliseconds.ToString() + "\"";
-            Log.Trace(String.Format("<-- {0}: {1}", msg.Subject, str));
+            Log.Trace("<-- {0}: {1}", msg.Subject, str);
             Service.RawSend(msg.Reply, Encoding.UTF8.GetBytes(str));
         }
 
