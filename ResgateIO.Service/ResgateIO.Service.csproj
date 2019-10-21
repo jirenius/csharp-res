@@ -3,15 +3,15 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard1.6;netstandard2.0;net45</TargetFrameworks>
     <PackageId>ResgateIO.Service</PackageId>
-    <Version>0.3.1</Version>
+    <Version>0.4.0</Version>
     <Title>RES Service .NET library</Title>
     <Authors>Samuel Jirenius</Authors>
     <Owners>Samuel Jirenius</Owners>
     <Company>Resgate.io</Company>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://resgate.io/</PackageProjectUrl>
-    <Description>RES service library for building realtime APIs with synchronized clients using Resgate.</Description>
-    <PackageReleaseNotes>https://github.com/jirenius/csharp-res/releases/tag/v0.3.1</PackageReleaseNotes>
+    <Description>RES service library for building next gen realtime APIs with synchronized clients using Resgate.</Description>
+    <PackageReleaseNotes>https://github.com/jirenius/csharp-res/releases/tag/v0.4.0</PackageReleaseNotes>
     <Copyright>Copyright 2019 Samuel Jirenius</Copyright>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/jirenius/csharp-res</RepositoryUrl>
