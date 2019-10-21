@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 
 namespace ResgateIO.Service
 {
-    public class ResService: Router
+    public class ResService: Router, IDisposable
     {
         // Public read-only values
         public static readonly TimeSpan DefaultQueryDuration = new TimeSpan(0, 0, 3);
@@ -859,10 +859,13 @@ namespace ResgateIO.Service
                 catch (Exception ex)
                 {
                     OnError("Error cleaning up: {0}", ex.Message);
-                }
-                
+                }                
             }
         }
 
+        public void Dispose()
+        {
+            cleanup();
+        }
     }
 }
