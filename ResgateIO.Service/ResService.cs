@@ -16,6 +16,9 @@ namespace ResgateIO.Service
         // Properties
         public IConnection Connection { get; private set; }
 
+        // Constants
+        public readonly string ProtocolVersion = "1.2.0";
+
         // Events
 
         /// <summary>

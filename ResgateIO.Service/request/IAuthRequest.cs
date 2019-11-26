@@ -59,10 +59,16 @@ namespace ResgateIO.Service
         void Ok();
 
         /// <summary>
-        /// Sends a successful response to a request.
+        /// Sends a successful result response to a request.
         /// </summary>
         /// <param name="result">Result object. May be null.</param>
         void Ok(object result);
+
+        /// <summary>
+        /// Sends a successful resource response to a request.
+        /// </summary>
+        /// <param name="resourceID">Resource ID.</param>
+        void Resource(string resourceID);
 
         /// <summary>
         /// Sends an error response to the request.

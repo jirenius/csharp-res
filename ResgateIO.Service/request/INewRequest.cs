@@ -1,12 +1,12 @@
 ﻿using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
 
 namespace ResgateIO.Service
 {
     /// <summary>
     /// Provides context information and methods for responding to a new call request.
     /// </summary>
+    [Obsolete("INewRequest is deprecated, use ICallRequest with Resource response instead.")]
     public interface INewRequest : IResourceContext
     {
         /// <summary>

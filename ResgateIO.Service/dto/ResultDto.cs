@@ -2,12 +2,12 @@
 
 namespace ResgateIO.Service
 {
-    internal class SuccessDto
+    internal class ResultDto
     {
         [JsonProperty(PropertyName = "result", NullValueHandling = NullValueHandling.Include)]
         public object Result;
 
-        public SuccessDto(object result)
+        public ResultDto(object result)
         {
             Result = result;
         }

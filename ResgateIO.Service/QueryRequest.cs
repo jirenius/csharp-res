@@ -37,6 +37,38 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
+        /// Sends a model response for the query request.
+        /// </summary>
+        /// <remarks>
+        /// Only valid for a model query resource.
+        /// The model must be serializable into a JSON object with values
+        /// serializable into JSON primitives or resource references.
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-protocol.md#models
+        /// </remarks>
+        /// <param name="model">Model data.</param>
+        public void Model(object model)
+        {
+            Result(new ModelDto(model, null));
+        }
+
+        /// <summary>
+        /// Sends a collection response for the query request.
+        /// </summary>
+        /// <remarks>
+        /// Only valid for a collection query resource.
+        /// The collection must be serializable into a JSON array with items
+        /// serializable into JSON primitives or resource references.
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-protocol.md#collections
+        /// </remarks>
+        /// <param name="collection">Collection data.</param>
+        public void Collection(object collection)
+        {
+            Result(new CollectionDto(collection, null));
+        }
+
+        /// <summary>
         /// Sends an error response to a query request.
         /// </summary>
         public void Error(ResError error)
@@ -181,6 +213,19 @@ namespace ResgateIO.Service
             catch(Exception ex)
             {
                 Service.OnError("Error sending query reply {0}: {1}", ResourceName, ex.Message);
+            }
+        }
+
+        internal void Result(object result)
+        {
+            try
+            {
+                RawResponse(JsonUtils.Serialize(new ResultDto(result)));
+            }
+            catch (Exception ex)
+            {
+                Service.OnError("Error serializing result query response: {0}", ex.Message);
+                RawResponse(ResService.ResponseInternalError);
             }
         }
     }

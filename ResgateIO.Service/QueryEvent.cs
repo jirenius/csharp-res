@@ -139,7 +139,7 @@ namespace ResgateIO.Service
                 }
                 else
                 {
-                    qr.RawResponse(JsonUtils.Serialize(new SuccessDto(new QueryResponseDto(qr.Events))));
+                    qr.Result(new QueryResponseDto(qr.Events));
                 }
             });
             

@@ -11,8 +11,8 @@ namespace ResgateIO.Service
         /// Sends a successful collection response for the get request.
         /// </summary>
         /// <remarks>
-        /// The collection must be serializable into a JSON array with items that
-        /// must be serializable into JSON primitives or resource references.
+        /// The collection must be serializable into a JSON array with items
+        /// serializable into JSON primitives or resource references.
         /// See the protocol specification for more information:
         ///    https://github.com/resgateio/resgate/blob/master/docs/res-protocol.md#collections
         /// </remarks>
@@ -20,10 +20,14 @@ namespace ResgateIO.Service
         void Collection(object collection);
 
         /// <summary>
-        /// Sends a successful query collection response for the get request.
-        /// The collection must be serializable into a JSON array.
+        /// Sends a successful collection query response for the get request.
         /// </summary>
-        /// <remarks>Only valid for a query collection resource.</remarks>
+        /// <remarks>
+        /// The collection must be serializable into a JSON array with items
+        /// serializable into JSON primitives or resource references.
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-protocol.md#collections
+        /// </remarks>
         /// <param name="collection">Collection data.</param>
         /// <param name="query">Normalized query</param>
         void Collection(object collection, string query);

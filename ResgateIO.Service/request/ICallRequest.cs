@@ -1,6 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
 
 namespace ResgateIO.Service
 {
@@ -35,10 +34,16 @@ namespace ResgateIO.Service
         void Ok();
 
         /// <summary>
-        /// Sends a successful response to a request.
+        /// Sends a successful result response to a request.
         /// </summary>
         /// <param name="result">Result object. May be null.</param>
         void Ok(object result);
+
+        /// <summary>
+        /// Sends a successful resource response to a request.
+        /// </summary>
+        /// <param name="resourceId">Resource ID.</param>
+        void Resource(string resourceId);
 
         /// <summary>
         /// Sends an error response to the request.

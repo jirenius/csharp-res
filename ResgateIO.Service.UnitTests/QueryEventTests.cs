@@ -177,11 +177,8 @@ namespace ResgateIO.Service.UnitTests
                 "foo=error_after_event",
                 (Action<IQueryRequest>)(r =>
                 {
-                    if (r != null)
-                    {
-                        r.ChangeEvent(new Dictionary<string, object>{ { "foo", "bar" } });
-                        r.Error(Test.CustomError);
-                    }
+                    r?.ChangeEvent(new Dictionary<string, object>{ { "foo", "bar" } });
+                    r?.Error(Test.CustomError);
                 }),
                 Test.CustomError
             };
@@ -201,11 +198,8 @@ namespace ResgateIO.Service.UnitTests
                 "foo=multiple_error",
                 (Action<IQueryRequest>)(r =>
                 {
-                    if (r != null)
-                    {
-                        r.NotFound();
-                        r.Error(Test.CustomError);
-                    }
+                    r?.NotFound();
+                    r?.Error(Test.CustomError);
                 }),
                 ResError.NotFound
             };
@@ -220,6 +214,34 @@ namespace ResgateIO.Service.UnitTests
                     }
                 }),
                 ResError.NotFound
+            };
+            yield return new object[] {
+                "foo=model_response",
+                (Action<IQueryRequest>)(r => r?.Model(Test.Model)),
+                JToken.Parse("{\"model\":{\"id\":42,\"foo\":\"bar\"}}")
+            };
+            yield return new object[] {
+                "foo=event_with_model_response",
+                (Action<IQueryRequest>)(r =>
+                {
+                    r?.ChangeEvent(new Dictionary<string, object>{ { "foo", "bar" } });
+                    r?.Model(Test.Model);
+                }),
+                JToken.Parse("{\"model\":{\"id\":42,\"foo\":\"bar\"}}")
+            };
+            yield return new object[] {
+                "foo=collection_response",
+                (Action<IQueryRequest>)(r => r?.Collection(Test.Collection)),
+                JToken.Parse("{\"collection\":[42,\"foo\",null]}")
+            };
+            yield return new object[] {
+                "foo=event_with_collection_response",
+                (Action<IQueryRequest>)(r =>
+                {
+                    r?.AddEvent("bar", 2);
+                    r?.Collection(Test.Collection);
+                }),
+                JToken.Parse("{\"collection\":[42,\"foo\",null]}")
             };
         }
 

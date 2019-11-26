@@ -217,6 +217,11 @@ namespace ResgateIO.Service
         {
             Calls.Add(new Call("Ok", new object[] { result }));
         }
+        
+        public void Resource(string resourceID)
+        {
+            Calls.Add(new Call("Resource", new object[] { resourceID }));
+        }
 
         public void New(Ref rid)
         {

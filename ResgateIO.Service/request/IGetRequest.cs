@@ -9,35 +9,35 @@ namespace ResgateIO.Service
     {
         /// <summary>
         /// Sends a successful model response for the get request.
+        /// </summary>
         /// <remarks>
-        /// The model must be serializable into a JSON object with values that
-        /// must be serializable into JSON primitives or resource references.
+        /// The model must be serializable into a JSON object with values
+        /// serializable into JSON primitives or resource references.
         /// See the protocol specification for more information:
         ///    https://github.com/resgateio/resgate/blob/master/docs/res-protocol.md#models
         /// </remarks>
-        /// The model must be serializable into a JSON object.
-        /// </summary>
         /// <param name="model">Model data.</param>
         void Model(object model);
 
         /// <summary>
         /// Sends a successful query model response for the get request.
-        /// The model must be serializable into a JSON object.
         /// </summary>
         /// <remarks>
-        /// The model must be serializable into a JSON object.
-        /// Only valid for a query model resource.
+        /// The model must be serializable into a JSON object with values
+        /// serializable into JSON primitives or resource references.
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-protocol.md#models
         /// </remarks>
-        /// <param name="model">Model data</param>
-        /// <param name="query">Normalized query</param>
+        /// <param name="model">Model data.</param>
+        /// <param name="query">Normalized query.</param>
         void Model(object model, string query);
 
         /// <summary>
         /// Sends a successful collection response for the get request.
         /// </summary>
         /// <remarks>
-        /// The collection must be serializable into a JSON array with items that
-        /// must be serializable into JSON primitives or resource references.
+        /// The collection must be serializable into a JSON array with items
+        /// serializable into JSON primitives or resource references.
         /// See the protocol specification for more information:
         ///    https://github.com/resgateio/resgate/blob/master/docs/res-protocol.md#collections
         /// </remarks>
@@ -45,12 +45,13 @@ namespace ResgateIO.Service
         void Collection(object collection);
 
         /// <summary>
-        /// Sends a successful query collection response for the get request.
-        /// The collection must be serializable into a JSON array.
+        /// Sends a successful collection query response for the get request.
         /// </summary>
         /// <remarks>
-        /// The model must be serializable into a JSON object.
-        /// Only valid for a query collection resource.
+        /// The collection must be serializable into a JSON array with items
+        /// serializable into JSON primitives or resource references.
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-protocol.md#collections
         /// </remarks>
         /// <param name="collection">Collection data.</param>
         /// <param name="query">Normalized query</param>
