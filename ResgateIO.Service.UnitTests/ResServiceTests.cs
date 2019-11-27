@@ -10,6 +10,12 @@ namespace ResgateIO.Service.UnitTests
         public ResServiceTests(ITestOutputHelper output) : base(output) { }
 
         [Fact]
+        public void ProtocolVersion_ReturnsCurrentVersion()
+        {
+            Assert.Equal("1.2.0", Service.ProtocolVersion);
+        }
+
+        [Fact]
         public void Serve_NoException()
         {
             Service.Serve(Conn);

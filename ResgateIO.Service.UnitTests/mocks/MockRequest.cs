@@ -217,6 +217,11 @@ namespace ResgateIO.Service
         {
             Calls.Add(new Call("Ok", new object[] { result }));
         }
+        
+        public void Resource(string resourceID)
+        {
+            Calls.Add(new Call("Resource", new object[] { resourceID }));
+        }
 
         public void New(Ref rid)
         {
@@ -316,6 +321,12 @@ namespace ResgateIO.Service
         public void RawResponse(byte[] data)
         {
             Calls.Add(new Call("RawResponse", new object[] { data }));
+        }
+
+        public IResourceContext CloneWithQuery(string query)
+        {
+            Calls.Add(new Call("CloneWithQuery", new object[] { query }));
+            return null;
         }
     }
 }

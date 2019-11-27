@@ -13,8 +13,6 @@ namespace ResgateIO.Service
 
         public bool Replied { get; private set; }
 
-        public override string Query { get { return query; } }
-
         internal readonly List<EventDto> Events;
 
         private ILogger Log { get { return Service.Log; } }
@@ -28,12 +26,35 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
-        /// Sets the query string for the query request.
+        /// Sends a model response for the query request.
         /// </summary>
-        /// <param name="query">Query string</param>
-        public void SetQuery(string query)
+        /// <remarks>
+        /// Only valid for a model query resource.
+        /// The model must be serializable into a JSON object with values
+        /// serializable into JSON primitives or resource references.
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-protocol.md#models
+        /// </remarks>
+        /// <param name="model">Model data.</param>
+        public void Model(object model)
         {
-            this.query = query;
+            Result(new ModelDto(model, null));
+        }
+
+        /// <summary>
+        /// Sends a collection response for the query request.
+        /// </summary>
+        /// <remarks>
+        /// Only valid for a collection query resource.
+        /// The collection must be serializable into a JSON array with items
+        /// serializable into JSON primitives or resource references.
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-protocol.md#collections
+        /// </remarks>
+        /// <param name="collection">Collection data.</param>
+        public void Collection(object collection)
+        {
+            Result(new CollectionDto(collection, null));
         }
 
         /// <summary>
@@ -181,6 +202,19 @@ namespace ResgateIO.Service
             catch(Exception ex)
             {
                 Service.OnError("Error sending query reply {0}: {1}", ResourceName, ex.Message);
+            }
+        }
+
+        internal void Result(object result)
+        {
+            try
+            {
+                RawResponse(JsonUtils.Serialize(new ResultDto(result)));
+            }
+            catch (Exception ex)
+            {
+                Service.OnError("Error serializing result query response: {0}", ex.Message);
+                RawResponse(ResService.ResponseInternalError);
             }
         }
     }

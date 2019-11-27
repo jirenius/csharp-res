@@ -278,6 +278,12 @@ namespace ResgateIO.Service
         /// <param name="token">Access token. A null token clears any previously set token.</param>
         void TokenEvent(object token);
 
-
+        /// <summary>
+        /// Creates a new object that is a copy of the current IResourceContext,
+        /// with the exception of the Query string and the Item context.
+        /// </summary>
+        /// <param name="query">Query string to use for the clone.</param>
+        /// <returns>A new object that is a copy of the IResourceContext instance.</returns>
+        IResourceContext CloneWithQuery(string query);
     }
 }

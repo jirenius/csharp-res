@@ -9,24 +9,27 @@ namespace ResgateIO.Service
     {
         /// <summary>
         /// Sends a successful model response for the get request.
+        /// </summary>
         /// <remarks>
-        /// The model must be serializable into a JSON object with values that
-        /// must be serializable into JSON primitives or resource references.
+        /// The model must be serializable into a JSON object with values
+        /// serializable into JSON primitives or resource references.
         /// See the protocol specification for more information:
         ///    https://github.com/resgateio/resgate/blob/master/docs/res-protocol.md#models
         /// </remarks>
-        /// The model must be serializable into a JSON object.
-        /// </summary>
         /// <param name="model">Model data.</param>
         void Model(object model);
 
         /// <summary>
         /// Sends a successful query model response for the get request.
-        /// The model must be serializable into a JSON object.
         /// </summary>
-        /// <remarks>Only valid for a query model resource.</remarks>
-        /// <param name="model">Model data</param>
-        /// <param name="query">Normalized query</param>
+        /// <remarks>
+        /// The model must be serializable into a JSON object with values
+        /// serializable into JSON primitives or resource references.
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-protocol.md#models
+        /// </remarks>
+        /// <param name="model">Model data.</param>
+        /// <param name="query">Normalized query.</param>
         void Model(object model, string query);
 
         /// <summary>

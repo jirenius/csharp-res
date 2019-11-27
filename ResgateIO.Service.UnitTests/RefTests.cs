@@ -87,10 +87,10 @@ namespace ResgateIO.Service.UnitTests
         [InlineData("{\"foo\":\"bar\"}", null)]
         [InlineData("{}", null)]
         [InlineData("{\"rid\": null}", null)]
-        public void DeserializeRef_ValidJsonObject_DeserializesToCorrectResourceID(string json, string resourceId)
+        public void DeserializeRef_ValidJsonObject_DeserializesToCorrectResourceID(string json, string resourceID)
         {
             Ref r = JsonConvert.DeserializeObject<Ref>(json);
-            Assert.Equal(resourceId, r.ResourceID);
+            Assert.Equal(resourceID, r.ResourceID);
         }
     }
 }
