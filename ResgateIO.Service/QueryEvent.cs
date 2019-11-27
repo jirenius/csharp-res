@@ -81,22 +81,22 @@ namespace ResgateIO.Service
                     return;
                 }
 
-                var qr = new QueryRequest(Resource, msg);
+                QueryRequest qr;
                 try
                 {
                     QueryRequestDto reqInput = JsonUtils.Deserialize<QueryRequestDto>(msg.Data);
                     if (String.IsNullOrEmpty(reqInput.Query))
                     {
-                        Service.OnError("Missing query in query request {0}", qr.ResourceName);
-                        qr.RawResponse(ResService.ResponseMissingQuery);
+                        Service.OnError("Missing query in query request {0}", Resource.ResourceName);
+                        new QueryRequest(Resource, msg).RawResponse(ResService.ResponseMissingQuery);
                         return;
                     }
-                    qr.SetQuery(reqInput.Query);
+                    qr = new QueryRequest(Resource.CloneWithQuery(reqInput.Query), msg);
                 }
                 catch (Exception ex)
                 {
-                    Service.OnError("Error deserializing query request {0}: {1}", qr.ResourceName, ex.Message);
-                    qr.RawResponse(ResService.ResponseBadRequest);
+                    Service.OnError("Error deserializing query request {0}: {1}", Resource.ResourceName, ex.Message);
+                    new QueryRequest(Resource, msg).RawResponse(ResService.ResponseBadRequest);
                     return;
                 }
 

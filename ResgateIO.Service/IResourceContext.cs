@@ -274,6 +274,9 @@ namespace ResgateIO.Service
 
         /// <summary>
         /// Sends a query event to signal that the query resource's underlying data has been modified.
+        /// The callback will be called for each available query.
+        /// The last time the callback is called, the IQueryRequest value will be null, to allow
+        /// disposal of any resources related to the query event.
         /// </summary>
         /// <remarks>
         /// See the protocol specification for more information:
@@ -284,6 +287,8 @@ namespace ResgateIO.Service
 
         /// <summary>
         /// Sends a query event to signal that the query resource's underlying data has been modified.
+        /// The callback will be called for each available query.
+        /// The last time the callback is called, the IQueryRequest value will be null, to allow disposal of any resources related to the query event.
         /// </summary>
         /// <remarks>
         /// See the protocol specification for more information:
@@ -291,5 +296,13 @@ namespace ResgateIO.Service
         /// </remarks>
         /// <param name="callback">Query request callback delegate.</param>
         void QueryEvent(Action<IQueryRequest> callback);
+
+        /// <summary>
+        /// Creates a new object that is a copy of the current IResourceContext,
+        /// with the exception of the Query string and the Item context.
+        /// </summary>
+        /// <param name="query">Query string to use for the clone.</param>
+        /// <returns>A new object that is a copy of the IResourceContext instance.</returns>
+        IResourceContext CloneWithQuery(string query);
     }
 }

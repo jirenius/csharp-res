@@ -13,8 +13,6 @@ namespace ResgateIO.Service
 
         public bool Replied { get; private set; }
 
-        public override string Query { get { return query; } }
-
         internal readonly List<EventDto> Events;
 
         private ILogger Log { get { return Service.Log; } }
@@ -25,15 +23,6 @@ namespace ResgateIO.Service
             this.msg = msg;
             Replied = false;
             Events = new List<EventDto>();
-        }
-
-        /// <summary>
-        /// Sets the query string for the query request.
-        /// </summary>
-        /// <param name="query">Query string</param>
-        public void SetQuery(string query)
-        {
-            this.query = query;
         }
 
         /// <summary>

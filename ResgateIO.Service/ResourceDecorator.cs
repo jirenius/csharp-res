@@ -23,7 +23,7 @@ namespace ResgateIO.Service
         public string ResourceName { get { return resource.ResourceName; } }
         public IDictionary<string, string> PathParams { get { return resource.PathParams; } }
         public string PathParam(string key) { return resource.PathParam(key); }
-        public virtual string Query { get { return resource.Query; } }
+        public string Query { get { return resource.Query; } }
         public string Group { get { return resource.Group; } }
         public IDictionary Items { get { return resource.Items; } }
         public IAsyncHandler Handler { get { return resource.Handler; } }
@@ -49,5 +49,6 @@ namespace ResgateIO.Service
         public void ResetEvent() { resource.ResetEvent(); }
         public void QueryEvent(Func<IQueryRequest, Task> callback) { resource.QueryEvent(callback); }
         public void QueryEvent(Action<IQueryRequest> callback) { resource.QueryEvent(callback); }
+        public IResourceContext CloneWithQuery(string query) { return resource.CloneWithQuery(query); }
     }
 }
