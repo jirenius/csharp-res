@@ -1895,5 +1895,55 @@ namespace ResgateIO.Service.UnitTests
                 .AssertPayload(new { resources = new[] { "test.model" } });
         }
         #endregion
+
+        #region CloneWithQuery
+        [Fact]
+        public void CloneWithQuery_UsingRequest_ReturnsClone()
+        {
+            Service.AddHandler("model.$id", new DynamicHandler().Call(r =>
+            {
+                var clone = r.CloneWithQuery("foo=bar");
+                Assert.NotSame(r, clone);
+                Assert.Equal(r.Service, clone.Service);
+                Assert.Equal(r.ResourceName, clone.ResourceName);
+                Assert.Equal(r.Handler, clone.Handler);
+                Assert.Same(r.PathParams, clone.PathParams);
+                Assert.Equal("", r.Query);
+                Assert.Equal("foo=bar", clone.Query);
+                Assert.Equal(r.Group, clone.Group);
+                Assert.NotSame(r.Items, clone.Items);
+                r.Ok();
+            }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test.model.42.method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(null);
+        }
+
+        [Fact]
+        public void CloneWithQuery_UsingWith_ReturnsClone()
+        {
+            AutoResetEvent ev = new AutoResetEvent(false);
+            Service.AddHandler("model.$id", new DynamicHandler());
+            Service.Serve(Conn);
+            Service.With("test.model.42", r =>
+            {
+                var clone = r.CloneWithQuery("foo=bar");
+                Assert.NotSame(r, clone);
+                Assert.Equal(r.Service, clone.Service);
+                Assert.Equal(r.ResourceName, clone.ResourceName);
+                Assert.Same(r.Handler, clone.Handler);
+                Assert.Same(r.PathParams, clone.PathParams);
+                Assert.Equal("", r.Query);
+                Assert.Equal("foo=bar", clone.Query);
+                Assert.Equal(r.Group, clone.Group);
+                Assert.NotSame(r.Items, clone.Items);
+                ev.Set();
+            });
+            Assert.True(ev.WaitOne(Test.TimeoutDuration), "callback was not called before timeout");
+        }
+        #endregion
     }
 }

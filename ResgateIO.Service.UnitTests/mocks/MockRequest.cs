@@ -322,5 +322,11 @@ namespace ResgateIO.Service
         {
             Calls.Add(new Call("RawResponse", new object[] { data }));
         }
+
+        public IResourceContext CloneWithQuery(string query)
+        {
+            Calls.Add(new Call("CloneWithQuery", new object[] { query }));
+            return null;
+        }
     }
 }
