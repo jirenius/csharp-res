@@ -104,10 +104,18 @@ namespace ResgateIO.Service
         void Ok(object result);
 
         /// <summary>
+        /// Sends a successful resource response to a request.
+        /// </summary>
+        /// <remarks>Only valid for call and auth requests.</remarks>
+        /// <param name="resourceId">Resource ID.</param>
+        void Resource(string resourceId);
+
+        /// <summary>
         /// Sends a successful response to a new call request.
         /// </summary>
         /// <remarks>Only valid for new call requests.</remarks>
         /// <param name="resourceID">Valid resource ID to the newly created resource.</param>
+        [Obsolete("New is deprecated, use Resource instead.")]
         void New(Ref resourceID);
 
         /// <summary>
@@ -206,7 +214,7 @@ namespace ResgateIO.Service
         /// <param name="model">Model data</param>
         void Model(object model);
 
-        // <summary>
+        /// <summary>
         /// Sends a successful query model response for the get request.
         /// The model must be serializable into a JSON object.
         /// </summary>
@@ -223,7 +231,7 @@ namespace ResgateIO.Service
         /// <param name="collection">Collection data</param>
         void Collection(object collection);
 
-        // <summary>
+        /// <summary>
         /// Sends a successful query collection response for the get request.
         /// The collection must be serializable into a JSON array.
         /// </summary>
@@ -277,7 +285,5 @@ namespace ResgateIO.Service
         /// </remarks>
         /// <param name="token">Access token. A null token clears any previously set token.</param>
         void TokenEvent(object token);
-
-
     }
 }

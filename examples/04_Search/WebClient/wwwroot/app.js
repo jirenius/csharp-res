@@ -124,7 +124,7 @@ class NewCustomerComponent extends Elem {
         super(n => n.elem('div', { className: 'new' }, [
             n.component(new Button("New customer", () => {
                 new CustomerModal("New customer", "OK", { name: "", country: "", email: "" }, (o, modal) => {
-                    client.create('search.customers', o)
+                    client.call('search.customers', 'newCustomer', o)
                         .then(() => modal.close())
                         .catch(err => modal.showError(err));
                 }).open();

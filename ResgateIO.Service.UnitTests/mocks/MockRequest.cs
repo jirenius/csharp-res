@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
-using NATS.Client;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace ResgateIO.Service
 {
+#pragma warning disable 618
     public class MockRequest : IRequest, IAccessRequest, IGetRequest, ICallRequest, IAuthRequest, IModelRequest, ICollectionRequest, INewRequest
+#pragma warning restore 618
     {
         public class Call
         {
@@ -217,6 +216,11 @@ namespace ResgateIO.Service
         {
             Calls.Add(new Call("Ok", new object[] { result }));
         }
+        
+        public void Resource(string resourceID)
+        {
+            Calls.Add(new Call("Resource", new object[] { resourceID }));
+        }
 
         public void New(Ref rid)
         {
@@ -316,6 +320,12 @@ namespace ResgateIO.Service
         public void RawResponse(byte[] data)
         {
             Calls.Add(new Call("RawResponse", new object[] { data }));
+        }
+
+        public IResourceContext CloneWithQuery(string query)
+        {
+            Calls.Add(new Call("CloneWithQuery", new object[] { query }));
+            return null;
         }
     }
 }

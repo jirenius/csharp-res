@@ -18,7 +18,9 @@ namespace ResgateIO.Service
         private Func<IGetRequest, Task> getHandler = null;
         private Func<ICallRequest, Task> callHandler = null;
         private Func<IAuthRequest, Task> authHandler = null;
+#pragma warning disable 0618
         private Func<INewRequest, Task> newHandler = null;
+#pragma warning restore 0618
         private Func<IResourceContext, EventArgs, Task> applyHandler = null;
         private Func<IResourceContext, ChangeEventArgs, Task> applyChangeHandler = null;
         private Func<IResourceContext, AddEventArgs, Task> applyAddHandler = null;
@@ -541,6 +543,7 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="newHandler">New handler.</param>
         /// <returns>This instance.</returns>
+        [Obsolete("New is deprecated, use Call with Resource response instead.")]
         public DynamicHandler New(Func<INewRequest, Task> newHandler)
         {
             if (this.newHandler != null)
@@ -568,6 +571,7 @@ namespace ResgateIO.Service
         /// </summary>
         /// <param name="newHandler">New handler.</param>
         /// <returns>This instance.</returns>
+        [Obsolete("New is deprecated, use Call with Resource response instead.")]
         public DynamicHandler New(Action<INewRequest> newHandler)
         {
             return New(r =>
@@ -949,81 +953,94 @@ namespace ResgateIO.Service
             return ApplyCustom(applyCustomHandler);
         }
 
-        public async Task Handle(IRequest r)
+        /// <summary>
+        /// Handles the specified request.
+        /// </summary>
+        /// <param name="request">The request context.</param>
+        /// <returns>A task that represents the asynchronous handling.</returns>
+        public async Task Handle(IRequest request)
         {
-            switch (r.Type)
+            switch (request.Type)
             {
                 case RequestType.Access:
                     if (accessHandler != null)
                     {
-                        await accessHandler.Invoke((IAccessRequest)r);
+                        await accessHandler.Invoke((IAccessRequest)request);
                     }
                     break;
                 case RequestType.Get:
                     if (getHandler != null)
                     {
-                        await getHandler.Invoke((IGetRequest)r);
+                        await getHandler.Invoke((IGetRequest)request);
                     }
                     break;
                 case RequestType.Call:
-                    if (r.Method == "new")
+                    if (request.Method == "new")
                     {
                         if (newHandler != null)
                         {
-                            await newHandler.Invoke((INewRequest)r);
+#pragma warning disable 618
+                            await newHandler.Invoke((INewRequest)request);
+#pragma warning restore 618
                             break;
                         }
                     }
-                    await handleCall((ICallRequest)r);
+                    await handleCall((ICallRequest)request);
                     break;
                 case RequestType.Auth:
-                    await handleAuth((IAuthRequest)r);
+                    await handleAuth((IAuthRequest)request);
                     break;
             }
         }
 
-        public async Task Apply(IResourceContext r, EventArgs ev)
+        /// <summary>
+        /// Applies modifying events onto the resource.
+        /// </summary>
+        /// <param name="resource">Resource context.</param>
+        /// <param name="ev"></param>
+        /// <returns>A task that represents the asynchronous handling.</returns>
+        public async Task Apply(IResourceContext resource, EventArgs ev)
         {
             switch (ev)
             {
                 case ChangeEventArgs change:
                     if (applyChangeHandler != null)
                     {
-                        await applyChangeHandler(r, change);
+                        await applyChangeHandler(resource, change);
                     }
                     break;
                 case AddEventArgs add:
                     if (applyAddHandler != null)
                     {
-                        await applyAddHandler(r, add);
+                        await applyAddHandler(resource, add);
                     }
                     break;
                 case RemoveEventArgs remove:
                     if (applyRemoveHandler != null)
                     {
-                        await applyRemoveHandler(r, remove);
+                        await applyRemoveHandler(resource, remove);
                     }
                     break;
                 case CreateEventArgs create:
                     if (applyCreateHandler != null)
                     {
-                        await applyCreateHandler(r, create);
+                        await applyCreateHandler(resource, create);
                     }
                     break;
                 case DeleteEventArgs delete:
                     if (applyDeleteHandler != null)
                     {
-                        await applyDeleteHandler(r, delete);
+                        await applyDeleteHandler(resource, delete);
                     }
                     break;
                 case CustomEventArgs custom:
                     if (applyCustomHandler != null)
                     {
-                        await applyCustomHandler(r, custom);
+                        await applyCustomHandler(resource, custom);
                     }
                     break;
             }
-            applyHandler?.Invoke(r, ev);
+            applyHandler?.Invoke(resource, ev);
         }
 
         /// <summary>

@@ -87,6 +87,30 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Fact]
+        public void Resource_WithValidResourceID_SendsResourceResponse()
+        {
+            Service.AddHandler("model", new DynamicHandler().Call(r => r.Resource("test.model")));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResource("test.model");
+        }
+
+        [Fact]
+        public void Resource_WithInvalidResourceID_ThrowsArgumentException()
+        {
+            Service.AddHandler("model", new DynamicHandler().Call(r => r.Resource("test..model")));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertError(ResError.CodeInternalError);
+        }
+
+        [Fact]
         public void Error_SendsErrorResponse()
         {
             Service.AddHandler("model", new DynamicHandler().Call(r => r.Error(Test.CustomError)));

@@ -3,6 +3,7 @@ using System.Text;
 using Xunit;
 using Xunit.Abstractions;
 
+#pragma warning disable 618
 namespace ResgateIO.Service.UnitTests
 {
     public class INewRequestTests : TestsBase
@@ -315,3 +316,4 @@ namespace ResgateIO.Service.UnitTests
         }
     }
 }
+#pragma warning restore 0618

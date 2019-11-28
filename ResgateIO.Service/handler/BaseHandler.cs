@@ -9,15 +9,39 @@ namespace ResgateIO.Service
     /// Provides a base class for resource handler classes.
     /// </summary>
     /// <remarks>
-    /// The BaseHandler constructor will check if any of its IResourceHandler methods are overridden,
-    /// and enable each corresponding bit flag in EnabledHandlers.
-    /// Additionally, it will search for any public instance method in the derived class that matches
-    /// the signature of a Call or Auth handler. Matching methods will be invoked on call and auth
+    /// The BaseHandler constructor will use reflection to find instance methods for request handling and apply handling.
+    /// <para>
+    /// A request handler method should return either <see cref="void"/> or <see cref="Task"/>.
+    /// A request handler method should take one of the arguments below:
+    /// <list type="bullet">
+    /// <item><term><see cref="IAccessRequest"/></term><description>Access request handler.</description></item>
+    /// <item><term><see cref="IGetRequest"/></term><description>Get request handler.</description></item>
+    /// <item><term><see cref="ICallRequest"/></term><description>Call request handler.</description></item>
+    /// <item><term><see cref="IAuthRequest"/></term><description>Auth request handler.</description></item>
+    /// <item><term><see cref="IModelRequest"/></term><description>Model request handler.</description></item>
+    /// <item><term><see cref="ICollectionRequest"/></term><description>Collection request handler.</description></item>
+    /// </list>
+    /// Matching Auth and Call request handler methods will be invoked on call and auth
     /// requests if the name of the class method, with first letter lowercase, matches the method
     /// of the call or auth request.
-    /// A different method name can set using the CallMethod and AuthMethod attributes.
-    /// If any matching call or auth methods are found, each corresponding bit flag in EnabledHandlers
-    /// will be set.
+    /// A different method name can set using the <see cref="CallMethodAttribute"/> and <see cref="AuthMethodAttribute"/> attributes.
+    /// If any matching call or auth methods are found, each corresponding bit flag in <see cref="EnabledHandlers"/> will be set.
+    /// </para>
+    /// 
+    /// <para>
+    /// An apply handler method should belong to a class that derives from <see cref="BaseHandler"/>.
+    /// An apply handler method should return either <see cref="void"/> or <see cref="Task"/>.
+    /// An apply handler method should take two arguments, <see cref="IResourceContext"/> and one of the below:
+    /// <list type="bullet">
+    /// <item><term><see cref="EventArgs"/></term><description>Apply all events.</description></item>
+    /// <item><term><see cref="ChangeEventArgs"/></term><description>Apply change events.</description></item>
+    /// <item><term><see cref="AddEventArgs"/></term><description>Apply add events.</description></item>
+    /// <item><term><see cref="RemoveEventArgs"/></term><description>Apply remove events.</description></item>
+    /// <item><term><see cref="CreateEventArgs"/></term><description>Apply create events.</description></item>
+    /// <item><term><see cref="DeleteEventArgs"/></term><description>Apply delete events.</description></item>
+    /// <item><term><see cref="CustomEventArgs"/></term><description>Apply custom events.</description></item>
+    /// </list>
+    /// </para>
     /// </remarks>
     /// <example> 
     /// This sample shows how to define call and auth methods.
@@ -173,14 +197,25 @@ namespace ResgateIO.Service
             return null;
         }
 
-        public async Task Handle(IRequest r)
+        /// <summary>
+        /// Handles the specified request.
+        /// </summary>
+        /// <param name="request">The request context.</param>
+        /// <returns>A task that represents the asynchronous handling.</returns>
+        public async Task Handle(IRequest request)
         {
-            await handler.Handle(r);
+            await handler.Handle(request);
         }
 
-        public async Task Apply(IResourceContext r, EventArgs ev)
+        /// <summary>
+        /// Applies modifying events onto the resource.
+        /// </summary>
+        /// <param name="resource">Resource context.</param>
+        /// <param name="ev"></param>
+        /// <returns>A task that represents the asynchronous handling.</returns>
+        public async Task Apply(IResourceContext resource, EventArgs ev)
         {
-            await handler.Apply(r, ev);
+            await handler.Apply(resource, ev);
         }
 
         private bool tryMatchRequestHandler(MethodInfo m, ParameterInfo p)
@@ -192,7 +227,9 @@ namespace ResgateIO.Service
                 t != typeof(IAuthRequest) &&
                 t != typeof(IModelRequest) &&
                 t != typeof(ICollectionRequest) &&
+#pragma warning disable 0618
                 t != typeof(INewRequest))
+#pragma warning restore 0618
             {
                 return false;
             }
@@ -237,7 +274,9 @@ namespace ResgateIO.Service
             }
             else // if (t == typeof(INewRequest))
             {
+#pragma warning disable 0618
                 handler.New(createRequestHandler<INewRequest>(m));
+#pragma warning restore 0618
             }
 
             return true;

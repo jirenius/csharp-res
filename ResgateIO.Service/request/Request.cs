@@ -11,7 +11,9 @@ namespace ResgateIO.Service
     /// <summary>
     /// Provides context information and methods for responding to a request.
     /// </summary>
+#pragma warning disable 0618
     public class Request: ResourceContext, IRequest, IAccessRequest, IGetRequest, ICallRequest, IAuthRequest, IModelRequest, ICollectionRequest, INewRequest
+#pragma warning restore 0618
     {
         private readonly Msg msg;
 
@@ -149,7 +151,7 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
-        /// Sends a successful response to a request.
+        /// Sends a successful result response to a request.
         /// </summary>
         /// <param name="result">Result object. May be null.</param>
         public void Ok(object result)
@@ -162,7 +164,7 @@ namespace ResgateIO.Service
             {
                 try
                 {
-                    byte[] data = JsonUtils.Serialize(new SuccessDto(result));
+                    byte[] data = JsonUtils.Serialize(new ResultDto(result));
                     RawResponse(data);
                 }
                 catch (Exception ex)
@@ -174,10 +176,34 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
+        /// Sends a successful resource response to a request.
+        /// </summary>
+        /// <param name="resourceID">Resource ID.</param>
+        public void Resource(string resourceID)
+        {
+            var rid = new Ref(resourceID);
+            if (!rid.IsValid())
+            {
+                throw new ArgumentException(String.Format("Invalid resource ID: {0}", resourceID));
+            }
+            try
+            {
+                byte[] data = JsonUtils.Serialize(new ResourceDto(rid));
+                RawResponse(data);
+            }
+            catch (Exception ex)
+            {
+                Service.OnError("Error serializing success response: {0}", ex.Message);
+                Error(new ResError(ex));
+            }
+        }
+
+        /// <summary>
         /// Sends a successful response to a new call request.
         /// </summary>
         /// <remarks>Only valid for new call requests.</remarks>
         /// <param name="resourceID">Valid resource ID to the newly created resource.</param>
+        [Obsolete("New is deprecated, use Resource instead.")]
         public void New(Ref resourceID)
         {
             if (!resourceID.IsValid())
@@ -356,7 +382,7 @@ namespace ResgateIO.Service
             Model(model, null);
         }
 
-        // <summary>
+        /// <summary>
         /// Sends a successful query model response for the get request.
         /// The model must be serializable into a JSON object.
         /// </summary>
@@ -379,7 +405,7 @@ namespace ResgateIO.Service
             Collection(collection, null);
         }
 
-        // <summary>
+        /// <summary>
         /// Sends a successful query collection response for the get request.
         /// The collection must be serializable into a JSON array.
         /// </summary>

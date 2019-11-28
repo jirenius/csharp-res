@@ -16,6 +16,10 @@ namespace ResgateIO.Service
         // Properties
         public IConnection Connection { get; private set; }
 
+        // Constants
+        /// <value>Supported RES protocol version.</value>
+        public readonly string ProtocolVersion = "1.2.0";
+
         // Events
 
         /// <summary>
@@ -160,8 +164,8 @@ namespace ResgateIO.Service
         /// It will take access ownership if it has at least one handler of HandlerTypes.Access.
         /// </summary>
         /// <remarks>
-        //  For more details on system reset, see:
-        //      https://resgate.io/docs/specification/res-service-protocol/#system-reset-event
+        ///  For more details on system reset, see:
+        ///      https://resgate.io/docs/specification/res-service-protocol/#system-reset-event
         /// </remarks>
         /// <param name="resources">Resource patterns, or null if using default.</param>
         /// <param name="access">Access patterns, or null if using default.</param>
@@ -859,7 +863,7 @@ namespace ResgateIO.Service
                 catch (Exception ex)
                 {
                     OnError("Error cleaning up: {0}", ex.Message);
-                }                
+                }
             }
         }
 

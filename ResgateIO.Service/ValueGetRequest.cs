@@ -203,6 +203,11 @@ namespace ResgateIO.Service
             throw new InvalidOperationException(invalidError);
         }
 
+        public void Resource(string resourceID)
+        {
+            throw new InvalidOperationException(invalidError);
+        }
+
         public void MethodNotFound()
         {
             throw new InvalidOperationException(invalidError);

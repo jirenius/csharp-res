@@ -93,6 +93,7 @@ namespace ResgateIO.Service.UnitTests
         public MockMsg AssertResult()
         {
             AssertNoPath("error");
+            AssertNoPath("resource");
             AssertPath("result");
             return this;
         }
@@ -100,13 +101,23 @@ namespace ResgateIO.Service.UnitTests
         public MockMsg AssertResult(object result)
         {
             AssertNoPath("error");
+            AssertNoPath("resource");
             AssertPathPayload("result", result);
+            return this;
+        }
+
+        public MockMsg AssertResource(string resourceID)
+        {
+            AssertNoPath("result");
+            AssertNoPath("error");
+            AssertPathPayload("resource", new { rid = resourceID });
             return this;
         }
 
         public MockMsg AssertError()
         {
             AssertNoPath("result");
+            AssertNoPath("resource");
             AssertPath("error");
             return this;
         }
@@ -114,6 +125,7 @@ namespace ResgateIO.Service.UnitTests
         public MockMsg AssertError(string code)
         {
             AssertNoPath("result");
+            AssertNoPath("resource");
             AssertPathPayload("error.code", code);
             return this;
         }
@@ -121,6 +133,7 @@ namespace ResgateIO.Service.UnitTests
         public MockMsg AssertError(string code, string message)
         {
             AssertNoPath("result");
+            AssertNoPath("resource");
             AssertPathPayload("error.code", code);
             AssertPathPayload("error.message", message);
             return this;
@@ -129,6 +142,7 @@ namespace ResgateIO.Service.UnitTests
         public MockMsg AssertError(string code, string message, object data)
         {
             AssertNoPath("result");
+            AssertNoPath("resource");
             AssertPathPayload("error.code", code);
             AssertPathPayload("error.message", message);
             AssertPathPayload("error.data", data);
@@ -138,6 +152,7 @@ namespace ResgateIO.Service.UnitTests
         public MockMsg AssertError(ResError err)
         {
             AssertNoPath("result");
+            AssertNoPath("resource");
             AssertPathPayload("error", err);
             return this;
         }

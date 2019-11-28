@@ -3,8 +3,8 @@
 namespace ResgateIO.Service
 {
     /// <summary>
-    /// Specifies a pattern attribute to a <see cref="IResourceHandler"/> class, which will be used
-    /// as subpattern by <see cref="Router.AddHandler"/>, when called without an explicitly given subpattern.
+    /// Specifies a pattern attribute to a <see cref="IAsyncHandler"/> class, which will be used
+    /// as subpattern by <c>AddHandler</c>, when called without an explicitly given subpattern.
     /// </summary>
     [AttributeUsage(AttributeTargets.Class)]
     public class ResourcePatternAttribute : Attribute
@@ -34,8 +34,8 @@ namespace ResgateIO.Service
     }
 
     /// <summary>
-    /// Specifies a group attribute to a <see cref="IResourceHandler"/> class, which will be used
-    /// as group pattern by <see cref="Router.AddHandler"/>, when called without an explicitly given group.
+    /// Specifies a group attribute to a <see cref="IAsyncHandler"/> class, which will be used
+    /// as group pattern by <c>AddHandler</c>, when called without an explicitly given group.
     /// </summary>
     [AttributeUsage(AttributeTargets.Class)]
     public class ResourceGroupAttribute : Attribute
@@ -60,12 +60,15 @@ namespace ResgateIO.Service
     }
 
     /// <summary>
-    /// 
-    /// Specifies an attribute event listener to a method matching the <see cref="EventHandler"/> delegate, on a <see cref="IResourceHandler"/> class.
-    /// When the handler is registered with <see cref="Router.AddHandler"/>, the method will be added as a handler for events
+    /// Specifies an attribute event listener to a method matching the <see cref="EventHandler"/> delegate, on a <see cref="IAsyncHandler"/> class.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// When the handler is registered with <c>AddHandler</c>, the method will be added as a handler for events
     /// on the resources matching the subpattern.
     /// The subpattern must be an exact match of a registered resource, including any placeholder tags.
-    /// 
+    /// </para>
+    /// <para>
     /// The sender will always implement the <see cref="IResourceContext"/>, and the <see cref="EventArgs"/> may be any
     /// of the following, based on type of event:
     /// <list type="bullet">
@@ -76,7 +79,8 @@ namespace ResgateIO.Service
     /// <item><description><see cref="DeleteEventArgs"/></description></item>
     /// <item><description><see cref="CustomEventArgs"/></description></item>
     /// </list> 
-    /// </summary>
+    /// </para>
+    /// </remarks>
     /// <example><code>
     /// [EventListener("foo.$id")]
     /// public void OnFooEvent(object sender, EventArgs ev)
@@ -95,7 +99,6 @@ namespace ResgateIO.Service
     ///     }
     /// }
     /// </code></example>
-    /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public class EventListenerAttribute : Attribute
     {
@@ -106,6 +109,7 @@ namespace ResgateIO.Service
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EventListenerAttribute"/>.
+        /// </summary>
         /// <param name="pattern">Resource pattern.</param>
         public EventListenerAttribute(string pattern)
         {

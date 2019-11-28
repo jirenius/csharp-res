@@ -8,6 +8,32 @@ namespace ResgateIO.Service
     public interface IQueryRequest : IResourceContext
     {
         /// <summary>
+        /// Sends a model response for the query request.
+        /// </summary>
+        /// <remarks>
+        /// Only valid for a model query resource.
+        /// The model must be serializable into a JSON object with values
+        /// serializable into JSON primitives or resource references.
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-protocol.md#models
+        /// </remarks>
+        /// <param name="model">Model data.</param>
+        void Model(object model);
+
+        /// <summary>
+        /// Sends a collection response for the query request.
+        /// </summary>
+        /// <remarks>
+        /// Only valid for a collection query resource.
+        /// The collection must be serializable into a JSON array with items
+        /// serializable into JSON primitives or resource references.
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-protocol.md#collections
+        /// </remarks>
+        /// <param name="collection">Collection data.</param>
+        void Collection(object collection);
+
+        /// <summary>
         /// Sends an error response to the request.
         /// </summary>
         void Error(ResError error);

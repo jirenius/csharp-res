@@ -21,6 +21,10 @@ namespace ResgateIO.Service
         /// </summary>
         public string Message { get; }
 
+        /// <summary>
+        /// Initializes a new instance of the ErrorEventArgs class.
+        /// </summary>
+        /// <param name="message">Error message.</param>
         public ErrorEventArgs(string message)
         {
             Message = message;
