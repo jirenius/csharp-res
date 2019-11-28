@@ -11,7 +11,9 @@ namespace ResgateIO.Service
     /// <summary>
     /// Provides context information and methods for responding to a request.
     /// </summary>
+#pragma warning disable 0618
     public class Request: ResourceContext, IRequest, IAccessRequest, IGetRequest, ICallRequest, IAuthRequest, IModelRequest, ICollectionRequest, INewRequest
+#pragma warning restore 0618
     {
         private readonly Msg msg;
 
@@ -380,7 +382,7 @@ namespace ResgateIO.Service
             Model(model, null);
         }
 
-        // <summary>
+        /// <summary>
         /// Sends a successful query model response for the get request.
         /// The model must be serializable into a JSON object.
         /// </summary>
@@ -403,7 +405,7 @@ namespace ResgateIO.Service
             Collection(collection, null);
         }
 
-        // <summary>
+        /// <summary>
         /// Sends a successful query collection response for the get request.
         /// The collection must be serializable into a JSON array.
         /// </summary>

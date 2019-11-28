@@ -60,6 +60,7 @@ namespace ResgateIO.Service.UnitTests
             Assert.Equal(HandlerTypes.Auth, handler.EnabledHandlers);
         }
 
+#pragma warning disable 0618
         class EnabledHandlers_NewHandler_IsNew_Class : BaseHandler
         {
             public void New(INewRequest r) { }
@@ -70,6 +71,7 @@ namespace ResgateIO.Service.UnitTests
             var handler = new EnabledHandlers_NewHandler_IsNew_Class();
             Assert.Equal(HandlerTypes.New, handler.EnabledHandlers);
         }
+#pragma warning restore 0618
 
         #region ApplyHandler
         class ApplyHandler_ApplyChangeHandler_IsCalled_Class : BaseHandler

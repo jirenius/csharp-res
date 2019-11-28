@@ -19,7 +19,9 @@
     <PackageTags>Resgate;API;Realtime;REST;NATS</PackageTags>
     <IncludeSymbols>true</IncludeSymbols>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <NoWarn>1572,1573,1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

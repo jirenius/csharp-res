@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace ResgateIO.Service
 {
@@ -7,13 +8,15 @@ namespace ResgateIO.Service
     /// </summary>
     /// <remarks>
     /// The method should belong to a class that derives from <see cref="BaseHandler"/>.
-    /// The method should return either void or <see cref="Task"/>.
+    /// The method should return either <see cref="void"/> or <see cref="Task"/>.
     /// The method should take one of the arguments below:
-    /// <list type="bullet"><item>
+    /// <list type="bullet">
     /// <item><term><see cref="IAccessRequest"/></term><description>Access request handler.</description></item>
     /// <item><term><see cref="IGetRequest"/></term><description>Get request handler.</description></item>
     /// <item><term><see cref="ICallRequest"/></term><description>Call request handler.</description></item>
     /// <item><term><see cref="IAuthRequest"/></term><description>Auth request handler.</description></item>
+    /// <item><term><see cref="IModelRequest"/></term><description>Model request handler.</description></item>
+    /// <item><term><see cref="ICollectionRequest"/></term><description>Collection request handler.</description></item>
     /// </list>
     /// </remarks>
     [AttributeUsage(AttributeTargets.Method)]
@@ -30,7 +33,8 @@ namespace ResgateIO.Service
     /// </summary>
     /// <remarks>
     /// The method should belong to a class that derives from <see cref="BaseHandler"/>.
-    /// The method should take a <see cref="ICallRequest"/> as a single argument, and return either void or <see cref="Task"/>.
+    /// The method should take a <see cref="ICallRequest"/> as a single argument.
+    /// The method should return either <see cref="void"/> or <see cref="Task"/>.
     /// </remarks>
     [AttributeUsage(AttributeTargets.Method)]
     public class CallMethodAttribute : Attribute
@@ -70,7 +74,8 @@ namespace ResgateIO.Service
     /// </summary>
     /// <remarks>
     /// The method should belong to a class that derives from <see cref="BaseHandler"/>.
-    /// The method should take a <see cref="IAuthRequest"/> as a single argument, and return either void or <see cref="Task"/>.
+    /// The method should take a <see cref="IAuthRequest"/> as a single argument.
+    /// The method should return either <see cref="void"/> or <see cref="Task"/>.
     /// </remarks>
     [AttributeUsage(AttributeTargets.Method)]
     public class AuthMethodAttribute : Attribute
@@ -110,9 +115,9 @@ namespace ResgateIO.Service
     /// </summary>
     /// <remarks>
     /// The method should belong to a class that derives from <see cref="BaseHandler"/>.
-    /// The method should return either void or <see cref="Task"/>.
-    /// The method should take two arguments, <see cref="IRequestContext"/> and one of the below:
-    /// <list type="bullet"><item>
+    /// The method should return either <see cref="void"/> or <see cref="Task"/>.
+    /// The method should take two arguments, <see cref="IResourceContext"/> and one of the below:
+    /// <list type="bullet">
     /// <item><term><see cref="EventArgs"/></term><description>Apply all events.</description></item>
     /// <item><term><see cref="ChangeEventArgs"/></term><description>Apply change events.</description></item>
     /// <item><term><see cref="AddEventArgs"/></term><description>Apply add events.</description></item>

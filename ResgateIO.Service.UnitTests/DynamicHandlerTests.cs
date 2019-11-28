@@ -339,6 +339,7 @@ namespace ResgateIO.Service.UnitTests
             Assert.Equal("MethodNotFound", mock.Calls[0].Method);
         }
 
+#pragma warning disable 0618
         [Fact]
         public async Task New_WithHandler_IsCalled()
         {
@@ -378,6 +379,7 @@ namespace ResgateIO.Service.UnitTests
             Assert.Equal(1, newCalled);
             Assert.Equal(0, callCalled);
         }
+#pragma warning restore 0618
 
         [Fact]
         public async Task ApplyChange_WithHandler_IsCalled()

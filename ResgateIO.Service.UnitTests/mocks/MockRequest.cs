@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
-using NATS.Client;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace ResgateIO.Service
 {
+#pragma warning disable 618
     public class MockRequest : IRequest, IAccessRequest, IGetRequest, ICallRequest, IAuthRequest, IModelRequest, ICollectionRequest, INewRequest
+#pragma warning restore 618
     {
         public class Call
         {

@@ -9,8 +9,6 @@ namespace ResgateIO.Service
     {
         private Msg msg;
 
-        private string query;
-
         public bool Replied { get; private set; }
 
         internal readonly List<EventDto> Events;
