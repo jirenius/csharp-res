@@ -17,7 +17,7 @@ namespace LibraryService
             request.Collection(BookStore.GetBookList());
         }
 
-        public void New(INewRequest request)
+        public void New(ICallRequest request)
         {
             Book newParams = request.ParseParams<Book>();
 
@@ -33,8 +33,8 @@ namespace LibraryService
             // Send add event
             request.AddEvent(add.Ref, add.Idx);
 
-            // Respond with a reference to the newly created book model
-            request.New(add.Ref);
+            // Respond with a resource reference to the newly created book model
+            request.Resource(add.Ref.ResourceID);
         }
 
         [CallMethod("delete")]
