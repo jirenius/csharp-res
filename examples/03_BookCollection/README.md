@@ -78,7 +78,7 @@ POST http://localhost:8080/api/library/book/<BOOK_ID>/set
 
 ### Add new book
 ```
-POST http://localhost:8080/api/library/books/add
+POST http://localhost:8080/api/library/books/new
 ```
 *Body*  
 ```

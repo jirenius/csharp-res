@@ -34,7 +34,7 @@ namespace ResgateIO.Service.UnitTests
             yield return new object[] { "model.foo.>bar" };
         }
 
-        public static IEnumerable<object[]> GetMathchingPathTestSets()
+        public static IEnumerable<object[]> GetMatchingPathTestSets()
         {
             yield return new object[] { "", "model", "model" };
             yield return new object[] { "", "model.foo", "model.foo" };
@@ -54,7 +54,27 @@ namespace ResgateIO.Service.UnitTests
             yield return new object[] { "test", "model.$id.>", "test.model.42.foo.bar" };
         }
 
-        public static IEnumerable<object[]> GetMismathchingPathTestSets()
+        public static IEnumerable<object[]> GetMatchingMountedPathTestSets()
+        {
+            yield return new object[] { "", "model", "sub.model" };
+            yield return new object[] { "", "model.foo", "sub.model.foo" };
+            yield return new object[] { "", "model.$id", "sub.model.42" };
+            yield return new object[] { "", "model.$id.foo", "sub.model.42.foo" };
+            yield return new object[] { "", "model.>", "sub.model.foo" };
+            yield return new object[] { "", "model.>", "sub.model.foo.bar" };
+            yield return new object[] { "", "model.$id.>", "sub.model.42.foo" };
+            yield return new object[] { "", "model.$id.>", "sub.model.42.foo.bar" };
+            yield return new object[] { "test", "model", "test.sub.model" };
+            yield return new object[] { "test", "model.foo", "test.sub.model.foo" };
+            yield return new object[] { "test", "model.$id", "test.sub.model.42" };
+            yield return new object[] { "test", "model.$id.foo", "test.sub.model.42.foo" };
+            yield return new object[] { "test", "model.>", "test.sub.model.foo" };
+            yield return new object[] { "test", "model.>", "test.sub.model.foo.bar" };
+            yield return new object[] { "test", "model.$id.>", "test.sub.model.42.foo" };
+            yield return new object[] { "test", "model.$id.>", "test.sub.model.42.foo.bar" };
+        }
+
+        public static IEnumerable<object[]> GetMismatchingPathTestSets()
         {
             yield return new object[] { "", "model", "model.foo" };
             yield return new object[] { "", "model.foo", "model" };
@@ -380,7 +400,7 @@ namespace ResgateIO.Service.UnitTests
 
         #region GetHandler
         [Theory]
-        [MemberData(nameof(GetMathchingPathTestSets))]
+        [MemberData(nameof(GetMatchingPathTestSets))]
         public void GetHandler_MatchingPath_ReturnsHandler(string pattern, string path, string resourceName)
         {
             Router r = new Router(pattern);
@@ -391,8 +411,34 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Theory]
-        [MemberData(nameof(GetMathchingPathTestSets))]
-        public void GetHandler_EventListenersOnMatchingPath_ReturnsHandler(string pattern, string path, string resourceName)
+        [MemberData(nameof(GetMatchingMountedPathTestSets))]
+        public void GetHandler_MatchingPathAddedBeforeMount_ReturnsHandler(string pattern, string path, string resourceName)
+        {
+            Router r = new Router(pattern);
+            Router sub = new Router();
+            sub.AddHandler(path, new DynamicHandler());
+            r.Mount("sub", sub);
+            Router.Match m = r.GetHandler(resourceName);
+            Assert.NotNull(m);
+            Assert.Equal(resourceName, m.Group);
+        }
+
+        [Theory]
+        [MemberData(nameof(GetMatchingMountedPathTestSets))]
+        public void GetHandler_MatchingPathAddedAfterMount_ReturnsHandler(string pattern, string path, string resourceName)
+        {
+            Router r = new Router(pattern);
+            Router sub = new Router();
+            r.Mount("sub", sub);
+            r.AddHandler("sub."+path, new DynamicHandler());
+            Router.Match m = r.GetHandler(resourceName);
+            Assert.NotNull(m);
+            Assert.Equal(resourceName, m.Group);
+        }
+
+        [Theory]
+        [MemberData(nameof(GetMatchingPathTestSets))]
+        public void GetHandler_EventListenersOnMatchingPath_ReturnsEventHandler(string pattern, string path, string resourceName)
         {
             int called1 = 0;
             int called2 = 0;
@@ -407,7 +453,43 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Theory]
-        [MemberData(nameof(GetMismathchingPathTestSets))]
+        [MemberData(nameof(GetMatchingMountedPathTestSets))]
+        public void GetHandler_EventListenersMatchingPathAddedBeforeMount_ReturnsEventHandler(string pattern, string path, string resourceName)
+        {
+            int called1 = 0;
+            int called2 = 0;
+            Router r = new Router(pattern);
+            Router sub = new Router();
+            sub.AddEventListener(path, (sender, ev) => called1++);
+            sub.AddEventListener(path, (sender, ev) => called2++);
+            r.Mount("sub", sub);
+            r.AddHandler("sub."+path, new DynamicHandler());
+            Router.Match m = r.GetHandler(resourceName);
+            m.EventHandler.Invoke(null, null);
+            Assert.Equal(1, called1);
+            Assert.Equal(1, called2);
+        }
+
+        [Theory]
+        [MemberData(nameof(GetMatchingMountedPathTestSets))]
+        public void GetHandler_EventListenersMatchingPathAddedAfterMount_ReturnsEventHandler(string pattern, string path, string resourceName)
+        {
+            int called1 = 0;
+            int called2 = 0;
+            Router r = new Router(pattern);
+            Router sub = new Router();
+            sub.AddHandler(path, new DynamicHandler());
+            r.Mount("sub", sub);
+            r.AddEventListener("sub."+path, (sender, ev) => called1++);
+            r.AddEventListener("sub."+path, (sender, ev) => called2++);
+            Router.Match m = r.GetHandler(resourceName);
+            m.EventHandler.Invoke(null, null);
+            Assert.Equal(1, called1);
+            Assert.Equal(1, called2);
+        }
+
+        [Theory]
+        [MemberData(nameof(GetMismatchingPathTestSets))]
         public void GetHandler_MismatchingPath_ReturnsNull(string pattern, string path, string resourceName)
         {
             Router r = new Router(pattern);
@@ -417,7 +499,7 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Theory]
-        [MemberData(nameof(GetMismathchingPathTestSets))]
+        [MemberData(nameof(GetMismatchingPathTestSets))]
         public void GetHandler_EventListenerOnMismatchingPath_ReturnsNull(string pattern, string path, string resourceName)
         {
             Router r = new Router(pattern);

@@ -37,7 +37,8 @@ http://localhost:8081
 	* edit a customer so that it no longer matches the query.
 	* delete a customer that matches the query.
 * In the tab with the query, try to:
-	* Edit the 
+	* edit the name of a customer so that it changes order.
+	* edit the country of a customer so that it no longer matches the query.
 
 ### Persistence
 * Open the client and make some changes.
@@ -49,7 +50,7 @@ http://localhost:8081
 Request | Resource | Description
 --- | --- | ---
 *get* | `search.customers?from=0&limit=5&name=A&country=Sweden` | Query collection of customer references. All query parameters are optional.
-*call* | `search.customers.new` | Adds a new customer.
+*call* | `search.customers.newCustomer` | Adds a new customer.
 *get* | `search.customer.<ID>` | Models representing customers.
 *call* | `search.customer.<ID>.set` | Sets the customers' *name*, *email*, and *country* properties.
 *call* | `search.customer.<ID>.delete` | Deletes a customer.
@@ -66,7 +67,7 @@ GET http://localhost:8080/api/search/customers?from=0&limit=5&name=A&country=Swe
 
 ### Add new customer
 ```
-POST http://localhost:8080/api/search/customers/new
+POST http://localhost:8080/api/search/customers/newCustomer
 ```
 *Body*  
 ```
