@@ -242,6 +242,17 @@ namespace ResgateIO.Service.UnitTests
             Assert.Equal(HandlerTypes.Call, handler.EnabledHandlers);
         }
 
+        class EnabledHandlers_CallNewMethodWithoutAttribute_IsCall_Class : BaseHandler
+        {
+            public void New(ICallRequest r) { }
+        }
+        [Fact]
+        public void EnabledHandlers_CallNewMethodWithoutAttribute_IsCall()
+        {
+            var handler = new EnabledHandlers_CallNewMethodWithoutAttribute_IsCall_Class();
+            Assert.Equal(HandlerTypes.Call, handler.EnabledHandlers);
+        }
+
         class EnabledHandlers_CallMethodWithAttribute_IsCall_Class : BaseHandler
         {
             [CallMethod("foo")]
@@ -251,6 +262,18 @@ namespace ResgateIO.Service.UnitTests
         public void EnabledHandlers_CallMethodWithAttribute_IsCall()
         {
             var handler = new EnabledHandlers_CallMethodWithAttribute_IsCall_Class();
+            Assert.Equal(HandlerTypes.Call, handler.EnabledHandlers);
+        }
+
+        class EnabledHandlers_CallNewMethodWithAttribute_IsCall_Class : BaseHandler
+        {
+            [CallMethod("new")]
+            public void New(ICallRequest r) { }
+        }
+        [Fact]
+        public void EnabledHandlers_CallNewMethodWithAttribute_IsCall()
+        {
+            var handler = new EnabledHandlers_CallNewMethodWithAttribute_IsCall_Class();
             Assert.Equal(HandlerTypes.Call, handler.EnabledHandlers);
         }
 

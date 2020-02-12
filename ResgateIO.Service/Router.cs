@@ -96,7 +96,7 @@ namespace ResgateIO.Service
                         i = len;
                     }
                     if (i > offset)
-                    { 
+                    {
                         parts.Add(g.Substring(offset, i - offset));
                         partIdx.Add(-1);
                         if (i == len)
@@ -182,7 +182,7 @@ namespace ResgateIO.Service
                 {
                     if (!pps[i].Equals(Params[i]))
                     {
-                        throw new InvalidOperationException(String.Format("Part param tokens (%s) mismatch those previously set (%).", String.Join(", ", pps), String.Join(", ", Params)));
+                        throw new InvalidOperationException(String.Format("Part param tokens ({0}) mismatch those previously set ({1}).", String.Join(", ", pps), String.Join(", ", Params)));
                     }
                 }
             }
@@ -256,7 +256,7 @@ namespace ResgateIO.Service
         /// Initializes a new instance of the Router class without any prefixing pattern.
         /// </summary>
         public Router() : this("")
-        {   
+        {
         }
 
         /// <summary>
@@ -300,7 +300,7 @@ namespace ResgateIO.Service
         ///
         /// If the pattern is already registered, or if there are conflicts among
         /// the handlers, an exception will be thrown.
-        /// 
+        ///
         /// If a <see cref="ResourceGroupAttribute"/> is defined, the method will register
         /// the handler to that group.
         /// </summary>
@@ -329,7 +329,7 @@ namespace ResgateIO.Service
         ///
         /// If the pattern is already registered, or if there are conflicts among
         /// the handlers, an exception will be thrown.
-        /// 
+        ///
         /// All resources of the same group will be handled in order on a single worker task.
         /// The group may contain tags, ${tagName}, where the tag name matches a parameter
         /// placeholder name in the resource pattern.
@@ -339,7 +339,7 @@ namespace ResgateIO.Service
         /// <param name="handler">Resource handler.</param>
         public void AddHandler(string subpattern, string group, IAsyncHandler handler)
         {
-            handler = handler ?? throw new ArgumentNullException("handler must not be null.");            
+            handler = handler ?? throw new ArgumentNullException("handler must not be null.");
 
             Tuple<Node, List<PathParam>> tuple = fetch(subpattern, null);
 
@@ -358,7 +358,7 @@ namespace ResgateIO.Service
         /// <summary>
         /// Adds a listener to events for the resource with the registered subpattern.
         /// The subpattern must be an exact match of the registered resource, including any placeholder tags.
-        /// 
+        ///
         /// The sender will always implement the IResourceContext, and the EventArgs may be any
         /// of the following, based on type of event:
         /// <list type="bullet">
@@ -368,7 +368,7 @@ namespace ResgateIO.Service
         /// <item><description><see cref="CreateEventArgs"/></description></item>
         /// <item><description><see cref="DeleteEventArgs"/></description></item>
         /// <item><description><see cref="CustomEventArgs"/></description></item>
-        /// </list> 
+        /// </list>
         /// </summary>
         /// <example><code>
         /// router.AddEventListener("foo.$id", (sender, ev) => {
@@ -644,7 +644,7 @@ namespace ResgateIO.Service
         }
 
         private bool matchNode(Node current, string[] tokens, int tokenIdx, int mountIdx, InternalMatch nodeMatch)
-        {            
+        {
             Node next = null;
             if (current.Nodes != null)
             {

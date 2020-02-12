@@ -188,7 +188,7 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Fact]
-        public void WithGroup_WithMatchingResource_ThrowsException()
+        public void WithGroup_WithMatchingResource_CallsCallback()
         {
             AutoResetEvent ev = new AutoResetEvent(false);
             Service.AddHandler("model", "mygroup", new DynamicHandler().Get(r => r.NotFound()));
@@ -198,7 +198,7 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Fact]
-        public void WithGroup_WithMatchingResourceWithCallbackServiceParam_ThrowsException()
+        public void WithGroup_WithMatchingResourceWithCallbackServiceParam_CallsCallback()
         {
             AutoResetEvent ev = new AutoResetEvent(false);
             Service.AddHandler("model", "mygroup", new DynamicHandler().Get(r => r.NotFound()));

@@ -66,7 +66,7 @@ namespace ResgateIO.Service
 
         // Internal logger
         internal ILogger Log { get; private set; }
-        
+
         // Constants and readonly
         private const int shutdownTimeout = 5000; // milliseconds
         private static readonly Task completedTask = Task.FromResult(false);
@@ -262,7 +262,7 @@ namespace ResgateIO.Service
             Log.Info("Stopping service...");
 
             cleanup();
-            
+
             Log.Info("Stopped");
             Stopped?.Invoke(this, EmptyServeEventArgs);
         }
@@ -462,7 +462,7 @@ namespace ResgateIO.Service
                 activeWorkers.Signal();
                 if (!activeWorkers.Wait(shutdownTimeout))
                     OnError("Timed out waiting for {0} task worker(s) to finish", activeWorkers.CurrentCount);
-                
+
                 activeWorkers.Dispose();
                 queryTimerQueue.Dispose();
                 rwork = null;
@@ -758,7 +758,7 @@ namespace ResgateIO.Service
                 }
             }
         }
-        
+
         private Task processRequest(Msg msg, String rtype, String rname, String method, Router.Match match)
         {
             Request req;
