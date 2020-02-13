@@ -250,6 +250,24 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Fact]
+        public async Task CallMethod_WithNewMethodHandler_IsCalled()
+        {
+            int called = 0;
+            var handler = new DynamicHandler().CallMethod("new", r => called++);
+            await handler.Handle(new MockRequest { Type = RequestType.Call, Method = "new" });
+            Assert.Equal(1, called);
+        }
+
+        [Fact]
+        public async Task CallMethod_WithAsyncNewMethodHandler_IsCalled()
+        {
+            int called = 0;
+            var handler = new DynamicHandler().CallMethod("new", async r => await Task.Run(() => called++));
+            await handler.Handle(new MockRequest { Type = RequestType.Call, Method = "new" });
+            Assert.Equal(1, called);
+        }
+
+        [Fact]
         public void Auth_WithHandler_AuthFlagSet()
         {
             var handler = new DynamicHandler().Auth(r => { });

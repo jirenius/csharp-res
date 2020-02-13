@@ -28,7 +28,7 @@ namespace ResgateIO.Service.UnitTests
             int called = 0;
             var revert = new Dictionary<string, object> { { "foo", "baz" } };
             Service.AddHandler("model", new DynamicHandler()
-                .Call(r =>
+                .CallMethod("method", r =>
                 {
                     Assert.Equal(0, called);
                     r.ChangeEvent(changed);

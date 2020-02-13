@@ -338,10 +338,6 @@ namespace ResgateIO.Service
             {
                 throw new ArgumentException("Invalid method name: " + method);
             }
-            if (method == "new")
-            {
-                throw new ArgumentException("Must use SetNew to register handler for new call requests");
-            }
             if (callHandler == null)
             {
                 if (callMethods != null)
