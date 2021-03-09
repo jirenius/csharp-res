@@ -96,6 +96,7 @@ namespace ResgateIO.Service
         public ResService() : base()
         {
             Log = new ConsoleLogger();
+            Register(this);
         }
 
         /// <summary>
@@ -105,6 +106,7 @@ namespace ResgateIO.Service
         public ResService(string name) : base(name)
         {
             Log = new ConsoleLogger();
+            Register(this);
         }
 
         /// <summary>
@@ -143,14 +145,7 @@ namespace ResgateIO.Service
         public ResService SetLogger(ILogger logger)
         {
             assertStopped();
-            if (logger == null)
-            {
-                logger = new VoidLogger();
-            }
-            else
-            {
-                Log = logger;
-            }
+            Log = logger ?? new VoidLogger();
             return this;
         }
 
@@ -183,7 +178,8 @@ namespace ResgateIO.Service
         /// it calls the appropriate handler method.
         /// </summary>
         /// <param name="conn">Connection to NATS Server</param>
-        public void Serve(IConnection conn) {
+        public void Serve(IConnection conn)
+        {
             lock (stateLock)
             {
                 assertStopped();
@@ -207,7 +203,8 @@ namespace ResgateIO.Service
         /// or until successfully reconnecting, upon which Reset will be called.
         /// </summary>
         /// <param name="url">URL to NATS Server.</param>
-        public void Serve(string url) {
+        public void Serve(string url)
+        {
             lock (stateLock)
             {
                 assertStopped();
@@ -536,7 +533,8 @@ namespace ResgateIO.Service
 
             // Get request type
             Int32 idx = subj.IndexOf('.');
-            if (idx < 0) {
+            if (idx < 0)
+            {
                 // Shouldn't be possible unless NATS is really acting up
                 OnError("Invalid request subject: {0}", subj);
                 return;
@@ -616,6 +614,7 @@ namespace ResgateIO.Service
         /// Sends a raw data message to NATS server on a given subject,
         /// logging any exception.
         /// </summary>
+        /// <remarks>This is a low level method, only to be used if you are familiar with the RES protocol.</remarks>
         /// <param name="subject">Message subject</param>
         /// <param name="data">Message JSON encoded data</param>
         internal void RawSend(string subject, byte[] data)
@@ -631,9 +630,10 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
-        /// Sends a message to NATS server on a given subject,
-        /// logging any exception.
+        /// Sends a JSON encoded message to NATS server on a given subject,
+        /// trace logging the message, and logging any exception.
         /// </summary>
+        /// <remarks>This is a low level method, only to be used if you are familiar with the RES protocol.</remarks>
         /// <param name="subject">Message subject</param>
         /// <param name="payload">Message payload</param>
         internal void Send(string subject, object payload)
@@ -659,6 +659,10 @@ namespace ResgateIO.Service
             }
         }
 
+        /// <summary>
+        /// Adds a query
+        /// </summary>
+        /// <param name="queryEvent"></param>
         internal void AddQueryEvent(QueryEvent queryEvent)
         {
             if (queryEvent.Start())
@@ -752,7 +756,7 @@ namespace ResgateIO.Service
                 {
                     await task();
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     OnError("Exception encountered running resource task:\n{0}", ex.ToString());
                 }
@@ -798,7 +802,7 @@ namespace ResgateIO.Service
                     reqInput.URI,
                     reqInput.Query);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 OnError("Error deserializing incoming request: {0}", msg.Data == null ? "<null>" : Encoding.UTF8.GetString(msg.Data));
                 req = new Request(this, msg);

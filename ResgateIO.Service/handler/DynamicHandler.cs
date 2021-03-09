@@ -32,6 +32,16 @@ namespace ResgateIO.Service
         private Dictionary<string, Func<IAuthRequest, Task>> authMethods = null;
 
         /// <summary>
+        /// Service instance. Will be null if read before the handler is registered.
+        /// </summary>
+        public ResService Service { get; private set; }
+
+        /// <summary>
+        /// Full resource pattern. Will be a null string if read before the handler is registered.
+        /// </summary>
+        public string FullPattern { get; private set; }
+
+        /// <summary>
         /// Initializes a new instance of the DynamicHandler class.
         /// </summary>
         public DynamicHandler()
@@ -987,6 +997,17 @@ namespace ResgateIO.Service
                     await handleAuth((IAuthRequest)request);
                     break;
             }
+        }
+
+        /// <summary>
+        /// Called when the handler is registered to a service.
+        /// </summary>
+        /// <param name="service">Service which the handler is registered to.</param>
+        /// <param name="pattern">Full resource id pattern being handled.</param>
+        public virtual void OnRegister(ResService service, String pattern)
+        {
+            Service = service;
+            FullPattern = pattern;
         }
 
         /// <summary>

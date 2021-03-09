@@ -74,6 +74,27 @@ namespace ResgateIO.Service
         private readonly Task completedTask = Task.FromResult(false);
 
         /// <summary>
+        /// Service instance. Will be null if read before the handler is registered.
+        /// </summary>
+        public ResService Service {
+            get
+            {
+                return handler.Service;
+            }
+        }
+
+        /// <summary>
+        /// Full resource pattern. Will be a null string if read before the handler is registered.
+        /// </summary>
+        public string FullPattern
+        {
+            get
+            {
+                return handler.FullPattern;
+            }
+        }
+
+        /// <summary>
         /// Initializes a new instance of the BaseHandler class.
         /// </summary>
         public BaseHandler() : this(ResourceType.Unknown)
@@ -205,6 +226,15 @@ namespace ResgateIO.Service
         public async Task Handle(IRequest request)
         {
             await handler.Handle(request);
+        }
+
+        /// <summary>
+        /// Called when the handler is registered to a service.
+        /// </summary>
+        /// <param name="service">Service which the handler is registered to.</param>
+        /// <param name="pattern">Full resource id pattern being handled.</param>
+        public virtual void OnRegister(ResService service, String pattern) {
+            handler.OnRegister(service, pattern);
         }
 
         /// <summary>
