@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -598,6 +597,21 @@ namespace ResgateIO.Service.UnitTests
         public void AuthMethod_DuplicateMethods_ThrowsInvalidOperationException()
         {
             Assert.Throws<InvalidOperationException>(() => new AuthMethod_DuplicateMethods_ThrowsInvalidOperationException_Class());
+        }
+        #endregion
+
+        #region OnRegister
+        class OnRegister_ServiceAndPattern_IsExposed_Class : BaseHandler { }
+        [Fact]
+        public void OnRegister_ServiceAndPattern_IsExposed()
+        {
+            var handler = new OnRegister_ServiceAndPattern_IsExposed_Class();
+            var service = new ResService("");
+            Assert.Null(handler.Service);
+            Assert.Null(handler.FullPattern);
+            handler.OnRegister(service, "test.model");
+            Assert.Equal(service, handler.Service);
+            Assert.Equal("test.model", handler.FullPattern);
         }
         #endregion
     }
