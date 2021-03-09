@@ -241,7 +241,7 @@ namespace ResgateIO.Service
         public string FullPattern {
             get
             {
-                return parent == null ? Pattern : MergePattern(parent.FullPattern, Pattern);
+                return parent == null ? Pattern : MergePattern(MergePattern(parent.FullPattern, mountPattern), Pattern);
             }
         }
 
@@ -251,6 +251,8 @@ namespace ResgateIO.Service
         private const char BTSEP = '.';
         private readonly Node root;
         private Router parent;
+        private ResService service;
+        private string mountPattern;
 
         /// <summary>
         /// Initializes a new instance of the Router class without any prefixing pattern.
@@ -267,6 +269,27 @@ namespace ResgateIO.Service
         {
             Pattern = pattern;
             root = new Node();
+        }
+
+        /// <summary>
+        /// Registers the router to a service.
+        /// </summary>
+        /// <remarks>An exception is throw if the router is already registered to a service, or mounted to another router.</remarks>
+        /// <param name="service"></param>
+        public void Register(ResService service)
+        {
+            if (parent != null)
+            {
+                throw new InvalidOperationException("Router is already mounted.");
+            }
+
+            if (this.service != null)
+            {
+                throw new InvalidOperationException("Router is already registered to a service.");
+            }
+
+            this.service = service;
+            callOnRegister();
         }
 
         /// <summary>
@@ -353,6 +376,12 @@ namespace ResgateIO.Service
             n.Handler = handler;
 
             registerEventHandlers(handler);
+
+            ResService serv = registeredService();
+            if (serv != null)
+            {
+                handler.OnRegister(serv, MergePattern(FullPattern, subpattern));
+            }               
         }
 
         /// <summary>
@@ -420,6 +449,10 @@ namespace ResgateIO.Service
             {
                 throw new InvalidOperationException("Router is already mounted.");
             }
+            if (child.service != null)
+            {
+                throw new InvalidOperationException("Router is already registered to a service.");
+            }
             string spattern = MergePattern(subpattern, child.Pattern);
             if (spattern == "")
             {
@@ -430,9 +463,11 @@ namespace ResgateIO.Service
             {
                 throw new InvalidOperationException("Attempting to mount to existing pattern: " + MergePattern(Pattern, spattern));
             }
-            child.Pattern = spattern;
+            child.mountPattern = subpattern;
             child.root.IsMounted = true;
             child.parent = this;
+
+            child.callOnRegister();
         }
 
         /// <summary>
@@ -443,13 +478,26 @@ namespace ResgateIO.Service
         public void ValidateEventListeners()
         {
             var path = new List<string>(32);
+            List<Exception> exs = null;
+
             if (!String.IsNullOrEmpty(Pattern))
             {
                 path.Add(Pattern);
             }
-            if (contains(root, path, n => n.Handler == null && n.EventHandler != null))
+            traverse(root, path, 0, (n, p, mountId) =>
             {
-                throw new InvalidOperationException("No handler registered for pattern " + String.Join(".", path));
+                if (n.Handler == null && n.EventHandler != null)
+                {
+                    if (exs == null)
+                    {
+                        exs = new List<Exception>();
+                    }
+                    exs.Add(new InvalidOperationException(String.Format("No handler registered for pattern \"{0}\"", String.Join(".", path))));
+                }
+            });
+            if (exs != null)
+            {
+                throw new AggregateException(exs);
             }
         }
 
@@ -640,7 +688,7 @@ namespace ResgateIO.Service
         /// <returns>True if a handler matching the predicate is found, otherwise false.</returns>
         public bool Contains(Predicate<IAsyncHandler> predicate)
         {
-            return contains(root, null, n => n.Handler != null && predicate(n.Handler));
+            return contains(root, predicate);
         }
 
         private bool matchNode(Node current, string[] tokens, int tokenIdx, int mountIdx, InternalMatch nodeMatch)
@@ -739,48 +787,86 @@ namespace ResgateIO.Service
             return a + "." + b;
         }
 
-        private bool contains(Node n, List<string> path, Predicate<Node> predicate)
+        /// <summary>
+        /// Turns a path into a resource pattern string, replacing any path param part with the placeholder tag.
+        /// </summary>
+        /// <param name="n">Node</param>
+        /// <param name="path">Path</param>
+        /// <param name="mountIdx">Mount index</param>
+        /// <returns>Resource pattern.</returns>
+        internal static string PathToPattern(Node n, List<string> path, int mountIdx)
         {
-            // Full wildcard path
-            if (n.Wild != null && predicate(n.Wild))
+            var cp = path.ToList();
+
+            foreach (var pp in n.Params)
             {
-                path?.Add(">");
+                cp[pp.Idx + mountIdx] = "$" + pp.Name;
+            }
+	        return String.Join(".", cp);
+        }
+
+        private bool contains(Node n, Predicate<IAsyncHandler> predicate)
+        {
+            if (n.Wild != null && n.Wild.Handler != null && predicate(n.Wild.Handler))
+            {
                 return true;
             }
 
-            // Wildcard path
-            path?.Add("*");
-            if (
-                n.Param != null &&
-                (
-                    predicate(n.Param) ||
-                    contains(n.Param, path, predicate)
-                )
-            )
+            if (n.Param != null && ((n.Param.Handler != null && predicate(n.Param.Handler)) || contains(n.Param, predicate)))
             {
                 return true;
             }
-            path?.RemoveAt(path.Count - 1);
+
+            if (n.Nodes != null)
+            {
+                foreach (KeyValuePair<string, Node> pair in n.Nodes)
+                {
+                    Node nn = pair.Value;
+                    if ((nn.Handler != null && predicate(nn.Handler)) || contains(nn, predicate))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+
+        private void traverse(Node n, List<string> path, int mountIdx,  Action<Node, List<string>, int> action)
+        { 
+	        if (n == null)
+            {
+                return;
+	        }
+
+            action(n, path, mountIdx);
+
+            if (n.IsMounted)
+            {
+                mountIdx = path.Count;
+            }
+
+            // Full wildcard path
+            path.Add(">");
+            traverse(n.Wild, path, mountIdx, action);
+            path.RemoveAt(path.Count - 1);
+
+            // Wildcard path
+            path.Add("*");
+            traverse(n.Param, path, mountIdx, action);
+            path.RemoveAt(path.Count - 1);
 
             // Named path
             if (n.Nodes != null)
             {
                 foreach (KeyValuePair<string, Node> pair in n.Nodes)
                 {
-                    Node nn = pair.Value;
-                    path?.Add(pair.Key);
-                    if (
-                        predicate(nn) ||
-                        contains(nn, path, predicate)
-                    )
-                    {
-                        return true;
-                    }
-                    path?.RemoveAt(path.Count - 1);
+                    path.Add(pair.Key);
+                    traverse(pair.Value, path, mountIdx, action);
+                    path.RemoveAt(path.Count - 1);
                 }
             }
-
-            return false;
         }
 
         private static TAttribute GetHandlerAttribute<TAttribute>(IAsyncHandler h) where TAttribute : Attribute
@@ -807,6 +893,41 @@ namespace ResgateIO.Service
                     AddEventListener(attr.Pattern, (EventHandler)method.CreateDelegate(typeof(EventHandler), h));
                 }
             }
+        }
+
+        /// <summary>
+        /// Returns the service registered to the router, or an ancestor of the router.
+        /// </summary>
+        /// <returns>Registered service</returns>
+        private ResService registeredService()
+        {
+            if (parent != null)
+            {
+                return parent.registeredService();
+            }
+            return service;
+        }
+
+        /// <summary>
+        /// Traverses the node tree for all handlers, and calls any OnRegister callback.
+        /// If the router or its ancestors are not registered to a service, it will do nothing.
+        /// </summary>
+        private void callOnRegister()
+        {
+            ResService serv = registeredService();
+            if (serv == null)
+            {
+                return;
+            }
+
+            string pattern = FullPattern;
+            traverse(root, new List<string>(32), 0, (n, path, mountIdx) =>
+            {
+                if (n.Handler != null)
+                {
+                    n.Handler.OnRegister(serv, MergePattern(pattern, PathToPattern(n, path, mountIdx)));
+                }
+            });
         }
     }
 }
