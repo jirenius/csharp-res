@@ -522,5 +522,20 @@ namespace ResgateIO.Service.UnitTests
                 .Get(r => { });
             Assert.Equal(HandlerTypes.Access | HandlerTypes.Get, handler.EnabledHandlers);
         }
+
+        #region OnRegister
+        class OnRegister_ServiceAndPattern_IsExposed_Class : BaseHandler { }
+        [Fact]
+        public void OnRegister_ServiceAndPattern_IsExposed()
+        {
+            var handler = new OnRegister_ServiceAndPattern_IsExposed_Class();
+            var service = new ResService("");
+            Assert.Null(handler.Service);
+            Assert.Null(handler.FullPattern);
+            handler.OnRegister(service, "test.model");
+            Assert.Equal(service, handler.Service);
+            Assert.Equal("test.model", handler.FullPattern);
+        }
+        #endregion
     }
 }

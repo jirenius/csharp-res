@@ -215,6 +215,26 @@ namespace ResgateIO.Service.UnitTests
             yield return new object[] { "test", null, "sub", "$id", "test.sub.foo" };
             yield return new object[] { "test", "sub", null, ">", "test.sub.foo.bar" };
         }
+
+        public static IEnumerable<object[]> GetRegisterTestData()
+        {
+            yield return new object[] { "", "model", "sub.model" };
+            yield return new object[] { "", "model.foo", "sub.model.foo" };
+            yield return new object[] { "", "model.$id", "sub.model.$id" };
+            yield return new object[] { "", "model.>", "sub.model.>" };
+            yield return new object[] { "", "$id", "sub.$id" };
+            yield return new object[] { "", ">", "sub.>" };
+            yield return new object[] { "", "$id.>", "sub.$id.>" };
+            yield return new object[] { "", "$id.$foo", "sub.$id.$foo" };
+            yield return new object[] { "test", "model", "test.sub.model" };
+            yield return new object[] { "test", "model.foo", "test.sub.model.foo" };
+            yield return new object[] { "test", "model.$id", "test.sub.model.$id" };
+            yield return new object[] { "test", "model.>", "test.sub.model.>" };
+            yield return new object[] { "test", "$id", "test.sub.$id" };
+            yield return new object[] { "test", ">", "test.sub.>" };
+            yield return new object[] { "test", "$id.>", "test.sub.$id.>" };
+            yield return new object[] { "test", "$id.$foo", "test.sub.$id.$foo" };
+        }
         #endregion
 
         #region AddHandler
@@ -805,7 +825,7 @@ namespace ResgateIO.Service.UnitTests
         {
             Router r = new Router(pattern);
             r.AddEventListener(path, (sender, ev) => { });
-            Assert.Throws<InvalidOperationException>(() => r.ValidateEventListeners());
+            Assert.Throws<AggregateException>(() => r.ValidateEventListeners());
         }
 
         [Theory]
@@ -816,7 +836,7 @@ namespace ResgateIO.Service.UnitTests
             r.AddEventListener(path, (sender, ev) => { });
             r.AddHandler("completely.different", new DynamicHandler());
             r.AddEventListener("completely.different", (sender, ev) => { });
-            Assert.Throws<InvalidOperationException>(() => r.ValidateEventListeners());
+            Assert.Throws<AggregateException>(() => r.ValidateEventListeners());
         }
         #endregion
 
@@ -934,6 +954,63 @@ namespace ResgateIO.Service.UnitTests
             m.EventHandler?.Invoke(null, null);
             Assert.Equal(1, h.Called1);
             Assert.Equal(1, h.Called2);
+        }
+        #endregion
+
+        #region Register
+
+        [Theory]
+        [InlineData("", "model", "model")]
+        [InlineData("", "model.foo", "model.foo")]
+        [InlineData("", "model.$id", "model.$id")]
+        [InlineData("", "model.>", "model.>")]
+        [InlineData("", "$id", "$id")]
+        [InlineData("", ">", ">")]
+        [InlineData("", "$id.>", "$id.>")]
+        [InlineData("", "$id.$foo", "$id.$foo")]
+        [InlineData("test", "model", "test.model")]
+        [InlineData("test", "model.foo", "test.model.foo")]
+        [InlineData("test", "model.$id", "test.model.$id")]
+        [InlineData("test", "model.>", "test.model.>")]
+        [InlineData("test", "$id", "test.$id")]
+        [InlineData("test", ">", "test.>")]
+        [InlineData("test", "$id.>", "test.$id.>")]
+        [InlineData("test", "$id.$foo", "test.$id.$foo")]
+        public void Register_WithService_CallsOnRegister(string pattern, string subpattern, string expectedFullPattern)
+        {
+            var service = new ResService(pattern);
+            var handler = new DynamicHandler().SetType(ResourceType.Model);
+            service.AddHandler(subpattern, handler);
+            Assert.Equal(service, handler.Service);
+            Assert.Equal(expectedFullPattern, handler.FullPattern);
+        }
+
+        [Theory]
+        [MemberData(nameof(GetRegisterTestData))]
+        public void Register_AddHandlerToRouterBeforeMountingToService_CallsOnRegister(string pattern, string subpattern, string expectedFullPattern)
+        {
+            var service = new ResService(pattern);
+            var router = new Router();
+            var handler = new DynamicHandler().SetType(ResourceType.Model);
+            router.AddHandler(subpattern, handler);
+            Assert.Null(handler.Service);
+            Assert.Null(handler.FullPattern);
+            service.Mount("sub", router);
+            Assert.Equal(service, handler.Service);
+            Assert.Equal(expectedFullPattern, handler.FullPattern);
+        }
+
+        [Theory]
+        [MemberData(nameof(GetRegisterTestData))]
+        public void Register_AddHandlerToRouterAfterMountingToService_CallsOnRegister(string pattern, string subpattern, string expectedFullPattern)
+        {
+            var service = new ResService(pattern);
+            var router = new Router();
+            var handler = new DynamicHandler().SetType(ResourceType.Model);
+            service.Mount("sub", router);
+            router.AddHandler(subpattern, handler);
+            Assert.Equal(service, handler.Service);
+            Assert.Equal(expectedFullPattern, handler.FullPattern);
         }
         #endregion
     }

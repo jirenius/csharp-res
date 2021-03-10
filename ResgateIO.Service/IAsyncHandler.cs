@@ -26,6 +26,13 @@ namespace ResgateIO.Service
         Task Handle(IRequest request);
 
         /// <summary>
+        /// Called when the handler is registered to a service.
+        /// </summary>
+        /// <param name="service">Service which the handler is registered to.</param>
+        /// <param name="pattern">Full resource id pattern being handled.</param>
+        void OnRegister(ResService service, String pattern);
+
+        /// <summary>
         /// Applies modifying events onto the resource.
         /// </summary>
         /// <remarks>
