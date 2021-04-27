@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using NATS.Client;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace ResgateIO.Service
 {
@@ -642,7 +643,16 @@ namespace ResgateIO.Service
             {
                 if (payload != null)
                 {
-                    string json = JsonConvert.SerializeObject(payload);
+                    DefaultContractResolver contractResolver = new DefaultContractResolver
+                    {
+                        NamingStrategy = new CamelCaseNamingStrategy()
+                    };
+
+                    string json = JsonConvert.SerializeObject(payload, new JsonSerializerSettings
+                    {
+                        ContractResolver = contractResolver,
+                        Formatting = Formatting.Indented
+                    });
                     byte[] data = Encoding.UTF8.GetBytes(json);
                     Log.Trace("<-- {0}: {1}", subject, json);
                     RawSend(subject, data);

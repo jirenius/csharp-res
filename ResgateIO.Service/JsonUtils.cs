@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using System.Text;
 
 namespace ResgateIO.Service
@@ -12,7 +13,16 @@ namespace ResgateIO.Service
 
         public static byte[] Serialize(object item)
         {
-            return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(item));
+            DefaultContractResolver contractResolver = new DefaultContractResolver
+            {
+                NamingStrategy = new CamelCaseNamingStrategy()
+            };
+
+            return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(item, new JsonSerializerSettings
+            {
+                ContractResolver = contractResolver,
+                Formatting = Formatting.Indented
+            }));
         }
     }
 }
