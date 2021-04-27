@@ -63,6 +63,7 @@ namespace ResgateIO.Service
         private string[] resetAccess = null;
         private CountdownEvent activeWorkers = null;
         private Stack<Action> cleanupActions = new Stack<Action>();
+        private JsonSerializerSettings serializerSettings = null;
 
         // Internal logger
         internal ILogger Log { get; private set; }
@@ -169,6 +170,17 @@ namespace ResgateIO.Service
         {
             resetResources = resources;
             resetAccess = access;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the settings used with JSON serialization.
+        /// </summary>
+        /// <param name="settings">JSON serializer settings.</param>
+        /// <returns>The ResService instance.</returns>
+        public ResService SetSerializerSettings(JsonSerializerSettings settings)
+        {
+            serializerSettings = settings;
             return this;
         }
 
@@ -611,6 +623,16 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
+        /// Serializes an object into UTF8 encoded JSON.
+        /// </summary>
+        /// <param name="payload">Payload object to serialize.</param>
+        /// <returns>UTF8 encoded JSON.</returns>
+        internal byte[] JsonSerialize(object payload)
+        {
+            return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(payload, serializerSettings));
+        }
+
+        /// <summary>
         /// Sends a raw data message to NATS server on a given subject,
         /// logging any exception.
         /// </summary>
@@ -781,7 +803,7 @@ namespace ResgateIO.Service
                 byte[] d = msg.Data;
                 RequestDto reqInput = d == null || d.Length == 0 || (d.Length == 2 && d[0] == '{' && d[1] == '}')
                     ? RequestDto.Empty
-                    : JsonUtils.Deserialize<RequestDto>(msg.Data);
+                    : JsonConvert.DeserializeObject<RequestDto>(Encoding.UTF8.GetString(msg.Data));
 
                 req = new Request(
                     this,
