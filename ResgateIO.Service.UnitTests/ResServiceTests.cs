@@ -1,7 +1,10 @@
 using System;
+using System.Text;
 using System.Threading;
 using Xunit;
 using Xunit.Abstractions;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace ResgateIO.Service.UnitTests
 {
@@ -241,6 +244,25 @@ namespace ResgateIO.Service.UnitTests
             Assert.Equal(0, called);
             Assert.Throws<Exception>(() => Service.Serve(Conn));
             Assert.Equal(1, called);
+        }
+
+        [Fact]
+        public void SetSerializationSettings_OnResponse_EncodesWithSettings()
+        {
+            Service.SetSerializerSettings(new JsonSerializerSettings
+            {
+                ContractResolver = new DefaultContractResolver
+                {
+                    NamingStrategy = new CamelCaseNamingStrategy()
+                }
+            });
+            Service.AddHandler("model", new DynamicHandler().Call(r => r.Ok(new { FooBar = "bar" })));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test.model.method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertPayload(Encoding.UTF8.GetBytes(@"{""result"":{""fooBar"":""bar""}}"));
         }
     }
 }

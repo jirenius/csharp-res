@@ -164,8 +164,7 @@ namespace ResgateIO.Service
             {
                 try
                 {
-                    byte[] data = JsonUtils.Serialize(new ResultDto(result));
-                    RawResponse(data);
+                    RawResponse(Service.JsonSerialize(new ResultDto(result)));
                 }
                 catch (Exception ex)
                 {
@@ -188,8 +187,7 @@ namespace ResgateIO.Service
             }
             try
             {
-                byte[] data = JsonUtils.Serialize(new ResourceDto(rid));
-                RawResponse(data);
+                RawResponse(Service.JsonSerialize(new ResourceDto(rid)));
             }
             catch (Exception ex)
             {

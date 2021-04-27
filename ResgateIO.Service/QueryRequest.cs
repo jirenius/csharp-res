@@ -62,7 +62,7 @@ namespace ResgateIO.Service
         {
             try
             {
-                RawResponse(JsonUtils.Serialize(new ErrorDto(error)));
+                RawResponse(Service.JsonSerialize(new ErrorDto(error)));
             }
             catch (Exception ex)
             {
@@ -207,7 +207,7 @@ namespace ResgateIO.Service
         {
             try
             {
-                RawResponse(JsonUtils.Serialize(new ResultDto(result)));
+                RawResponse(Service.JsonSerialize(new ResultDto(result)));
             }
             catch (Exception ex)
             {
