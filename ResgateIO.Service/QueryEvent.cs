@@ -1,6 +1,6 @@
 ﻿using NATS.Client;
+using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -84,7 +84,7 @@ namespace ResgateIO.Service
                 QueryRequest qr;
                 try
                 {
-                    QueryRequestDto reqInput = JsonUtils.Deserialize<QueryRequestDto>(msg.Data);
+                    QueryRequestDto reqInput = JsonConvert.DeserializeObject<QueryRequestDto>(Encoding.UTF8.GetString(msg.Data));
                     if (String.IsNullOrEmpty(reqInput.Query))
                     {
                         Service.OnError("Missing query in query request {0}", Resource.ResourceName);
