@@ -329,6 +329,25 @@ namespace ResgateIO.Service.UnitTests
         }
 
         [Fact]
+        public void TokenEvent_WithTokenID_SendsTokenEventWithID()
+        {
+            Service.AddHandler("model", new DynamicHandler().Auth(r =>
+            {
+                r.TokenEvent(Test.Token, Test.TID);
+                r.Ok(Test.Result);
+            }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("auth.test.model.method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject("conn." + Test.CID + ".token")
+                .AssertPayload(new { token = Test.Token, tid = Test.TID });
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(Test.Result);
+        }
+
+        [Fact]
         public void Timeout_WithMilliseconds_SendsPreresponse()
         {
             Service.AddHandler("model", new DynamicHandler().Auth(r =>

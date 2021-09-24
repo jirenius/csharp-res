@@ -305,6 +305,11 @@ namespace ResgateIO.Service
             Calls.Add(new Call("TokenEvent", new object[] { token }));
         }
 
+        public void TokenEvent(object token, string tid)
+        {
+            Calls.Add(new Call("TokenEvent", new object[] { token, tid }));
+        }
+
         public T Value<T>() where T : class
         {
             Calls.Add(new Call("Value"));

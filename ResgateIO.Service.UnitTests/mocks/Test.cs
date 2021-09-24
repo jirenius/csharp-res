@@ -29,7 +29,9 @@ namespace ResgateIO.Service.UnitTests
 
         public const int TimeoutDuration = 200; // milliseconds
         public const int TokenId = 12;
+        public const string TID = "12";
         public const string TokenRole = "foo";
+        public const string AuthSubject = "auth.test.reset";
         public const int ParamNumber = 42;
         public const string ParamText = "bar";
         public const string Query = "zoo=baz&foo=bar";
