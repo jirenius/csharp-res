@@ -15,7 +15,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void ProtocolVersion_ReturnsCurrentVersion()
         {
-            Assert.Equal("1.2.0", Service.ProtocolVersion);
+            Assert.Equal("1.2.1", Service.ProtocolVersion);
         }
 
         [Fact]

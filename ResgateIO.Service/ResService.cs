@@ -18,7 +18,7 @@ namespace ResgateIO.Service
 
         // Constants
         /// <value>Supported RES protocol version.</value>
-        public readonly string ProtocolVersion = "1.2.0";
+        public readonly string ProtocolVersion = "1.2.1";
 
         // Events
 

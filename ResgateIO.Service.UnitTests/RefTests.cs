@@ -1,8 +1,5 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System;
-using System.IO;
-using System.Text;
 using Xunit;
 
 namespace ResgateIO.Service.UnitTests
@@ -68,7 +65,7 @@ namespace ResgateIO.Service.UnitTests
         public void SerializeRef_SerializesToCorrectJson(string rid, string json)
         {
             Ref r = new Ref(rid);
-            Test.AssertJsonEqual(JToken.Parse(JsonConvert.SerializeObject(r)), JToken.Parse(json));
+            Test.AssertJsonEqual(JToken.Parse(json), JToken.Parse(JsonConvert.SerializeObject(r)));
         }
 
         [Theory]

@@ -5,7 +5,7 @@ namespace ResgateIO.Service
     /// <summary>
     /// Represents a resource reference.
     /// </summary>
-    /// <see>https://resgate.io/docs/specification/res-protocol/#values</see>
+    /// <see>https://resgate.io/docs/specification/res-protocol/#resource-references</see>
     public class Ref
     {
         [JsonProperty(PropertyName = "rid")]
