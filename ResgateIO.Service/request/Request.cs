@@ -539,6 +539,25 @@ namespace ResgateIO.Service
         }
 
         /// <summary>
+        /// Sends a connection token event, including a token ID, that sets the connection's access token,
+        /// discarding any previously set token.
+        /// A change of token will invalidate any previous access response received using the old token.
+        /// The token ID is an identifier of the token, used when calling ResService.TokenReset to update or clear a token.
+        /// </summary>
+        /// <remarks>
+        /// To set the connection token for a different connection ID, use ResService.TokenEvent.
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#connection-token-event
+        /// </remarks>
+        /// <param name="cid">Connection ID</param>
+        /// <param name="token">Access token. A null token clears any previously set token.</param>
+        /// <param name="tid">Token ID, used to identify a token when calling ResService.TokenReset.</param>
+        public void TokenEvent(object token, string tid)
+        {
+            Service.Send("conn." + CID + ".token", new TokenEventDto(token, tid));
+        }
+
+        /// <summary>
         /// Flag telling if the request handler is called as a result of Value
         /// or RequireValue being called from another handler.
         /// </summary>

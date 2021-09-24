@@ -5,6 +5,7 @@ using Xunit;
 using Xunit.Abstractions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using Newtonsoft.Json.Linq;
 
 namespace ResgateIO.Service.UnitTests
 {
@@ -15,7 +16,7 @@ namespace ResgateIO.Service.UnitTests
         [Fact]
         public void ProtocolVersion_ReturnsCurrentVersion()
         {
-            Assert.Equal("1.2.1", Service.ProtocolVersion);
+            Assert.Equal("1.2.2", Service.ProtocolVersion);
         }
 
         [Fact]
@@ -142,6 +143,49 @@ namespace ResgateIO.Service.UnitTests
         {
             Service.Serve(Conn);
             Assert.Throws<ArgumentException>(() => Service.TokenEvent("invalid.*.cid", null));
+        }
+
+        [Fact]
+        public void TokenEvent_WithTokenID_SendsTokenEventWithTID()
+        {
+            Service.Serve(Conn);
+            Service.TokenEvent(Test.CID, Test.Token, Test.TID);
+            Conn.GetMsg()
+                .AssertSubject("conn." + Test.CID + ".token")
+                .AssertPayload(new { token = Test.Token, tid = Test.TID });
+        }
+
+        [Fact]
+        public void TokenEvent_WithNullToken_SendsNullTokenEventWithTID()
+        {
+            Service.Serve(Conn);
+            Service.TokenEvent(Test.CID, null, Test.TID);
+            Conn.GetMsg()
+                .AssertSubject("conn." + Test.CID + ".token")
+                .AssertPayload(new { token = (object)null, tid = Test.TID });
+        }
+
+        [Theory]
+        [InlineData("auth", new string[] { "foo" }, "{\"tids\":[\"foo\"],\"subject\":\"auth\"}")]
+        [InlineData("auth", new string[] { "foo", "bar" }, "{\"tids\":[\"foo\",\"bar\"],\"subject\":\"auth\"}")]
+        [InlineData("auth.test.method", new string[] { "foo", "bar" }, "{\"tids\":[\"foo\",\"bar\"],\"subject\":\"auth.test.method\"}")]
+        public void TokenReset_WithTokenIDs_SendsSystemTokenResetEvent(string subject, string[] tids, string expectedJson)
+        {
+            Service.Serve(Conn);
+            Service.TokenReset(subject, tids);
+            Conn.GetMsg()
+                .AssertSubject("system.tokenReset")
+                .AssertPayload(JObject.Parse(expectedJson));
+        }
+
+        [Theory]
+        [InlineData("auth", null)]
+        [InlineData("auth", new string[] { })]
+        public void TokenReset_WithNoTokenIDs_DoesNotSendsSystemTokenResetEvent(string subject, string[] tids)
+        {
+            Service.Serve(Conn);
+            Service.TokenReset(subject, tids);
+            Conn.AssertNoMsg();
         }
 
         [Fact]
