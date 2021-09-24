@@ -238,6 +238,11 @@ namespace ResgateIO.Service
             throw new InvalidOperationException(invalidError);
         }
 
+        public void TokenEvent(object token, string tid)
+        {
+            throw new InvalidOperationException(invalidError);
+        }
+
         public void New(Ref rid)
         {
             throw new InvalidOperationException(invalidError);

@@ -18,7 +18,7 @@ namespace ResgateIO.Service
 
         // Constants
         /// <value>Supported RES protocol version.</value>
-        public readonly string ProtocolVersion = "1.2.0";
+        public readonly string ProtocolVersion = "1.2.2";
 
         // Events
 
@@ -316,7 +316,7 @@ namespace ResgateIO.Service
             IResourceContext resource = Resource(rid);
             if (resource == null)
             {
-                throw new ArgumentException("No matching handler found for resource ID: " + rid);
+                throw new ArgumentException(String.Format("No matching handler found for resource ID: {0}", rid));
             }
 
             runWith(resource.Group, () => callback(resource));
@@ -586,11 +586,54 @@ namespace ResgateIO.Service
         /// <param name="token">Access token. A null token clears any previously set token.</param>
         public void TokenEvent(string cid, object token)
         {
+            TokenEvent(cid, token, null);
+        }
+
+        /// <summary>
+        /// Sends a connection token event, including a token ID, that sets the connection's access token,
+        /// discarding any previously set token.
+        /// A change of token will invalidate any previous access response received using the old token.
+        /// The token ID is an identifier of the token, used when calling TokenReset to update or clear a token.
+        /// </summary>
+        /// <remarks>
+        /// See the protocol specification for more information:
+        ///    https://github.com/resgateio/resgate/blob/master/docs/res-service-protocol.md#connection-token-event
+        /// </remarks>
+        /// <param name="cid">Connection ID</param>
+        /// <param name="token">Access token. A null token clears any previously set token.</param>
+        /// <param name="tid">Token ID, used to identify a token when calling TokenReset.</param>
+        public void TokenEvent(string cid, object token, string tid)
+        {
             if (!IsValidPart(cid))
             {
-                throw new ArgumentException("Invalid connection ID: " + cid);
+                throw new ArgumentException(String.Format("Invalid connection ID: {0}", cid));
             }
-            Send("conn." + cid + ".token", new TokenEventDto(token));
+            Send("conn." + cid + ".token", new TokenEventDto(token, tid));
+        }
+
+        /// <summary>
+        /// TokenReset sends a token reset event for the provided token IDs.
+        /// 
+        /// The subject string is a message subject that will receive auth requests for
+        /// any connections with a token matching any of the token IDs.
+        /// </summary>
+        /// <remarks>
+        /// See the protocol specification for more information:
+        ///    https://resgate.io/docs/specification/res-service-protocol/#system-token-reset-event
+        /// </remarks>
+        /// <param name="subject">Message subject for auth requests</param>
+        /// <param name="tokenIds">Token IDs for tokens to reset.</param>
+        public void TokenReset(string subject, params string[] tokenIds)
+        {
+            if (String.IsNullOrEmpty(subject))
+            {
+                throw new ArgumentException(String.Format("Invalid message subject: {0}", subject));
+            }
+            if (tokenIds == null || tokenIds.Length == 0)
+            {
+                return;
+            }
+            Send("system.tokenReset", new SystemTokenResetDto(subject, tokenIds));
         }
 
         /// <summary>
