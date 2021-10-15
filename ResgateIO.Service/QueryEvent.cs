@@ -74,7 +74,7 @@ namespace ResgateIO.Service
 
             Service.Log.Trace("Q=> {0}: {1}", subj, Encoding.UTF8.GetString(msg.Data));
 
-            Resource.Service.With(Resource, () =>
+            Resource.Service.With(Resource, async () =>
             {
                 if (callback == null)
                 {
@@ -102,7 +102,7 @@ namespace ResgateIO.Service
 
                 try
                 {
-                    callback(qr);
+                    await callback(qr);
                 }
                 catch(ResException ex)
                 {
