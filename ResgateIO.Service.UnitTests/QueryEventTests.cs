@@ -311,6 +311,42 @@ namespace ResgateIO.Service.UnitTests
             }
         }
 
+        [Theory]
+        [MemberData(nameof(GetQueryRequestTestData))]
+        public void QueryRequest_UsingAsyncCallback_SendsCorrectResponse(string query, Action<IQueryRequest> callback, object expected)
+        {
+            Service.AddHandler("model", new DynamicHandler().Call(r =>
+            {
+                r.QueryEvent(async qreq => {
+                    await Task.Run(() =>callback(qreq));                    
+                });
+                r.Ok();
+            }));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+            string inbox = Conn.NATSRequest("call.test.model.method", new RequestDto { CID = Test.CID, Token = Test.Token, Params = new { query } });
+            Assert.True(Conn.GetMsg()
+                .AssertSubject("event.test.model.query")
+                .TryGetPath("subject", out JToken subject), "no subject property in query event");
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(null);
+            string inboxQR = Conn.NATSRequest((string)subject, new { query });
+            var msg = Conn.GetMsg().AssertSubject(inboxQR);
+            if (expected is string expectedString)
+            {
+                msg.AssertError(expectedString);
+            }
+            else if (expected is ResError expectedError)
+            {
+                msg.AssertError(expectedError);
+            }
+            else
+            {
+                msg.AssertResult(expected);
+            }
+        }
+
         [Fact]
         public void QueryRequest_CallingTimeoutWithTimespan_SendsPreresponse()
         {
