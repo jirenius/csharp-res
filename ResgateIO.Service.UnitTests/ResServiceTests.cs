@@ -308,5 +308,50 @@ namespace ResgateIO.Service.UnitTests
                 .AssertSubject(inbox)
                 .AssertPayload(Encoding.UTF8.GetBytes(@"{""result"":{""fooBar"":""bar""}}"));
         }
+
+        [Fact]
+        public void SetOwnedResources_WithoutFullWildcard_SubscribesToGetRequests()
+        {
+            var resources = new string[] { "test.model.*" };
+            Service.SetOwnedResources(resources, null);
+            Service.AddHandler("model.$id", new DynamicHandler().Get(r => r.Model(Test.Model)));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+
+            string inbox = Conn.NATSRequest("get.test.model.42", Test.EmptyRequest);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(new { model = Test.Model });
+        }
+
+        [Fact]
+        public void SetOwnedResources_WithoutFullWildcard_SubscribesToCallRequests()
+        {
+            var resources = new string[] { "test.model.*" };
+            Service.SetOwnedResources(resources, null);
+            Service.AddHandler("model.$id", new DynamicHandler().Call(r => r.Ok(Test.Result)));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+
+            string inbox = Conn.NATSRequest("call.test.model.42.method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(Test.Result);
+        }
+
+        [Fact]
+        public void SetOwnedResources_WithoutFullWildcard_SubscribesToAuthRequests()
+        {
+            var resources = new string[] { "test.model.*" };
+            Service.SetOwnedResources(resources, null);
+            Service.AddHandler("model.$id", new DynamicHandler().Auth(r => r.Ok(Test.Result)));
+            Service.Serve(Conn);
+            Conn.GetMsg().AssertSubject("system.reset");
+
+            string inbox = Conn.NATSRequest("auth.test.model.42.method", Test.Request);
+            Conn.GetMsg()
+                .AssertSubject(inbox)
+                .AssertResult(Test.Result);
+        }
     }
 }
