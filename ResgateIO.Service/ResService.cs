@@ -507,6 +507,10 @@ namespace ResgateIO.Service
                 foreach (string p in resetResources)
                 {
                     var subject = type + "." + p;
+                    if (type != "get" && !subject.EndsWith(">"))
+                    {
+                        subject += ".*";
+                    }
                     Log.Debug("Subscribing to {0}", subject);
                     var sub = Connection.SubscribeAsync(subject, handleMessage);
                     cleanupActions.Push(() =>
