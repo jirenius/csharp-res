@@ -90,6 +90,8 @@ namespace ResgateIO.Service
         internal static readonly byte[] ResponseSuccess = Encoding.UTF8.GetBytes("{\"result\":null}");
         internal static readonly byte[] ResponseNoQueryEvents = Encoding.UTF8.GetBytes("{\"result\":{\"events\":[]}}");
 
+        internal ErrorHandlerDelegate ErrorHandler = null;
+
 
         /// <summary>
         /// Initializes a new instance of the ResService class without a resource name prefix.
@@ -147,6 +149,18 @@ namespace ResgateIO.Service
         {
             assertStopped();
             Log = logger ?? new VoidLogger();
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the calling delegate which is invoked when an unhandled exception occurs during execution of a request.
+        /// </summary>
+        /// <param name="globalErrorHandler">The method invoked upon unhandled exception when processing request.</param>
+        /// <returns>The ResService instance.</returns>
+        public ResService AddGlobalRequestErrorHandler(ErrorHandlerDelegate globalErrorHandler)
+        {
+            assertStopped();
+            this.ErrorHandler = globalErrorHandler;
             return this;
         }
 
