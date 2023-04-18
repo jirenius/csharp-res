@@ -438,11 +438,12 @@ namespace ResgateIO.Service
             {
                 if (!replied)
                 {
-                    if (Service.ErrorHandler != null)
+                    if (Service.CustomRequestErrorHandler != null)
                     {
                         try
                         {
-                            Error(Service.ErrorHandler(ex, this));
+                            Service.CustomRequestErrorHandler(ex, this);
+                            return;
                         }
                         catch (Exception)
                         {

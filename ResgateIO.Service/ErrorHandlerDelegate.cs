@@ -8,5 +8,5 @@ namespace ResgateIO.Service
     /// <param name="exception">The exception.</param>
     /// <param name="req">The executing request.</param>
     /// <returns>A RES service error</returns>
-    public delegate ResError ErrorHandlerDelegate(Exception exception, IRequest req);
+    public delegate void ErrorHandlerDelegate(Exception exception, IRequest req);
 }
