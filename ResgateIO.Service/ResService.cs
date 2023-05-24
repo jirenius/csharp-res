@@ -90,6 +90,8 @@ namespace ResgateIO.Service
         internal static readonly byte[] ResponseSuccess = Encoding.UTF8.GetBytes("{\"result\":null}");
         internal static readonly byte[] ResponseNoQueryEvents = Encoding.UTF8.GetBytes("{\"result\":{\"events\":[]}}");
 
+        internal ErrorHandlerDelegate CustomRequestErrorHandler = null;
+
 
         /// <summary>
         /// Initializes a new instance of the ResService class without a resource name prefix.
@@ -147,6 +149,28 @@ namespace ResgateIO.Service
         {
             assertStopped();
             Log = logger ?? new VoidLogger();
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the delegate which is invoked when an unhandled exception occurs during execution of a request.
+        /// The caller is responsible for the request response by calling <see cref="IRequest.Error(ResError)"/> or 
+        /// any other of response types.
+        /// </summary>
+        /// <example>
+        /// <code>
+        ///private void GlobalErrorHandler(Exception exception, IRequest req)
+        ///{
+        /// req.Error(new ResError("Unexpected error"));
+        ///}
+        /// </code>
+        /// </example>
+        /// <param name="customErrorHandler">The method invoked upon unhandled exception when processing request.</param>
+        /// <returns>The ResService instance.</returns>
+        public ResService SetGlobalRequestErrorHandler(ErrorHandlerDelegate customErrorHandler)
+        {
+            assertStopped();
+            CustomRequestErrorHandler = customErrorHandler;
             return this;
         }
 
