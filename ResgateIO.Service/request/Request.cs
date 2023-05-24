@@ -438,7 +438,22 @@ namespace ResgateIO.Service
             {
                 if (!replied)
                 {
-                    Error(new ResError(ex));
+                    if (Service.CustomRequestErrorHandler != null)
+                    {
+                        try
+                        {
+                            Service.CustomRequestErrorHandler(ex, this);
+                            return;
+                        }
+                        catch (Exception)
+                        {
+                            Error(new ResError(ex));
+                        }
+                    }
+                    else
+                    {
+                        Error(new ResError(ex));
+                    }
                 }
 
                 // Write to log as only ResExceptions are considered valid behaviour.

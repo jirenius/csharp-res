@@ -353,5 +353,12 @@ namespace ResgateIO.Service.UnitTests
                 .AssertSubject(inbox)
                 .AssertResult(Test.Result);
         }
+
+        [Fact]
+        public void SetErrorHandler_NullParameter_NoException()
+        {
+            Service.SetGlobalRequestErrorHandler(null);
+            Service.Serve(Conn);
+        }
     }
 }
