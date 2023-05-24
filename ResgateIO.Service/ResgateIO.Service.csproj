@@ -11,7 +11,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://resgate.io/</PackageProjectUrl>
     <Description>RES service library for building next gen realtime APIs with synchronized clients using Resgate.</Description>
-    <PackageReleaseNotes>https://github.com/jirenius/csharp-res/releases/tag/v0.4.8</PackageReleaseNotes>
+    <PackageReleaseNotes>https://github.com/jirenius/csharp-res/releases/tag/v0.5.0</PackageReleaseNotes>
     <Copyright>Copyright 2019 Samuel Jirenius</Copyright>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/jirenius/csharp-res</RepositoryUrl>
